@@ -46,7 +46,8 @@ trait ScvBigStepSemantics extends ScvModAnalysis with ScvBaseSemantics with ScvS
       override def analyzeWithTimeout(timeout: Timeout.T): Unit =
           val initialState = State.empty.copy(env = fnEnv, store = initialStoreCache)
           val resultsM = for
-              _ <- injectPre
+              _ <- injectCtx
+              //_ <- injectPre
               value <- extract(eval(expr(cmp)))
               _ <- checkPost(value)
           yield value
@@ -57,12 +58,28 @@ trait ScvBigStepSemantics extends ScvModAnalysis with ScvBaseSemantics with ScvS
 
       /** Check the post contract on the value resulting from the analysis of the current component */
       private def checkPost(value: PostValue): EvalM[Unit] =
-        usingContract(cmp) {
-          case Some(_, contract, _, _) =>
+        usingRangeContract(cmp) {
+          case Some(contract) =>
             // TODO: check the monIdn parameter
             applyMon(PostValue.noSymbolic(contract), value, expr(cmp), expr(cmp).idn).flatMap(_ => unit(()))
           case None => unit(())
         }
+
+      /** Injects information from the components context in the current analysis */
+      private def injectCtx: EvalM[Unit] =
+          val context = fromContext(cmp)
+          for
+              _ <- putPc(context.pathCondition)
+              _ <- putVars(context.vars)
+              _ <- Monad.sequence(context.symbolic.map {
+                case (name, Some(value)) =>
+                  for
+                      env <- getEnv
+                      _ <- env.lookup(name).map(writeSymbolic(_)(value)).getOrElse(unit(value))
+                  yield ()
+                case (_, _) => unit(())
+              }.toList)
+          yield ()
 
       /** Injects the pre-condition contracts (if any are available) in the analysis of the current component */
       private def injectPre: EvalM[Unit] =
@@ -256,13 +273,15 @@ trait ScvBigStepSemantics extends ScvModAnalysis with ScvBaseSemantics with ScvS
                   arr.contract.rangeMakerExpr.idn.pos,
                 )
               )
+              ctx <- buildCtx(argsV.map(_.symbolic), Some(rangeContract))
               result <- unit(
                 applyFun(
                   fc, // syntactic function node
                   arr.e, // the function to apply
                   fc.args.zip(argsV.map(_.value)), // the arguments
                   fc.idn.pos, // the position of the function in the source code
-                  Some(() => ContractCallContext(arr.contract.domain, rangeContract, fc.args, fc.idn))
+                  ctx
+                  //Some(() => ContractCallContext(arr.contract.domain, rangeContract, fc.args, fc.idn))
                 )
               )
           yield result

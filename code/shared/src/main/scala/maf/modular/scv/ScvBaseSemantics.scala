@@ -43,6 +43,21 @@ trait ScvBaseSemantics extends BigStepModFSemanticsT { outer =>
   type StoreCache = Map[Addr, Symbolic]
 
   /////////////////////////////////////////////////////
+  // Operations using contexts
+  /////////////////////////////////////////////////////
+
+  /**
+   * Based on the current state of the scvMonadInstance build a context for newly created components
+   *
+   * @param symArgs
+   *   a list of arguments of the function call corresponding to the context of the component we are building
+   * @param rangeContract
+   *   an optional range contract
+   */
+  protected def buildCtx(symArgs: List[Option[SchemeExp]], rangeContract: Option[Value]): EvalM[ContextBuilder] =
+    scvMonadInstance.unit(DefaultContextBuilder)
+
+  /////////////////////////////////////////////////////
   // Monads
   /////////////////////////////////////////////////////
 
@@ -58,6 +73,12 @@ trait ScvBaseSemantics extends BigStepModFSemanticsT { outer =>
       def mzero[X]: EvalM[X] = MonadStateT.lift(TaggedSet.empty)
       def merge[X: Lattice](x: EvalM[X], y: EvalM[X]): EvalM[X] =
         throw new Exception("Merging not supported in ScvEvalM")
+      def assignVals[X](bds: List[(Identifier, X)], assign: (List[(Identifier, X)], Env) => Unit): EvalM[Unit] =
+        for
+            env <- getEnv
+            _ = assign(bds, env)
+        yield ()
+
   /* MonadStateT((state) => {
           val xRes = x.run(state)
           val yRes = y.run(state)
@@ -102,8 +123,22 @@ trait ScvBaseSemantics extends BigStepModFSemanticsT { outer =>
   protected def getPc: EvalM[List[Symbolic]] =
     scvMonadInstance.get.map(_.pc)
 
+  /** Replaces the current path condition with the one given as a parameter */
+  protected def putPc(pc: List[SchemeExp]): EvalM[Unit] =
+    for
+        st <- scvMonadInstance.get
+        _ <- scvMonadInstance.put(st.copy(pc = pc))
+    yield ()
+
   protected def getVars: EvalM[List[String]] =
     scvMonadInstance.get.map(_.vars)
+
+  /** Replaces the current set of variables that are in the path condition with the given list */
+  protected def putVars(vars: List[String]): EvalM[Unit] =
+    for
+        st <- scvMonadInstance.get
+        _ <- scvMonadInstance.put(st.copy(vars = vars, freshVar = vars.size + 1))
+    yield ()
 
   /** Generates a fresh symbolic variable */
   protected def fresh: EvalM[Symbolic] =

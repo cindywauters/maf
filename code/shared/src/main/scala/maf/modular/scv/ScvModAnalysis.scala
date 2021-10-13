@@ -8,6 +8,7 @@ import maf.language.ContractScheme.ContractValues._
 import maf.core.{Identifier, Identity}
 import maf.modular.scheme.modf.SchemeModFComponent
 import maf.modular.scheme.modf.BaseSchemeModFSemantics
+import maf.core.Address
 
 // TODO: put this into its file?
 abstract class IsSat[+V]
@@ -31,12 +32,8 @@ trait ScvSatSolver[V] {
 }
 
 /** Main trait for the soft-contract verification analysis. */
-trait ScvModAnalysis
-    extends ModAnalysis[SchemeExp]
-    with GlobalStore[SchemeExp]
-    with ReturnValue[SchemeExp]
-    with SchemeDomain
-    with BaseSchemeModFSemantics { outer =>
+trait ScvModAnalysis extends ModAnalysis[SchemeExp] with GlobalStore[SchemeExp] with ReturnValue[SchemeExp] with SchemeDomain with ScvBaseSemantics {
+  outer =>
   protected val DEBUG: Boolean = true
 
   protected val sat: ScvSatSolver[Value]
@@ -45,8 +42,22 @@ trait ScvModAnalysis
 
   /** Executes the given function using the contract embedded in the component (if any is available) */
   protected def usingContract[X](cmp: Component)(f: Option[(List[Value], Value, List[SchemeExp], Identity)] => X): X
+  protected def usingRangeContract[X](cmp: Component)(f: Option[Value] => X): X
 
-  trait IntraScvAnalysis extends IntraAnalysis with GlobalStoreIntra with ReturnResultIntra with SchemeModFSemanticsIntra { inner =>
+  trait FromContext:
+      def pathCondition: List[SchemeExp]
+      def vars: List[String]
+      def symbolic: Map[String, Option[SchemeExp]]
+
+  object EmptyContext extends FromContext:
+      def pathCondition: List[SchemeExp] = List()
+      def vars: List[String] = List()
+      def symbolic: Map[String, Option[SchemeExp]] = Map()
+
+  /** Returns interesting information about the context of the current component */
+  protected def fromContext(cmp: Component): FromContext
+
+  trait IntraScvAnalysis extends IntraAnalysis with GlobalStoreIntra with ReturnResultIntra with BaseIntraAnalysis { inner =>
     def writeBlame(blame: Blame): Unit =
       writeAddr(ScvExceptionAddr(component, expr(component).idn), lattice.blame(blame))
 
