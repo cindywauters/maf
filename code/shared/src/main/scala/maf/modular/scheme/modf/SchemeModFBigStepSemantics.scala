@@ -18,13 +18,14 @@ trait TEvalM[M[_]] extends Monad[M]:
     def merge[X: Lattice](x: M[X], y: M[X]): M[X]
     def merge[X: Lattice](xs: Iterable[M[X]]): M[X] =
       xs.foldLeft[M[X]](mzero)((acc, x) => merge(acc, x))
-    // assignVals needs the assign parameters because this is not reachable from within the scope where the type class may be instantiated.
-    def assignVals[X](bds: List[(Identifier, X)], assign: (List[(Identifier, X)], Environment[Address]) => Unit): M[Unit]
 
 trait BigStepModFSemanticsT extends BaseSchemeModFSemantics:
     import maf.core.Monad.{MonadIterableOps, MonadSyntaxOps}
     type EvalM[_]
+    type M[X] = EvalM[X]
     implicit val evalM: TEvalM[EvalM]
+    implicit lazy val baseEvalM: Monad[M] = evalM
+
     import evalM._
 
     // helper
@@ -64,7 +65,8 @@ trait BigStepModFSemanticsT extends BaseSchemeModFSemantics:
         private def evalSet(id: Identifier, exp: SchemeExp): EvalM[Value] =
           for
               rhs <- eval(exp)
-              _ <- assignVals(List((id, rhs)), assign)
+              env <- getEnv
+              _ = assign(id, env, rhs)
           yield lattice.void
         protected def evalIf(
             prd: SchemeExp,
@@ -114,7 +116,7 @@ trait BigStepModFSemanticsT extends BaseSchemeModFSemantics:
           for
               funVal <- eval(fun)
               argVals <- args.mapM(eval)
-              returned = applyFun(exp, funVal, args.zip(argVals), fun.idn.pos)
+              returned <- applyFun(exp, funVal, args.zip(argVals), fun.idn.pos)
               result <- inject(returned)
           yield result
 
@@ -155,9 +157,6 @@ trait BigStepModFSemantics extends BigStepModFSemanticsT {
             case (None, yres)             => yres
             case (xres, None)             => xres
             case (Some(res1), Some(res2)) => Some(Lattice[X].join(res1, res2))
-      }
-      def assignVals[X](bds: List[(Identifier, X)], assign: (List[(Identifier, X)], Env) => Unit): EvalM[Unit] = EvalM { env =>
-        Some(assign(bds, env))
       }
 
   implicit val evalM = EvalM
