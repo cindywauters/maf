@@ -91,8 +91,10 @@ object IncrementalRun extends App:
         val a = base(text)
         a.logger.logU("BASE + INC")
         a.analyzeWithTimeout(timeout())
+        println(a.deps)
         //println(a.visited)
         a.updateAnalysis(timeout())
+        println(a.deps)
         //println(a.visited)
         Thread.sleep(1000)
         val b = base(text)
@@ -100,11 +102,10 @@ object IncrementalRun extends App:
         b.logger.logU("REAN")
         b.analyzeWithTimeout(timeout())
         // println(b.visited)
-        println("Done")
     end modfAnalysis
 
     val modConcbenchmarks: List[String] = List()
-    val modFbenchmarks: List[String] = List("test/DEBUG3.scm") // List("test/changes/scheme/peval.scm")
+    val modFbenchmarks: List[String] = List("test/changeDetectionTest/differentTest.scm")//List("test/DEBUG3.scm") // List("test/changes/scheme/peval.scm")
     val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(30, SECONDS))
 
     modConcbenchmarks.foreach(modconcAnalysis(_, ci_di_wi, standardTimeout))

@@ -148,9 +148,12 @@ trait IncrementalModAnalysis[Expr <: Expression] extends ModAnalysis[Expr] with 
     /** Perform an incremental analysis of the updated program, starting from the previously obtained results. */
     def updateAnalysis(timeout: Timeout.T): Unit =
         version = New // Make sure the new program version is analysed upon reanalysis (i.e., 'apply' the changes).
+        println("in analysis")
+       // println(store)
         val affected = findUpdatedExpressions(program).flatMap(mapping)
         affected.foreach(addToWorkList)
         analyzeWithTimeout(timeout)
+       // println(store)
 
     /* ************************************ */
     /* ***** Intra-component analysis ***** */

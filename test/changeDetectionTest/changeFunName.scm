@@ -1,27 +1,15 @@
-;; change name function
-(<change>
- (define (fac n)
-   (if (= n 0)
-       1
-       (* (fac (- n 1)) n)))
- (define (fac-new n) ;; different
-   (if (= n 0)
-       1
-       (* (fac-new (- n 1)) n)))) ;; different
-(<change>
- (fac 5)
- (fac-new 5)) ;; different
+;; check this, doesn't properly run in scheme
 
-;; change name function + other change
-(<change>
- (define (fac n)
-   (if (= n 0)
-       1
-       (* (fac (- n 1)) n)))
- (define (fac-new n)
-   (if (= n 1) ;; also different
-       1
-       (* (fac-new (- n 1)) n))))
-(<change>
- (fac 5)
- (fac-new 5))
+(define (fac n)
+  (<change>
+   (letrec ((loop (lambda (number counter)
+                 (if (> counter n)
+                     number
+                     (loop (* number counter) (+ counter 1))))))
+     (loop 1 1))
+   (letrec ((iteration (lambda (number counter)
+                      (if (= counter ( + 1 n))
+                          number
+                          (iteration (* number counter) (+ counter 1))))))
+     (iteration 1 1))))
+(fac 5)
