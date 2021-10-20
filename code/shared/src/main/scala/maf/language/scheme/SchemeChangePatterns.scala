@@ -25,17 +25,18 @@ object SchemeChangePatterns:
        if changedArgs.isEmpty then
          return false
        changedExprs = oldbody.zip(newbody).filter((b1, b2) => !b1.eql(b2))
-       if changedExprs.filter(e1 => checkIndividualExpressions(e1._1, e1._2, changedArgs)).isEmpty then 
-         return false 
+       if changedExprs.filter(e1 => checkIndividualExpressions(e1._1, e1._2, changedArgs)).isEmpty then
+         return false
        true
     else false
 
   def checkIndividualExpressions(oldexprs: Expression, newexprs: Expression, changedArgs: List[(Set[String], Set[String])]): Boolean =
     if oldexprs.height > 1 then
-      oldexprs.subexpressions.zip(newexprs.subexpressions).foreach(e => checkIndividualExpressions(e._1, e._2, changedArgs))
-      true
+       oldexprs.subexpressions.zip(newexprs.subexpressions).forall(e => checkIndividualExpressions(e._1, e._2, changedArgs))
+       oldexprs.subexpressions.length == newexprs.subexpressions.length && changedArgs.contains((oldexprs.fv, newexprs.fv))
     else
       val differentExpressions = oldexprs.subexpressions.zip(newexprs.subexpressions).filter((e1, e2) => !e1.eql(e2))
+      differentExpressions.foreach((e1, e2) => println((e1.fv, e2.fv)))
       if differentExpressions != List() then
         if differentExpressions.filter((e1, e2) => e1.subexpressions.length == e2.subexpressions.length && changedArgs.contains(e1.fv, e2.fv)) != List() then
          true
