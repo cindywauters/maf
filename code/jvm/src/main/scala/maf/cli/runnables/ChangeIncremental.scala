@@ -14,5 +14,5 @@ object ChangeIncremental extends App:
  //val text = Reader.loadFile("test/changes/scheme/fib-loop.scm")
   val interpreter = new SchemeInterpreter((_, _) => (), stack = true)
   val res = CSchemeParser.parseProgram(text)
-  val resComps = SchemeChangePatterns.printComponents(res)
+  val resComps = SchemeChangePatterns.checkForRenamingParameter(res)
 
