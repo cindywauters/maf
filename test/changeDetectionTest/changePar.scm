@@ -31,3 +31,29 @@
           (lambda (r)
               (/ (+ 5 (- r 3)) 2))))
 (fifth-test 5)
+
+;; Lambda with multiple parameters, one renamed
+(define sixth-test
+  (<change> (lambda (a b) (+ a b))
+            (lambda (a c) (+ a c))))
+
+(sixth-test 1 2)
+
+;; Lambda with two renamed parameters (should be true)
+(define seventh-test
+  (<change> (lambda (a b c) (display c) (+ 5 6) (+ 1 a (- b c)))
+            (lambda (a d e) (display e) (+ 5 6) (+ 1 a (- d e)))))
+(seventh-test 1 2 3)
+
+;; Lambda with two renamed parameters + other changes (should be false)
+(define eighth-test
+  (<change> (lambda (a b c) (display c) (+ 5 6) (+ 1 a (- b c)))
+            (lambda (a d e) (display d) (+ 5 6) (+ 1 a (- e d)))))
+(eighth-test 1 2 3)
+
+;; Changed + to -
+(define nineth-test
+  (<change> (lambda (a b) (+ a b))
+            (lambda (a c) (- a c))))
+
+(nineth-test 1 2)
