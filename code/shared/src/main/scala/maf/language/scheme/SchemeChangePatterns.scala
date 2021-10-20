@@ -26,7 +26,8 @@ object SchemeChangePatterns:
          return false
        changedExprs = oldbody.zip(newbody).filter((b1, b2) => !b1.eql(b2))
        //changedArgs.foreach((a1, a2) => println(a1))
-       changedExprs.foreach(e1 => checkIndividualExpressions(e1._1, e1._2, changedArgs))
+       println("check individual")
+       changedExprs.foreach(e1 => println(checkIndividualExpressions(e1._1, e1._2, changedArgs)))
        true
     else false
 
@@ -35,12 +36,15 @@ object SchemeChangePatterns:
       oldexprs.subexpressions.zip(newexprs.subexpressions).foreach(e => checkIndividualExpressions(e._1, e._2, changedArgs))
       true
     else
-      if oldexprs.subexpressions.zip(newexprs.subexpressions).filter((e1, e2) => !e1.eql(e2)) != List() then
-         print(" line 36")
-         print(oldexprs.fv)
-         println(newexprs.fv)
-         println(changedArgs.contains(oldexprs.fv, newexprs.fv))
+      val differentExpressions = oldexprs.subexpressions.zip(newexprs.subexpressions).filter((e1, e2) => !e1.eql(e2)) 
+      if differentExpressions != List() then
+        if differentExpressions.filter((e1, e2) => e1.subexpressions.length == e2.subexpressions.length && changedArgs.contains(e1.fv, e2.fv)) != List() then
+       /*  differentExpressions.foreach((e1, e2) => e1.subexpressions.length == e2.subexpressions.length)
+         print(oldexprs.subexpressions.length)
+         println(newexprs.subexpressions.length)
+         println(changedArgs.contains(oldexprs.fv, newexprs.fv)) */
          true
+        else false
       else false
 
 
