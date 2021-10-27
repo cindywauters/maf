@@ -122,6 +122,7 @@ object SchemeChangeRenamer:
                     ((v1, e1) :: rest1, names2, count3)
       case Nil => (Nil, names, count)
 
+  // TODO: make this into a higher order function so Scheme
   /** To be called when a new variable is introduced in the scope. Adds it to the name map and count map */
   def count1(
               variable: Identifier,
