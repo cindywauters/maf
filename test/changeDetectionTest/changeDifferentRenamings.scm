@@ -43,3 +43,16 @@
        (+ a y x)))))
 
 (something 1)
+
+(define (bigger-test-one a)
+  (<change>
+   (let ((a 1)
+         (b 2))
+     (let* ((c (+ a b)))
+       ((lambda (x) (+ x c)) 5)))
+   (let ((a 1)
+         (b 2))
+     (let* ((f (+ a b)))
+       ((lambda (x) (+ x f)) 5)))))
+
+(bigger-test-one 10)

@@ -67,7 +67,13 @@ object SchemeChangePatterns:
       bindings.map(binding => binding._1.name).appendedAll(body.flatMap(e => findAllVarsInOrder(e)))
     case SchemeLetrec(bindings, body, pos) =>
       bindings.map(binding => binding._1.name).appendedAll(body.flatMap(e => findAllVarsInOrder(e)))
-    case _ => List()
+    case exps: List[_] => 
+      println("here")
+      exps.flatMap(e => findAllVarsInOrder(exps))
+    case e: Expression =>
+      if !e.subexpressions.isEmpty then
+        e.subexpressions.flatMap(e => findAllVarsInOrder(e))
+      else  List()
 
 
   def checkRenamingsVariables(oldexp: Expression, newexp: Expression): Boolean =
@@ -75,7 +81,8 @@ object SchemeChangePatterns:
     var variablesNew = findAllVarsInOrder(newexp)
     var mappedVars = variablesNew.zip(variablesOld).toMap
     newexp match
-      case e: SchemeExp => return oldexp.eql(SchemeChangeRenamer.rename(e, mappedVars, Map[String, Int]())._1)
+      case e: SchemeExp => 
+        return oldexp.eql(SchemeChangeRenamer.rename(e, mappedVars, Map[String, Int]())._1)
     false
 
   def checkForRenamingParameter(exp: SchemeExp): SchemeExp =

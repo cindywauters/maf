@@ -9,8 +9,8 @@ import maf.util.benchmarks.Timeout
 
 object ChangeIncremental extends App:
  //val text = Reader.loadFile("test/changeDetectionTest/changeVarName.scm")
- //val text = Reader.loadFile("test/changeDetectionTest/changeDifferentRenamings.scm")
- val text = Reader.loadFile("test/changeDetectionTest/changePar.scm")
+ val text = Reader.loadFile("test/changeDetectionTest/changeDifferentRenamings.scm")
+ // val text = Reader.loadFile("test/changeDetectionTest/changePar.scm")
  //val text = Reader.loadFile("test/changeDetectionTest/differentTest.scm")
  //val text = Reader.loadFile("test/changes/scheme/fib-loop.scm")
   val interpreter = new SchemeInterpreter((_, _) => (), stack = true)
