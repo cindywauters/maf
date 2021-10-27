@@ -57,3 +57,9 @@
             (lambda (a c) (- a c))))
 
 (nineth-test 1 2)
+
+(define tenth-test
+  (<change> (lambda (l m) (lambda (n o) (+ l m n o)))
+            (lambda (a c) (- a c))))
+
+((tenth-test 1 2) 2 3)

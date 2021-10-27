@@ -1,10 +1,12 @@
 package maf.language.scheme
 
-import maf.core._
+import maf.core.*
 import maf.core.Label
 import maf.language.change.ChangeExp
 import maf.modular.incremental.IncrementalModAnalysis
 import maf.core.Expression
+
+import scala.::
 
 object SchemeChangePatterns:
 // find all the changed expressions and create a set with all the old and new expressions
@@ -13,6 +15,7 @@ object SchemeChangePatterns:
     case e                  => e.subexpressions.asInstanceOf[List[Expression]].flatMap(findAllChangedExpressions).toSet
 
 
+/*
 // Check whether both the old and the new expression are lambdas. If so, check for the renaming of the variables
   def checkRenamingParameter(oldexpr: Expression, newexpr: Expression): Boolean = (oldexpr, newexpr) match
     case (SchemeLambda(_, oldargs, oldbody, _), SchemeLambda(_, newargs, newbody, _)) => checkRenamingLambdaArg(oldargs, oldbody, newargs, newbody)
@@ -54,9 +57,26 @@ object SchemeChangePatterns:
         else false
       else true
 
+*/
+  def findAllVarsInOrder(
+              exp: Expression
+            ): List[String] = exp match
+    case SchemeLambda(name, args, body, pos) =>
+      args.map(arg => arg.name).appendedAll(body.flatMap(e => findAllVarsInOrder(e)))
+    case SchemeLet(bindings, body, pos) =>
+      bindings.map(binding => binding._1.name).appendedAll(body.flatMap(e => findAllVarsInOrder(e)))
+    case SchemeLetStar(bindings, body, pos) =>
+      bindings.map(binding => binding._1.name).appendedAll(body.flatMap(e => findAllVarsInOrder(e)))
+    case SchemeLetrec(bindings, body, pos) =>
+      bindings.map(binding => binding._1.name).appendedAll(body.flatMap(e => findAllVarsInOrder(e)))
+    case _ => List()
+
 
 
   def checkForRenamingParameter(exp: SchemeExp): SchemeExp =
     def changedExpr = findAllChangedExpressions(exp)
+  //  changedExpr.foreach(e => println(e._1.isInstanceOf[SchemeExp]))
+  //  changedExpr.foreach(e => rename(e._1))
+    changedExpr.foreach(e => println(findAllVarsInOrder(e._1)))
     changedExpr.foreach(e => println("\n" + e._1.toString + "\n" + e._2.toString + "\n is consistant renaming: " + checkRenamingParameter(e._1, e._2).toString))
     exp
