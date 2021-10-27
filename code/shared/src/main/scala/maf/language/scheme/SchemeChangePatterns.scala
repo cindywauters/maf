@@ -58,9 +58,7 @@ object SchemeChangePatterns:
       else true
 
 */
-  def findAllVarsInOrder(
-              exp: Expression
-            ): List[String] = exp match
+  def findAllVarsInOrder(exp: Expression): List[String] = exp match
     case SchemeLambda(name, args, body, pos) =>
       args.map(arg => arg.name).appendedAll(body.flatMap(e => findAllVarsInOrder(e)))
     case SchemeLet(bindings, body, pos) =>
@@ -72,11 +70,15 @@ object SchemeChangePatterns:
     case _ => List()
 
 
+  def checkRenamingsVariables(oldexp: Expression, newexp: Expression): Boolean =
+    var variablesOld = findAllVarsInOrder(oldexp)
+    var variablesNew = findAllVarsInOrder(newexp)
+    var mappedVars = variablesNew.zip(variablesOld).toMap
+    newexp match
+      case e: SchemeExp => return oldexp.eql(SchemeChangeRenamer.rename(e, mappedVars, Map[String, Int]())._1)
+    false
 
   def checkForRenamingParameter(exp: SchemeExp): SchemeExp =
     def changedExpr = findAllChangedExpressions(exp)
-  //  changedExpr.foreach(e => println(e._1.isInstanceOf[SchemeExp]))
-  //  changedExpr.foreach(e => rename(e._1))
-    changedExpr.foreach(e => println(findAllVarsInOrder(e._1)))
-    changedExpr.foreach(e => println("\n" + e._1.toString + "\n" + e._2.toString + "\n is consistant renaming: " + checkRenamingParameter(e._1, e._2).toString))
+    changedExpr.foreach(e => println("\n" + e._1.toString + "\n" + e._2.toString + "\n is consistant renaming: " + checkRenamingsVariables(e._1, e._2).toString))
     exp
