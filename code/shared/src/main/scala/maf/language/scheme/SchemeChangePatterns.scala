@@ -9,6 +9,7 @@ import maf.core.Expression
 import scala.::
 
 object SchemeChangePatterns:
+
 // find all the changed expressions and create a set with all the old and new expressions
   def findAllChangedExpressions(expr: Expression): Set[(Expression, Expression)] = expr match
     case e: ChangeExp[Expression] => Set((e.old, e.nw)) // Assumption: change expressions are not nested.
@@ -81,23 +82,24 @@ object SchemeChangePatterns:
       else  List()
 
 
-  def checkRenamingsVariables(oldexp: Expression, newexp: Expression): Boolean =
+  def checkRenamingsVariables(oldexp: Expression, newexp: Expression): (Boolean, Map[String, String]) =
     // get the variables of the old and the new expressions
     var variablesOld = findAllVarsInOrder(oldexp)
     var variablesNew = findAllVarsInOrder(newexp)
     // if not the same length -> they can't be the same either way
     if variablesOld.length != variablesNew.length then
-      return false
+      return (false, Map())
     // create a map of the old to the new ones (used for renaming purposes
     var mappedVars = variablesNew.zip(variablesOld).toMap
     newexp match
       case e: SchemeExp =>
         // If the new expression is a scheme expression, rename the variables according to the above mapping
         // If only consisting renaming happened, the old expression should be equal to the renamed new expression
-        return oldexp.eql(SchemeChangeRenamer.rename(e, mappedVars, Map[String, Int]())._1)
-    false
+        if oldexp.eql(SchemeChangeRenamer.rename(e, mappedVars, Map[String, Int]())._1) then
+        return (true, mappedVars.filter(vr => vr._1 != vr._2))
+    (false, Map())
 
   def checkForRenamingParameter(exp: SchemeExp): SchemeExp =
     def changedExpr = findAllChangedExpressions(exp)
-    changedExpr.foreach(e => println("\n" + e._1.toString + "\n" + e._2.toString + "\n is consistant renaming: " + checkRenamingsVariables(e._1, e._2).toString))
+    changedExpr.foreach(e => println("\n" + e._1.toString + "\n" + e._2.toString + "\n is consistant renaming: " + checkRenamingsVariables(e._1, e._2)._1.toString))
     exp
