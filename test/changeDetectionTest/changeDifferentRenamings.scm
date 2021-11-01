@@ -42,9 +42,9 @@
            (x 3))
        (+ a y x)))))
 
-(something 1)
+(fourth-test 1)
 
-(define (bigger-test-one a)
+(define (fifth-test a)
   (<change>
    (let ((a 1)
          (b 2))
@@ -55,4 +55,41 @@
      (let* ((f (+ a b)))
        ((lambda (x) (+ x f)) 5)))))
 
-(bigger-test-one 10)
+(fifth-test 10)
+
+(define (z a b) (+ a b))
+
+(define (sixth-test a)
+  (<change>
+   (let ((a 1)
+         (b 2))
+     (let* ((c (+ a b)))
+       ((lambda (x) (z x c)) 5)))
+   (let ((a 1)
+         (b 2))
+     (let* ((f (+ a b)))
+       ((lambda (x) (z x f)) 5)))))
+
+(sixth-test 10)
+
+(define seventh-test
+  (<change>
+   (let ((a (lambda (d e) (- d e)))
+        (b 5))
+    (z (a 1 2) b))
+   (let ((z (lambda (d e) (- d e)))
+        (b 5))
+    (z (z 1 2) b))))
+
+seventh-test
+
+(define eighth-test
+  (<change>
+   (let ((a (lambda (d e) (- d e)))
+         (b 5))
+    (z (a 1 2) b))
+   (let ((d (lambda (d e) (- d e)))
+        (b 5))
+    (d (z 1 2) b))))
+
+eighth-test

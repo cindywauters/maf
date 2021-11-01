@@ -67,11 +67,17 @@ object SchemeChangePatterns:
       args.map(arg => arg.name).appendedAll(body.flatMap(e => findAllVarsInOrder(e)))
     // In case of let, let* and letrec, take the names of the bindings and look in the body for more
     case SchemeLet(bindings, body, pos) =>
-      bindings.map(binding => binding._1.name).appendedAll(body.flatMap(e => findAllVarsInOrder(e)))
+      var bindingsVars = bindings.flatMap(binding => findAllVarsInOrder(binding._2))
+      var bodyVars = body.flatMap(e => findAllVarsInOrder(e))
+      bindings.map(binding => binding._1.name).appendedAll(bindingsVars).appendedAll(bodyVars)
     case SchemeLetStar(bindings, body, pos) =>
-      bindings.map(binding => binding._1.name).appendedAll(body.flatMap(e => findAllVarsInOrder(e)))
+      var bindingsVars = bindings.flatMap(binding => findAllVarsInOrder(binding._2))
+      var bodyVars = body.flatMap(e => findAllVarsInOrder(e))
+      bindings.map(binding => binding._1.name).appendedAll(bindingsVars).appendedAll(bodyVars)
     case SchemeLetrec(bindings, body, pos) =>
-      bindings.map(binding => binding._1.name).appendedAll(body.flatMap(e => findAllVarsInOrder(e)))
+      var bindingsVars = bindings.flatMap(binding => findAllVarsInOrder(binding._2))
+      var bodyVars = body.flatMap(e => findAllVarsInOrder(e))
+      bindings.map(binding => binding._1.name).appendedAll(bindingsVars).appendedAll(bodyVars)
     // In case of a list of expressions, look at each expression individually
     case exps: List[_] =>
       exps.flatMap(e => findAllVarsInOrder(exps))
@@ -80,23 +86,24 @@ object SchemeChangePatterns:
       if !e.subexpressions.isEmpty then
         e.subexpressions.flatMap(e => findAllVarsInOrder(e))
       else  List()
+    case e: _ =>
+      List()
 
 
   def checkRenamingsVariables(oldexp: Expression, newexp: Expression): (Boolean, Map[String, String]) =
-    // get the variables of the old and the new expressions
-    var variablesOld = findAllVarsInOrder(oldexp)
-    var variablesNew = findAllVarsInOrder(newexp)
-    // if not the same length -> they can't be the same either way
-    if variablesOld.length != variablesNew.length then
-      return (false, Map())
-    // create a map of the old to the new ones (used for renaming purposes
-    var mappedVars = variablesNew.zip(variablesOld).toMap
-    newexp match
-      case e: SchemeExp =>
-        // If the new expression is a scheme expression, rename the variables according to the above mapping
-        // If only consisting renaming happened, the old expression should be equal to the renamed new expression
-        if oldexp.eql(SchemeChangeRenamer.rename(e, mappedVars, Map[String, Int]())._1) then
-        return (true, mappedVars.filter(vr => vr._1 != vr._2))
+    (oldexp, newexp) match
+      case (oe: SchemeExp, ne: SchemeExp) =>
+        var renamedOld = SchemeChangeRenamer.rename(oe)
+        var renamedNew = SchemeChangeRenamer.rename(ne)
+        var variablesOld = findAllVarsInOrder(renamedOld)
+        var variablesNew = findAllVarsInOrder(renamedNew)
+        if variablesOld.length != variablesNew.length then
+          return (false, Map())
+        var mappedVars = variablesNew.zip(variablesOld).toMap
+        println(renamedOld)
+        println(SchemeChangeRenamer.rename(renamedNew, mappedVars, Map[String, Int]())._1)
+        if renamedOld.eql(SchemeChangeRenamer.rename(renamedNew, mappedVars, Map[String, Int]())._1) then
+          return (true, mappedVars.filter(vr => vr._1 != vr._2))
     (false, Map())
 
   def checkForRenamingParameter(exp: SchemeExp): SchemeExp =
