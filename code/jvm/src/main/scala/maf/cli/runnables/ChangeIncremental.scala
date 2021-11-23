@@ -17,5 +17,6 @@ object ChangeIncremental extends App:
   val res = CSchemeParser.parseProgram(text)
   println(res)
   val resComps = SchemeChangePatterns.checkForRenamingParameter(res)
+  println(resComps)
 
  
