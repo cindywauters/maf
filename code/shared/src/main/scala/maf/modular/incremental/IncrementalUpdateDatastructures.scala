@@ -2,11 +2,12 @@ package maf.modular.incremental
 
 import maf.cli.runnables
 import maf.core.{Expression, Identifier, Identity}
-import maf.modular.scheme.modf.SchemeModFComponent
-import maf.language.scheme.interpreter.ConcreteValues.AddrInfo
+import maf.modular.scheme.modf.{NoContext, SchemeModFComponent}
+import maf.language.scheme.interpreter.ConcreteValues.{Addr, AddrInfo}
 import maf.language.scheme.interpreter.ConcreteValues.AddrInfo.VarAddr
 import maf.language.scheme.interpreter.BaseSchemeInterpreter
 import maf.language.scheme.*
+
 
 class IncrementalUpdateDatastructures {
 
@@ -27,13 +28,11 @@ class IncrementalUpdateDatastructures {
 
        var toChangeVars = ChangedVarsSwapped.flatMap(e => analysis.store.filter((k, v) => k.idn == e._1.idn))
        toChangeVars.foreach((k, v) => k match
-         case key: maf.modular.scheme.VarAddr[VarAddr] =>
-           println(VarAddr(ChangedVarsSwapped.getOrElse(key.id, key.id)))
+         case key: maf.modular.scheme.VarAddr[NoContext.type] =>
            val oldValue = analysis.store.getOrElse(key, v)
-           analysis.store = analysis.store - key
            val newIdn = ChangedVarsSwapped.getOrElse(key.id, key.id)
            val newKey = key.copy(id = newIdn)
-           println(newKey)
+           analysis.store = analysis.store - key
            analysis.store = analysis.store + (newKey -> oldValue)
          case something: _ => println(something.getClass()))
 
@@ -42,15 +41,13 @@ class IncrementalUpdateDatastructures {
        analysis.store.foreach((k, v) => k match
          case key: maf.modular.ReturnAddr[SchemeModFComponent] =>
            key.cmp match
-             case SchemeModFComponent.Call(clo, ctx) =>
-               println(key.idn.toString + " " + key.cmp.toString + " " + clo._1.toString + " " + clo._2.toString + ctx.toString)
+             case SchemeModFComponent.Call(clo, ctx: NoContext.type) =>
                val changeToLambda = changedExpressions.toMap.getOrElse(clo._1, false)
                changeToLambda match
                  case lambda: SchemeLambdaExp =>
                    val newIdn = lambda.subexpressions.last.idn
                    val newCmp = SchemeModFComponent.Call(clo = (lambda, clo._2), ctx = ctx)
                    val newKey = key.copy(idn = newIdn, cmp = newCmp)
-                   println(key.toString + " " + newKey.toString)
                    analysis.store = analysis.store - key
                    analysis.store = analysis.store + (newKey -> v)
                  case false =>
