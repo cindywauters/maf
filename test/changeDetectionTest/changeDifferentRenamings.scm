@@ -1,7 +1,7 @@
 ;; Easy test with one lambda, should be false
 (define first-test
   (<change> (lambda (l m) (lambda (n o) (+ l m n o)))
-            (lambda (a c) (- a c))))
+            (lambda (a c) (lambda (n o) (- a c)))))
 
 ((first-test 1 2) 3 4)
 
@@ -102,26 +102,26 @@ seventh-test
 eighth-test
 
 ;; nested let in binding of a let, should be true
-(define nineth-test
-  (<change>
-   (let ((b (let ((c 5))
-              (+ c 6))))
-     (+ a b))
-   (let ((b (let ((d 5))
-              (+ d 6))))
-     (+ a b))))
+;(define nineth-test
+;  (<change>
+;   (let ((b (let ((c 5))
+;              (+ c 6))))
+;     (+ a b))
+;   (let ((b (let ((d 5))
+;              (+ d 6))))
+;     (+ a b))))
 
-nineth-test
+;nineth-test
 
 ;; nested let in binding of a let, should be false
-(define tenth-test
-  (<change>
-   (let ((b (let ((c 5))
-              (+ c 6))))
-     (+ a b))
-   (let ((b (let ((d 6))
-              (+ d 6))))
-     (+ a b))))
+;(define tenth-test
+;  (<change>
+;   (let ((b (let ((c 5))
+;             (+ c 6))))
+;     (+ a b))
+;  (let ((b (let ((d 6))
+;              (+ d 6))))
+;     (+ a b))))
 
-tenth-test
+;tenth-test
 

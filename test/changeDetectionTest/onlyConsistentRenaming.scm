@@ -1,5 +1,5 @@
 (define first-test
-  (<change> (lambda (a) a)
-            (lambda (b) b)))
+  (<change> (lambda (a b) (+ a b))
+            (lambda (a d) (+ a d))))
 
-(first-test 5)
+(first-test 5 10)
