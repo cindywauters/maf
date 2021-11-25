@@ -13,32 +13,32 @@ import maf.modular.scheme.SchemeAddr
 
 class IncrementalUpdateDatastructures {
 
- def changeDataStructures(a: IncrementalModAnalysis[SchemeExp], exp: SchemeExp): Boolean =
+  def changeDataStructures(a: IncrementalModAnalysis[SchemeExp], exp: SchemeExp): Boolean =
 
-   var changed = SchemeChangePatterns.checkForRenamingParameter(exp)
-   var changedVars = changed.flatMap(e => e._2)
-   var ChangedVarsSwapped = changedVars.map(_.swap).toMap
-   var changedExpressions = changed.map(e => e._1).toMap
+    var changed = SchemeChangePatterns.checkForRenamingParameter(exp)
+    var changedVars = changed.flatMap(e => e._2)
+    var ChangedVarsSwapped = changedVars.map(_.swap).toMap
+    var changedExpressions = changed.map(e => e._1).toMap
 
-   a match
-     case analysis: IncrementalGlobalStore[SchemeExp] =>
-       updateStore(analysis, ChangedVarsSwapped, changedExpressions)
-   true
+    a match
+      case analysis: IncrementalGlobalStore[SchemeExp] =>
+        updateStore(analysis, ChangedVarsSwapped, changedExpressions)
+    true
 
- def updateStore(a: IncrementalGlobalStore[SchemeExp], changedVars: Map[Identifier, Identifier], changedExpressions: Map[Expression, Expression]): Unit =
-   println(a.store)
-   a.store.foreach((k, v) =>
-     updateBasedOnKeysStore(a, k, v, changedVars, changedExpressions)
-   )
-   println(a.store)
+  def updateStore(a: IncrementalGlobalStore[SchemeExp], changedVars: Map[Identifier, Identifier], changedExpressions: Map[Expression, Expression]): Unit =
+    println(a.store)
+    a.store.foreach((k, v) =>
+      updateBasedOnKeysStore(a, k, v, changedVars, changedExpressions)
+    )
+    println(a.store)
 
- def updateBasedOnKeysStore(a: IncrementalGlobalStore[SchemeExp], key: Address, value: a.Value, changedVars: Map[Identifier, Identifier], changedExpressions: Map[Expression, Expression]): Unit =
-   key match
-     case k: maf.modular.scheme.VarAddr[NoContext.type] =>
-       updateVarAddr(a, k, value, changedVars)
-     case k: maf.modular.ReturnAddr[SchemeModFComponent] =>
-       updateReturnAddr(a, k, value, changedExpressions)
-     case _ =>
+  def updateBasedOnKeysStore(a: IncrementalGlobalStore[SchemeExp], key: Address, value: a.Value, changedVars: Map[Identifier, Identifier], changedExpressions: Map[Expression, Expression]): Unit =
+    key match
+      case k: maf.modular.scheme.VarAddr[NoContext.type] =>
+        updateVarAddr(a, k, value, changedVars)
+      case k: maf.modular.ReturnAddr[SchemeModFComponent] =>
+        updateReturnAddr(a, k, value, changedExpressions)
+      case _ =>
 
   def updateVarAddr(a: IncrementalGlobalStore[SchemeExp], key: maf.modular.scheme.VarAddr[NoContext.type], value: a.Value, changedVars: Map[Identifier, Identifier]): Unit =
     if changedVars contains key.id then
