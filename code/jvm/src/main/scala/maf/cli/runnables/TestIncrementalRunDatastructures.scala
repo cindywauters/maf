@@ -107,6 +107,7 @@ object TestIncrementalRunDatastructures extends App:
       val a = base(text)
       //   a.logger.logU("BASE + INC")
       a.analyzeWithTimeout(timeout())
+      println(a.mapping)
       /*println(a.getClass)
       println(a.store)
       println(a.deps)
@@ -123,7 +124,7 @@ object TestIncrementalRunDatastructures extends App:
 
       //  a.flowInformationToDotGraph("logs/flowsA1.dot")
       a.updateAnalysis(timeout())
-     // println(a.store)
+      println(a.mapping)
     /*  println(a.store)
       println(a.deps)
       println(a.addressDependencies)
