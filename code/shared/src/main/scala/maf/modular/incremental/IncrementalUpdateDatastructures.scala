@@ -6,7 +6,7 @@ import maf.modular.scheme.modf.{NoContext, SchemeModFComponent}
 import maf.language.scheme.interpreter.ConcreteValues.{Addr, AddrInfo}
 import maf.language.scheme.interpreter.ConcreteValues.AddrInfo.VarAddr
 import maf.language.scheme.interpreter.BaseSchemeInterpreter
-import maf.language.scheme.*
+import maf.language.scheme.{SchemeLambdaExp, *}
 import maf.language.scheme.interpreter.ConcreteValues.Value.Clo
 import maf.language.scheme.lattices.ModularSchemeLattice
 import maf.lattice.interfaces.{BoolLattice, CharLattice, IntLattice, RealLattice, StringLattice, SymbolLattice}
@@ -67,15 +67,13 @@ class IncrementalUpdateDatastructures {
         val allOldLambdas = changedExpressions.flatMap(e => findAllLambdas(e._1))
         val allNewLambdas = changedExpressions.flatMap(e => findAllLambdas(e._2))
         val allChangedLambdas = allOldLambdas.zip(allNewLambdas).toMap
+       /* println()
+        println(allChangedLambdas)
+        println()*/
         val changeToLambda = allChangedLambdas.getOrElse(lam, false)
         changeToLambda match
           case lambda: SchemeLambdaExp =>
             val newIdn = lambda.subexpressions.last.idn
-          //  val newEnv = clo._2.getClass
-            println()
-            println(env.content)
-            println(changedVars)
-            println()
             var newEnv: Map[String, Address] = Map()
             env.content.foreach((k, v) =>
               v match
@@ -87,10 +85,8 @@ class IncrementalUpdateDatastructures {
                     case _ => newEnv += (k -> v)
                 case _ => newEnv += (k -> v)
             )
-            println(newEnv)
             val newCmp = SchemeModFComponent.Call(clo = (lambda, new BasicEnvironment[Address](newEnv)), ctx = ctx)
             val newKey = key.copy(idn = newIdn, cmp = newCmp)
-          //  println(clo.toString() + " " + ctx.toString + " " + (lambda, env).toString())
             a.store = a.store - key
             a.store = a.store + (newKey -> value)
           case false =>
@@ -100,11 +96,30 @@ class IncrementalUpdateDatastructures {
    a.lattice match {
      case l: IncrementalSchemeLattice[_, _]  =>
        var clos = l.getClosures(v)
-       clos.map(e => if changedExpressions.contains(e._1) then
-         changedExpressions.getOrElse(e._1, e._1) match
-           case lambda: SchemeLambdaExp =>
-             a.store = a.store + (key -> l.closure(lambda, e._2))
-           case _ =>)
+       clos.map(e =>
+         if changedExpressions.contains(e._1) then
+           changedExpressions.getOrElse(e._1, e._1) match
+             case lambda: SchemeLambdaExp =>
+               a.store = a.store + (key -> l.closure(lambda, e._2))
+             case _ =>
+        // changedVars.find((k , v) => k.idn == key.idn) match
+        //   case Some(identifiers) =>
+         val allOldLambdas = changedExpressions.flatMap(e => findAllLambdas(e._1))
+         val allNewLambdas = changedExpressions.flatMap(e => findAllLambdas(e._2))
+         val allChangedLambdas = allOldLambdas.zip(allNewLambdas).toMap
+         //if allChangedLambdas contains e._1 then
+         (allChangedLambdas.get(e._1), changedVars.find((k , v) => k.idn == key.idn), key) match
+           case (Some(lambda: SchemeLambdaExp), Some(identifiers), k: maf.modular.scheme.VarAddr[NoContext.type]) =>
+             println(lambda.idn)
+             println(changedVars.find((k , v) => k.idn == key.idn))
+             println(l.closure(lambda, e._2))
+             println(k)
+             a.store = a.store + (k.copy(id = identifiers._2) -> l.closure(lambda, e._2))
+         //    println(oldLambda)
+             //a.store = a.store + (key -> l.closure(lambda, e._2))
+           case _ =>
+       )
      case _ => println(a.lattice)
+
    }
 }
