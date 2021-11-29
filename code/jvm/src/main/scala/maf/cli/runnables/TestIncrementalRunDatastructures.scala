@@ -120,11 +120,11 @@ object TestIncrementalRunDatastructures extends App:
     */
      // println(a.store)
       var update = new IncrementalUpdateDatastructures
-      update.changeDataStructures(a, text)
+     // update.changeDataStructures(a, text)
 
       //  a.flowInformationToDotGraph("logs/flowsA1.dot")
       a.updateAnalysis(timeout())
-      println(a.mapping)
+      println(a.store)
     /*  println(a.store)
       println(a.deps)
       println(a.addressDependencies)
