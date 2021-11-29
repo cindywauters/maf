@@ -1,7 +1,7 @@
 package maf.modular.incremental
 
 import maf.cli.runnables
-import maf.core.{Address, Expression, Identifier, Identity, Lattice}
+import maf.core.{Address, BasicEnvironment, Expression, Identifier, Identity, Lattice}
 import maf.modular.scheme.modf.{NoContext, SchemeModFComponent}
 import maf.language.scheme.interpreter.ConcreteValues.{Addr, AddrInfo}
 import maf.language.scheme.interpreter.ConcreteValues.AddrInfo.VarAddr
@@ -10,7 +10,7 @@ import maf.language.scheme.*
 import maf.language.scheme.interpreter.ConcreteValues.Value.Clo
 import maf.language.scheme.lattices.ModularSchemeLattice
 import maf.lattice.interfaces.{BoolLattice, CharLattice, IntLattice, RealLattice, StringLattice, SymbolLattice}
-import maf.modular.incremental.scheme.lattice.{IncrementalModularSchemeLattice, IncrementalLattice, IncrementalSchemeLattice}
+import maf.modular.incremental.scheme.lattice.{IncrementalLattice, IncrementalModularSchemeLattice, IncrementalSchemeLattice}
 import maf.modular.scheme.{ModularSchemeLatticeWrapper, SchemeAddr}
 
 
@@ -23,16 +23,19 @@ class IncrementalUpdateDatastructures {
     var ChangedVarsSwapped = changedVars.map(_.swap).toMap
     var changedExpressions = changed.map(e => e._1).toMap
 
-    println(a.deps)
-    println(changedExpressions.map(e => e._1 match {
-    //  case something: SchemeExp => a.deps.get(something)
-      case _ => e._1
-    }))
 
     a match
       case analysis: IncrementalGlobalStore[SchemeExp] =>
         updateStore(analysis, ChangedVarsSwapped, changedExpressions)
     true
+
+  def findAllLambdas(expr: Expression): List[Expression] =
+    expr match
+      case _: SchemeLambdaExp => List(expr).appendedAll(expr.subexpressions.flatMap(e => findAllLambdas(e)))
+      case _ =>
+        if expr.subexpressions.isEmpty then
+          List()
+        else expr.subexpressions.flatMap(e => findAllLambdas(e))
 
   def updateStore(a: IncrementalGlobalStore[SchemeExp], changedVars: Map[Identifier, Identifier], changedExpressions: Map[Expression, Expression]): Unit =
     println(a.store)
@@ -47,8 +50,8 @@ class IncrementalUpdateDatastructures {
         updateVarAddr(a, k, value, changedVars)
         updateValue(a, k, value, changedVars, changedExpressions)
       case (k: maf.modular.ReturnAddr[SchemeModFComponent], _) =>
-        updateReturnAddr(a, k, value, changedExpressions)
-      case _ => //updateValue(a, key, value, changedVars, changedExpressions)
+        updateReturnAddr(a, k, value, changedVars, changedExpressions)
+      case _ =>
 
   def updateVarAddr(a: IncrementalGlobalStore[SchemeExp], key: maf.modular.scheme.VarAddr[NoContext.type], value: a.Value, changedVars: Map[Identifier, Identifier]): Unit =
     if changedVars contains key.id then
@@ -58,15 +61,36 @@ class IncrementalUpdateDatastructures {
       a.store = a.store + (newKey -> value)
 
 
-  def updateReturnAddr(a: IncrementalGlobalStore[SchemeExp], key: maf.modular.ReturnAddr[SchemeModFComponent], value: a.Value, changedExpressions: Map[Expression, Expression]): Unit =
+  def updateReturnAddr(a: IncrementalGlobalStore[SchemeExp], key: maf.modular.ReturnAddr[SchemeModFComponent], value: a.Value, changedVars: Map[Identifier, Identifier], changedExpressions: Map[Expression, Expression]): Unit =
     key.cmp match
-      case SchemeModFComponent.Call(clo, ctx: NoContext.type) =>
-        val changeToLambda = changedExpressions.toMap.getOrElse(clo._1, false)
+      case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), ctx: NoContext.type) =>
+        val allOldLambdas = changedExpressions.flatMap(e => findAllLambdas(e._1))
+        val allNewLambdas = changedExpressions.flatMap(e => findAllLambdas(e._2))
+        val allChangedLambdas = allOldLambdas.zip(allNewLambdas).toMap
+        val changeToLambda = allChangedLambdas.getOrElse(lam, false)
         changeToLambda match
           case lambda: SchemeLambdaExp =>
             val newIdn = lambda.subexpressions.last.idn
-            val newCmp = SchemeModFComponent.Call(clo = (lambda, clo._2), ctx = ctx)
+          //  val newEnv = clo._2.getClass
+            println()
+            println(env.content)
+            println(changedVars)
+            println()
+            var newEnv: Map[String, Address] = Map()
+            env.content.foreach((k, v) =>
+              v match
+                case varAddr: maf.modular.scheme.VarAddr[NoContext.type] =>
+                  var oldIdn = varAddr.idn
+                  (changedVars.find((k , v) => k.idn == oldIdn)) match
+                    case Some(identifiers) =>
+                      newEnv += (identifiers._2.name -> varAddr.copy(id = identifiers._2))
+                    case _ => newEnv += (k -> v)
+                case _ => newEnv += (k -> v)
+            )
+            println(newEnv)
+            val newCmp = SchemeModFComponent.Call(clo = (lambda, new BasicEnvironment[Address](newEnv)), ctx = ctx)
             val newKey = key.copy(idn = newIdn, cmp = newCmp)
+          //  println(clo.toString() + " " + ctx.toString + " " + (lambda, env).toString())
             a.store = a.store - key
             a.store = a.store + (newKey -> value)
           case false =>
