@@ -47,18 +47,22 @@ class IncrementalUpdateDatastructures {
   def updateBasedOnKeysStore(a: IncrementalGlobalStore[SchemeExp], key: Address, value: a.Value, changedVars: Map[Identifier, Identifier], changedExpressions: Map[Expression, Expression]): Unit =
     (key, value) match
       case (k: maf.modular.scheme.VarAddr[NoContext.type], _) =>
-        updateVarAddr(a, k, value, changedVars)
-        updateValue(a, k, value, changedVars, changedExpressions)
+        updateVarAddr(a, k, value, changedVars, changedExpressions)
+     //   updateValue(a, k, value, changedVars, changedExpressions)
       case (k: maf.modular.ReturnAddr[SchemeModFComponent], _) =>
         updateReturnAddr(a, k, value, changedVars, changedExpressions)
       case _ =>
 
-  def updateVarAddr(a: IncrementalGlobalStore[SchemeExp], key: maf.modular.scheme.VarAddr[NoContext.type], value: a.Value, changedVars: Map[Identifier, Identifier]): Unit =
+  def updateVarAddr(a: IncrementalGlobalStore[SchemeExp], key: maf.modular.scheme.VarAddr[NoContext.type], value: a.Value, changedVars: Map[Identifier, Identifier], changedExpressions: Map[Expression, Expression]): Unit =
     if changedVars contains key.id then
       val newIdn = changedVars.getOrElse(key.id, key.id)
       val newKey = key.copy(id = newIdn, ctx = key.ctx)
+      val newValue = getNewValue(a, key, value, changedVars, changedExpressions)
       a.store = a.store - key
-      a.store = a.store + (newKey -> value)
+      a.store = a.store + (newKey -> newValue)
+    else
+      val newValue = getNewValue(a, key, value, changedVars, changedExpressions)
+      a.store = a.store + (key -> newValue)
 
 
   def updateReturnAddr(a: IncrementalGlobalStore[SchemeExp], key: maf.modular.ReturnAddr[SchemeModFComponent], value: a.Value, changedVars: Map[Identifier, Identifier], changedExpressions: Map[Expression, Expression]): Unit =
@@ -84,33 +88,27 @@ class IncrementalUpdateDatastructures {
             )
             val newCmp = SchemeModFComponent.Call(clo = (lambda, new BasicEnvironment[Address](newEnv)), ctx = ctx)
             val newKey = key.copy(idn = newIdn, cmp = newCmp)
+            val newValue = getNewValue(a, key, value, changedVars, changedExpressions)
+         //   println(value.toString + " " + newValue.toString)
             a.store = a.store - key
-            a.store = a.store + (newKey -> value)
-            updateValue(a, newKey, value, changedVars, changedExpressions)
+            a.store = a.store + (newKey -> newValue)
+            //updateValue(a, newKey, value, changedVars, changedExpressions)
           case false =>
       case _ =>
 
-  def updateValue(a: IncrementalGlobalStore[SchemeExp], key: Address, v: a.Value, changedVars: Map[Identifier, Identifier], changedExpressions: Map[Expression, Expression]): Unit =
-   a.lattice match {
-     case l: IncrementalSchemeLattice[_, _]  =>
-       var clos = l.getClosures(v)
-       clos.map(e =>
-         if changedExpressions.contains(e._1) then
-           changedExpressions.getOrElse(e._1, e._1) match
-             case lambda: SchemeLambdaExp =>
-               a.store = a.store + (key -> l.closure(lambda, e._2))
-             case _ =>
-         val allOldLambdas = changedExpressions.flatMap(e => findAllLambdas(e._1))
-         val allNewLambdas = changedExpressions.flatMap(e => findAllLambdas(e._2))
-         val allChangedLambdas = allOldLambdas.zip(allNewLambdas).toMap
-         (allChangedLambdas.get(e._1), changedVars.find((k , v) => k.idn == key.idn), key) match
-           case (Some(lambda: SchemeLambdaExp), Some(identifiers), k: maf.modular.scheme.VarAddr[NoContext.type]) =>
-             a.store = a.store + (k.copy(id = identifiers._2) -> l.closure(lambda, e._2))
-           case (Some(lambda: SchemeLambdaExp), None, k: _) =>
-             a.store = a.store + (k -> l.closure(lambda, e._2))
-           case _ =>
-       )
-     case _ =>
-
-   }
+  def getNewValue(a: IncrementalGlobalStore[SchemeExp], key: Address, v: a.Value, changedVars: Map[Identifier, Identifier], changedExpressions: Map[Expression, Expression]): a.Value =
+    a.lattice match
+      case l: IncrementalSchemeLattice[_, _]  =>
+        var clos = l.getClosures(v)
+        var newExpr = v
+        clos.map(e =>
+          val allOldLambdas = changedExpressions.flatMap(e => findAllLambdas(e._1))
+          val allNewLambdas = changedExpressions.flatMap(e => findAllLambdas(e._2))
+          val allChangedLambdas = allOldLambdas.zip(allNewLambdas).toMap
+            allChangedLambdas.get(e._1) match
+          case Some(lambda: SchemeLambdaExp) =>  newExpr = l.closure(lambda, e._2)
+          case None =>
+        )
+        newExpr
+      case _ => v
 }
