@@ -1,6 +1,6 @@
 package maf.modular.incremental
 
-import maf.cli.runnables
+//import maf.cli.runnables
 import maf.core.{Address, BasicEnvironment, Expression, Identifier, Identity, Lattice}
 import maf.modular.scheme.modf.{NoContext, SchemeModFComponent}
 import maf.language.scheme.interpreter.ConcreteValues.{Addr, AddrInfo}

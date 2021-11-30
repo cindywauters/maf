@@ -104,11 +104,8 @@ object TestIncrementalRunDatastructures extends App:
       interpretProgram(bench)
       val text = CSchemeParser.parseProgram(Reader.loadFile(bench))
       println(text.prettyString())
-      val a = base(text)
-      //   a.logger.logU("BASE + INC")
-      a.analyzeWithTimeout(timeout())
-      println(a.mapping)
-      /*println(a.getClass)
+     /* println(a.mapping)
+      println(a.getClass)
       println(a.store)
       println(a.deps)
       println(a.addressDependencies)
@@ -118,13 +115,39 @@ object TestIncrementalRunDatastructures extends App:
       println(a.countedSpawns)
       println(a.cachedWrites)
     */
-     // println(a.store)
+
+      val a = base(text)
+      a.analyzeWithTimeout(timeout())
       var update = new IncrementalUpdateDatastructures
       update.changeDataStructures(a, text)
+      val storeWithUpdate = a.store
 
-      //  a.flowInformationToDotGraph("logs/flowsA1.dot")
-    //  a.updateAnalysis(timeout())
-     // println(a.store)
+      val b = base(text)
+      b.analyzeWithTimeout(timeout())
+      b.updateAnalysis(timeout())
+
+      val storeWithReanalysis = b.store
+
+      println("Store with updating: " + storeWithUpdate.toString)
+      println("Store with reanalysis: " + storeWithReanalysis.toString)
+
+      println("Reanalysis -> Update: " + storeWithReanalysis.forall((k, v) =>
+        storeWithUpdate.get(k) match
+          case Some(updatedValue) => updatedValue.==(v)
+          case _ => false).toString)
+
+      println("Update -> reanalysis: " + storeWithUpdate.forall((k, v) =>
+        storeWithReanalysis.get(k) match
+          case Some(updatedValue) => updatedValue.==(v)
+          case _ => false).toString)
+
+      /*storeWithReanalysis.foreach((k, v) =>
+        storeWithUpdate.get(k) match
+          case Some(updatedValue) => println(updatedValue.==(v))
+          case _ => println("missing"))*/
+
+     // a.updateAnalysis(timeout())
+
     /*  println(a.store)
       println(a.deps)
       println(a.addressDependencies)
@@ -134,14 +157,7 @@ object TestIncrementalRunDatastructures extends App:
       println(a.cachedSpawns)
       println(a.countedSpawns)
       println(a.cachedWrites)*/
-      //  a.flowInformationToDotGraph("logs/flowsA2.dot")
-      //Thread.sleep(1000)
-      //val b = base(text)
-      //b.version = New
-      //  b.logger.logU("REAN")
-      //b.analyzeWithTimeout(timeout())
-      // b.flowInformationToDotGraph("logs/flowsB.dot")
-      // println("Done")
+
     } catch {
       case e: Exception =>
         e.printStackTrace(System.out)
