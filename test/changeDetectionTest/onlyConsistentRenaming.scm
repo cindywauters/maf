@@ -68,3 +68,13 @@ eighth-test
          ((lambda () (b d))))))))
 
 ((test-more-lambdas 5) 10)
+
+(define (change-in-lambda a)
+  (lambda (b)
+   (<change>
+    (let ((c (lambda (a) (+ a 1))))
+      (lambda ()(+ b (c 5))))
+    (let ((d (lambda (a) (+ a 1))))
+      (lambda ()(+ b (d 5)))))))
+
+((change-in-lambda 5) 10)

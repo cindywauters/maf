@@ -1,16 +1,16 @@
 package maf.modular.incremental
 
 //import maf.cli.runnables
-import maf.core.{Address, BasicEnvironment, Expression, Identifier, Identity, Lattice}
-import maf.modular.scheme.modf.{NoContext, SchemeModFComponent}
-import maf.language.scheme.interpreter.ConcreteValues.{Addr, AddrInfo}
-import maf.language.scheme.interpreter.ConcreteValues.AddrInfo.VarAddr
+import maf.core.*
 import maf.language.scheme.interpreter.BaseSchemeInterpreter
-import maf.language.scheme.{SchemeLambdaExp, *}
+import maf.language.scheme.interpreter.ConcreteValues.AddrInfo.VarAddr
 import maf.language.scheme.interpreter.ConcreteValues.Value.Clo
+import maf.language.scheme.interpreter.ConcreteValues.{Addr, AddrInfo}
 import maf.language.scheme.lattices.ModularSchemeLattice
-import maf.lattice.interfaces.{BoolLattice, CharLattice, IntLattice, RealLattice, StringLattice, SymbolLattice}
+import maf.language.scheme.*
+import maf.lattice.interfaces.*
 import maf.modular.incremental.scheme.lattice.{IncrementalLattice, IncrementalModularSchemeLattice, IncrementalSchemeLattice}
+import maf.modular.scheme.modf.{NoContext, SchemeModFComponent}
 import maf.modular.scheme.{ModularSchemeLatticeWrapper, SchemeAddr}
 
 
@@ -73,7 +73,11 @@ class IncrementalUpdateDatastructures {
   // The new component is created from the new lambda and the new environment, and the new idn becomes the idn of the last subexpression of the new lambda
   // We once again use getNewValue to find the new value, and then remove the old key (and value) from the store, and insert the new key and value
   def updateReturnAddr(a: IncrementalGlobalStore[SchemeExp], key: maf.modular.ReturnAddr[SchemeModFComponent], value: a.Value, changedVars: Map[Identifier, Identifier], changedExpressions: Map[Expression, Expression]): Unit =
+    val newValue = getNewValue(a, key, value, changedVars, changedExpressions)
     key.cmp match
+      case SchemeModFComponent.Main =>
+        if newValue != value then
+          a.store = a.store + (key -> newValue)
       case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), ctx: NoContext.type) =>
         val allOldLambdas = changedExpressions.flatMap(e => findAllLambdas(e._1))
         val allNewLambdas = changedExpressions.flatMap(e => findAllLambdas(e._2))
@@ -81,23 +85,15 @@ class IncrementalUpdateDatastructures {
         val changeToLambda = allChangedLambdas.get(lam)
         changeToLambda match
           case Some(lambda: SchemeLambdaExp) =>
-            var newEnv: Map[String, Address] = Map()
-            env.content.foreach((k, v) =>
-              v match
-                case varAddr: maf.modular.scheme.VarAddr[NoContext.type] =>
-                  var oldIdn = varAddr.idn
-                  (changedVars.find((k , v) => k.idn == oldIdn)) match
-                    case Some(identifiers) =>
-                      newEnv += (identifiers._2.name -> varAddr.copy(id = identifiers._2))
-                    case _ => newEnv += (k -> v)
-                case _ => newEnv += (k -> v))
+            var newEnv = createNewEnvironment(env, changedVars)
             val newCmp = SchemeModFComponent.Call(clo = (lambda, new BasicEnvironment[Address](newEnv)), ctx = ctx)
             val newIdn = lambda.subexpressions.last.idn
             val newKey = key.copy(idn = newIdn, cmp = newCmp)
-            val newValue = getNewValue(a, key, value, changedVars, changedExpressions)
             a.store = a.store - key
             a.store = a.store + (newKey -> newValue)
           case _ =>
+            if newValue != value then
+              a.store = a.store + (key -> newValue)
       case _ =>
 
   // The value (maybe) only needs to change if the value before was a Closure (things such as Int do not change as it shouldn't change with simple refactorings)
@@ -114,10 +110,28 @@ class IncrementalUpdateDatastructures {
           val allOldLambdas = changedExpressions.flatMap(e => findAllLambdas(e._1))
           val allNewLambdas = changedExpressions.flatMap(e => findAllLambdas(e._2))
           val allChangedLambdas = allOldLambdas.zip(allNewLambdas).toMap
-            allChangedLambdas.get(e._1) match
-          case Some(lambda: SchemeLambdaExp) =>  newExpr = l.closure(lambda, e._2)
-          case None =>
+          allChangedLambdas.get(e._1) match
+            case Some(lambda: SchemeLambdaExp) =>
+              e._2 match
+                case env : maf.core.BasicEnvironment[_] =>
+                  var newEnv = createNewEnvironment(env, changedVars)
+                  newExpr = l.closure(lambda, new BasicEnvironment[Address](newEnv))
+                case _ =>
+            case _ =>
         )
         newExpr
       case _ => value
+
+  def createNewEnvironment(oldEnv: maf.core.BasicEnvironment[_], changedVars: Map[Identifier, Identifier]): Map[String, Address] =
+    var newEnv: Map[String, Address] = Map()
+    oldEnv.content.foreach((k, v) =>
+      v match
+        case varAddr: maf.modular.scheme.VarAddr[NoContext.type] =>
+          var oldIdn = varAddr.idn
+          (changedVars.find((k , v) => k.idn == oldIdn)) match
+            case Some(identifiers) =>
+              newEnv += (identifiers._2.name -> varAddr.copy(id = identifiers._2))
+            case _ => newEnv += (k -> v)
+        case _ => newEnv += (k -> v))
+    newEnv
 }

@@ -131,6 +131,14 @@ object TestIncrementalRunDatastructures extends App:
       println("Store with updating: " + storeWithUpdate.toString)
       println("Store with reanalysis: " + storeWithReanalysis.toString)
 
+  /*    storeWithReanalysis.foreach((k, v) =>
+        storeWithUpdate.get(k) match
+          case Some(updatedValue) =>
+            if updatedValue.!=(v) then
+              println(k.toString() + " " + updatedValue.toString +  " " + v.toString)
+          case _ =>)
+*/
+
       println("Reanalysis -> Update: " + storeWithReanalysis.forall((k, v) =>
         storeWithUpdate.get(k) match
           case Some(updatedValue) => updatedValue.==(v)
