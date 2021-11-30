@@ -61,7 +61,7 @@ object SchemeChangePatterns:
         var mappedRenamedVars = variablesRenamedNew.map(e => e.name).zip(variablesRenamedOld.map(e => e.name)).toMap
         var mappedIdentifiers = variablesNew.zip(variablesOld).toMap
         if renamedOld.eql(SchemeChangeRenamer.rename(renamedNew, mappedRenamedVars, Map[String, Int]())._1) then
-          return (true, mappedIdentifiers.filter(vr => vr._1 != vr._2))
+          return (true, mappedIdentifiers)
     (false, Map())
 
   def checkForRenamingParameter(exp: SchemeExp): Set[((maf.core.Expression, maf.core.Expression), Map[maf.core.Identifier, maf.core.Identifier])] =

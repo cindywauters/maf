@@ -67,9 +67,6 @@ class IncrementalUpdateDatastructures {
         val allOldLambdas = changedExpressions.flatMap(e => findAllLambdas(e._1))
         val allNewLambdas = changedExpressions.flatMap(e => findAllLambdas(e._2))
         val allChangedLambdas = allOldLambdas.zip(allNewLambdas).toMap
-       /* println()
-        println(allChangedLambdas)
-        println()*/
         val changeToLambda = allChangedLambdas.getOrElse(lam, false)
         changeToLambda match
           case lambda: SchemeLambdaExp =>
@@ -89,6 +86,7 @@ class IncrementalUpdateDatastructures {
             val newKey = key.copy(idn = newIdn, cmp = newCmp)
             a.store = a.store - key
             a.store = a.store + (newKey -> value)
+            updateValue(a, newKey, value, changedVars, changedExpressions)
           case false =>
       case _ =>
 
@@ -102,24 +100,17 @@ class IncrementalUpdateDatastructures {
              case lambda: SchemeLambdaExp =>
                a.store = a.store + (key -> l.closure(lambda, e._2))
              case _ =>
-        // changedVars.find((k , v) => k.idn == key.idn) match
-        //   case Some(identifiers) =>
          val allOldLambdas = changedExpressions.flatMap(e => findAllLambdas(e._1))
          val allNewLambdas = changedExpressions.flatMap(e => findAllLambdas(e._2))
          val allChangedLambdas = allOldLambdas.zip(allNewLambdas).toMap
-         //if allChangedLambdas contains e._1 then
          (allChangedLambdas.get(e._1), changedVars.find((k , v) => k.idn == key.idn), key) match
            case (Some(lambda: SchemeLambdaExp), Some(identifiers), k: maf.modular.scheme.VarAddr[NoContext.type]) =>
-             println(lambda.idn)
-             println(changedVars.find((k , v) => k.idn == key.idn))
-             println(l.closure(lambda, e._2))
-             println(k)
              a.store = a.store + (k.copy(id = identifiers._2) -> l.closure(lambda, e._2))
-         //    println(oldLambda)
-             //a.store = a.store + (key -> l.closure(lambda, e._2))
+           case (Some(lambda: SchemeLambdaExp), None, k: _) =>
+             a.store = a.store + (k -> l.closure(lambda, e._2))
            case _ =>
        )
-     case _ => println(a.lattice)
+     case _ =>
 
    }
 }

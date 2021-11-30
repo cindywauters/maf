@@ -46,3 +46,15 @@
 
 eighth-test
 
+(define test-many-lambdas
+  (<change>
+   (lambda (a)
+     (lambda (a)
+       (let ((b (lambda (a) (+ a 1))))
+         ((lambda () (b a))))))
+   (lambda (a)
+     (lambda (d)
+       (let ((b (lambda (a) (+ a 1))))
+         ((lambda () (b d))))))))
+
+((test-many-lambdas 5) 10)
