@@ -103,7 +103,7 @@ object TestIncrementalRunDatastructures extends App:
       println(s"***** $bench *****")
       interpretProgram(bench)
       val text = CSchemeParser.parseProgram(Reader.loadFile(bench))
-      println(text.prettyString())
+     // println(text.prettyString())
      /* println(a.mapping)
       println(a.getClass)
       println(a.store)

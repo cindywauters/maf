@@ -49,21 +49,18 @@ object SchemeChangePatterns:
   def checkRenamingsVariables(oldexp: Expression, newexp: Expression): (Boolean, Map[Identifier, Identifier]) =
     (oldexp, newexp) match
       case (oe: SchemeExp, ne: SchemeExp) =>
-        // renaming turned off for now, turn on earlier in the process?
-        // only turned off to test some changes in datastructures
-        // will cause problems with some things, check out later
-        var renamedOld = oe //SchemeChangeRenamer.rename(oe)
-        var renamedNew = ne //SchemeChangeRenamer.rename(ne)
-        var variablesOld = findAllVarsInOrder(renamedOld)
-        var variablesNew = findAllVarsInOrder(renamedNew)
+        var renamedOld = SchemeRenamer.rename(oe)
+        var renamedNew = SchemeRenamer.rename(ne)
+        var variablesOld = findAllVarsInOrder(oe)
+        var variablesNew = findAllVarsInOrder(ne)
+        var variablesRenamedOld = findAllVarsInOrder(renamedOld)
+        var variablesRenamedNew = findAllVarsInOrder(renamedNew)
         if variablesOld.length != variablesNew.length then
           return (false, Map())
         var mappedVars = variablesNew.map(e => e.name).zip(variablesOld.map(e => e.name)).toMap
+        var mappedRenamedVars = variablesRenamedNew.map(e => e.name).zip(variablesRenamedOld.map(e => e.name)).toMap
         var mappedIdentifiers = variablesNew.zip(variablesOld).toMap
-       // println(renamedOld)
-       // println(SchemeChangeRenamer.rename(renamedNew, mappedVars, Map[String, Int]())._1)
-        if renamedOld.eql(SchemeChangeRenamer.rename(renamedNew, mappedVars, Map[String, Int]())._1) then
-          //mappedIdentifiers.foreach((e1 , e2) => println(e1._1 + " " + e1._2 + " " + e2._1 + " " + e2._2))
+        if renamedOld.eql(SchemeChangeRenamer.rename(renamedNew, mappedRenamedVars, Map[String, Int]())._1) then
           return (true, mappedIdentifiers.filter(vr => vr._1 != vr._2))
     (false, Map())
 
@@ -71,5 +68,3 @@ object SchemeChangePatterns:
     var changedExpr = findAllChangedExpressions(exp)
     val renamings: Set[(Boolean, Map[Identifier, Identifier])] = changedExpr.map(e => checkRenamingsVariables(e._1, e._2))
     changedExpr.zip(renamings.map(e => e._2))
-    //changedExpr.foreach(e => println("\n" + e._1.toString + "\n" + e._2.toString + "\n is consistant renaming: " + checkRenamingsVariables(e._1, e._2)._1.toString))
-    
