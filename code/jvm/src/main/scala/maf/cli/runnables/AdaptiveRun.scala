@@ -27,9 +27,11 @@ object AdaptiveRun:
     def main(args: Array[String]): Unit = testModFLocal()
 
     def testConcrete() =
-        val txt = """
-    (define x 2) x
-    """
+        val txt =
+          """
+          | (define x 2) 
+          | x
+          """.stripMargin
         val prg = CSchemeParser.parseProgram(txt)
         val int = new SchemeInterpreter(io = new FileIO(Map()))
         int.run(prg, Timeout.none)
@@ -48,42 +50,48 @@ object AdaptiveRun:
         println(prg)
 
     def testModFLocal(): Unit =
-        val txt = Reader.loadFile("test/R5RS/various/widen.scm")
+        val txt = Reader.loadFile("test/R5RS/gambit/browse.scm")
         val parsed = CSchemeParser.parse(txt)
         val prelud = SchemePrelude.addPrelude(parsed, incl = Set("__toplevel_cons", "__toplevel_cdr", "__toplevel_set-cdr!"))
         val transf = SchemeMutableVarBoxer.transform(prelud)
         val prg = CSchemeParser.undefine(transf)
-        val anl = new SchemeModFLocal(prg) with SchemeConstantPropagationDomain with SchemeModFLocalNoSensitivity with FIFOWorklistAlgorithm[SchemeExp]
-        def printStore(sto: anl.Sto) =
-          sto.content.view
-            .filterKeys(!_.isInstanceOf[PrmAddr])
-            .toMap
-            .foreach { case (a, (v, _)) =>
-              println(s"$a -> $v")
-            }
-        def printDelta(dlt: anl.Dlt) =
-          dlt.delta.view.toMap
-            .foreach { case (a, (v, _)) =>
-              println(s"$a -> $v")
-            }
-        anl.analyzeWithTimeoutInSeconds(10)
-        anl.visited
-          .collect { case cll: anl.CallComponent => cll }
-          .foreach { case cmp @ anl.CallComponent(lam, _, _, sto) =>
-            val (res, dlt) = anl.results.getOrElse(cmp, (Set.empty, Delta.empty)).asInstanceOf[(Set[(anl.Val, anl.Dlt)], anl.Dlt)]
-            println()
-            println(s"COMPONENT ${lam.lambdaName} WHERE")
-            println("[LOCAL]")
-            printStore(sto)
-            println("[WIDENED]")
-            printStore(anl.getStore(anl.stores, cmp.exp, cmp.ctx))
-            println(s"==> RESULTS: $res")
-            println(s"==> DELTA (updated: ${dlt.updates.mkString("{", ",", "}")}):")
-            printDelta(dlt)
-            println()
-          }
-        println(anl.finished)
-        println(anl.visited.size)
+        val anl = new SchemeModFLocal(prg)
+          with SchemeConstantPropagationDomain
+          with SchemeModFLocalNoSensitivity
+          with FIFOWorklistAlgorithm[SchemeExp]
+          with SchemeModFLocalAdaptiveWidening(800):
+            override def debug(msg: => String): Unit = println(s"[DEBUG] $msg")
+            var i = 0
+            override def step(t: Timeout.T): Unit =
+                i += 1
+                val cmp = workList.head
+                println(s"[$i] Analysing $cmp")
+                super.step(t)
+            def printStore(sto: Sto) =
+              sto.content.view.toMap
+                .foreach { case (a, (v, _)) =>
+                  println(s"$a -> $v")
+                }
+            def printDelta(dlt: Dlt) =
+              dlt.delta.view.toMap
+                .foreach { case (a, (v, _)) =>
+                  println(s"$a -> $v")
+                }
+            def printCmp(cmp: Cmp) =
+                val (res, dlt) = results.getOrElse(cmp, (lattice.bottom, Delta.empty)).asInstanceOf[(Val, Dlt)]
+                println()
+                println(s"COMPONENT $cmp WHERE")
+                printStore(cmp.sto)
+                println(s"==> RESULTS: $res")
+                println(s"==> DELTA (updated: ${dlt.updates.mkString("{", ",", "}")}):")
+                printDelta(dlt)
+                println()
+        //override def debugAdvanced(msg: => String): Unit = println(s"[!!!] $msg")
+        anl.analyzeWithTimeoutInSeconds(60)
+        //anl.visited.collect({ case cll: anl.CallComponent => cll })
+        //.foreach(printCall)
+        println(s"FINISHED: ${anl.finished}")
+        println(s"VISITED: ${anl.visited.size}")
 
     def testModConc(): Unit =
         val txt = Reader.loadFile("test/concurrentScheme/threads/msort.scm")
