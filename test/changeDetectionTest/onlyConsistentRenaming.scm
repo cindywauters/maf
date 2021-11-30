@@ -4,7 +4,6 @@
 
 (first-test 5 10)
 
-;; Test with lambda + let, should be true
 (define second-test
   (<change>
    (lambda (a)
@@ -18,7 +17,6 @@
 
 (second-test 2)
 
-;; Let + let*, should be true
 (define (fifth-test a)
   (<change>
    (let ((a 1)
@@ -34,7 +32,6 @@
 
 (define (z a b) (+ a b))
 
-;; Let with lambda in a binding, should be true
 (define eighth-test
   (<change>
    (let ((a (lambda (d e) (- d e)))
@@ -58,3 +55,16 @@ eighth-test
          ((lambda () (b d))))))))
 
 ((test-many-lambdas 5) 10)
+
+(define test-more-lambdas
+  (<change>
+   (lambda (a)
+     (lambda (a)
+       (let ((b (lambda (a) (+ a 1 ((lambda () (+ 1 7)))))))
+         ((lambda () (b a))))))
+   (lambda (a)
+     (lambda (d)
+       (let ((b (lambda (a) (+ a 1 ((lambda () (+ 1 7)))))))
+         ((lambda () (b d))))))))
+
+((test-more-lambdas 5) 10)
