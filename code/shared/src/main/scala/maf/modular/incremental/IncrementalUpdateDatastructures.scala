@@ -49,6 +49,8 @@ class IncrementalUpdateDatastructures {
           updateVarAddr(a, k, v, changedVars, changedExpressions)
         case (k: maf.modular.ReturnAddr[SchemeModFComponent], _) =>
           updateReturnAddr(a, k, v, changedVars, changedExpressions)
+        case (k: maf.modular.scheme.PtrAddr[NoContext.type], _) =>
+          updatePointerAddr(a, k, v, changedVars, changedExpressions)
         case _ =>
     )
     println(a.store)
@@ -58,7 +60,7 @@ class IncrementalUpdateDatastructures {
   // We then insert a new key (with the new variable). The value might change or it may not (if not, getNewValue will just return the old value)
   // If the address is not of a directly affected variable (such as a varAddr of a function), the value might still change and we might still have to update it
   def updateVarAddr(a: IncrementalGlobalStore[SchemeExp], key: maf.modular.scheme.VarAddr[NoContext.type], value: a.Value, changedVars: Map[Identifier, Identifier], changedExpressions: Map[Expression, Expression]): Unit =
-    val newValue = getNewValue(a, key, value, changedVars, changedExpressions)
+    val newValue = getNewValues(a, key, value, changedVars, changedExpressions)
     if changedVars contains key.id then
       val newIdn = changedVars.getOrElse(key.id, key.id)
       val newKey = key.copy(id = newIdn, ctx = key.ctx)
@@ -75,7 +77,7 @@ class IncrementalUpdateDatastructures {
   // The new component is created from the new lambda and the new environment, and the new idn becomes the idn of the last subexpression of the new lambda
   // We once again use getNewValue to find the new value, and then remove the old key (and value) from the store, and insert the new key and value
   def updateReturnAddr(a: IncrementalGlobalStore[SchemeExp], key: maf.modular.ReturnAddr[SchemeModFComponent], value: a.Value, changedVars: Map[Identifier, Identifier], changedExpressions: Map[Expression, Expression]): Unit =
-    val newValue = getNewValue(a, key, value, changedVars, changedExpressions)
+    val newValue = getNewValues(a, key, value, changedVars, changedExpressions)
     key.cmp match
       case SchemeModFComponent.Main =>
         if newValue != value then
@@ -98,34 +100,64 @@ class IncrementalUpdateDatastructures {
               a.store = a.store + (key -> newValue)
       case _ =>
 
+  def updatePointerAddr(a: IncrementalGlobalStore[SchemeExp], key: maf.modular.scheme.PtrAddr[NoContext.type], value: a.Value, changedVars: Map[Identifier, Identifier], changedExpressions: Map[Expression, Expression]): Unit =
+    val newValue = getNewValues(a, key, value, changedVars, changedExpressions)
+    a.store = a.store + (key -> newValue)
+
   // The value (maybe) only needs to change if the value before was a Closure (things such as Int do not change as it shouldn't change with simple refactorings)
   // We first set the newExpr to the old value (as it might not change after all) and then we go over all the closures of the value
   // If that closure contains a lambda (e._1),  then we look if that lambda existed (within) a changed lambda, because only in that case the value should change
   // If it is in a changed expression, we get the lambda that is was changed into and create a new closure from that. This will then become newExpr and thereby the new value that is inserted in the store
   // Otherwise the newExpr will just stay the value
-  def getNewValue(a: IncrementalGlobalStore[SchemeExp], key: Address, value: a.Value, changedVars: Map[Identifier, Identifier], changedExpressions: Map[Expression, Expression]): a.Value =
+  def getNewValues(a: IncrementalGlobalStore[SchemeExp], key: Address, value: a.Value, changedVars: Map[Identifier, Identifier], changedExpressions: Map[Expression, Expression]): a.Value =
     value match
       case element: IncrementalSchemeTypeDomain.modularLattice.AnnotatedElements =>
+        println(element.values)
         var newValues = element.values
+        newValues= element.values.map(e => getNewValue(a, key, e, changedVars, changedExpressions))
         println(newValues)
-        newValues= element.values.map(e => e match
-          case clos : IncrementalSchemeTypeDomain.modularLattice.Clo =>
-            val allOldLambdas = changedExpressions.flatMap(e => findAllLambdas(e._1))
-            val allNewLambdas = changedExpressions.flatMap(e => findAllLambdas(e._2))
-            val allChangedLambdas = allOldLambdas.zip(allNewLambdas).toMap
-            var newClos: Set[maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain.modularLattice.schemeLattice.Closure] = clos.closures.map(e =>
-              allChangedLambdas.get(e._1) match
-                case Some(lambda: SchemeLambdaExp) =>
-                  e._2 match
-                    case env : maf.core.BasicEnvironment[_] =>
-                      var newEnv = createNewEnvironment(env, changedVars)
-                      (lambda, new BasicEnvironment[Address](newEnv))
-                    case _ => e
-                case _ => e)
-            IncrementalSchemeTypeDomain.modularLattice.Clo(newClos)
-          case something: _ => something)
         IncrementalSchemeTypeDomain.modularLattice.AnnotatedElements(newValues, element.sources).asInstanceOf[a.Value]
+      case element: IncrementalSchemeTypeDomain.modularLattice.Elements =>
+        val newElems = element.vs.map(e => getNewValue(a, key, e, changedVars, changedExpressions))
+        println("new elems: " + newElems)
+        IncrementalSchemeTypeDomain.modularLattice.Elements(newElems).asInstanceOf[a.Value]
+
       case _ => value
+
+  def getNewValue(a: IncrementalGlobalStore[SchemeExp], key: Address, value:  maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain.modularLattice.Value, changedVars: Map[Identifier, Identifier], changedExpressions: Map[Expression, Expression]): maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain.modularLattice.Value =
+    value match
+      case clos : IncrementalSchemeTypeDomain.modularLattice.Clo =>
+        val allOldLambdas = changedExpressions.flatMap(e => findAllLambdas(e._1))
+        val allNewLambdas = changedExpressions.flatMap(e => findAllLambdas(e._2))
+        val allChangedLambdas = allOldLambdas.zip(allNewLambdas).toMap
+        var newClos: Set[maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain.modularLattice.schemeLattice.Closure] = clos.closures.map(e =>
+          allChangedLambdas.get(e._1) match
+            case Some(lambda: SchemeLambdaExp) =>
+              e._2 match
+                case env : maf.core.BasicEnvironment[_] =>
+                  var newEnv = createNewEnvironment(env, changedVars)
+                  (lambda, new BasicEnvironment[Address](newEnv))
+                case _ => e
+            case _ => e)
+        IncrementalSchemeTypeDomain.modularLattice.Clo(newClos)
+      case vector: IncrementalSchemeTypeDomain.modularLattice.Vec =>
+        println("vec elements: " + vector.elements.toString)
+        val newElementsVector = vector.elements.map((k, vecelem) =>
+          println("yes")
+          val nw = getNewValues(a, key, vecelem.asInstanceOf[a.Value], changedVars, changedExpressions)
+          println("lijn 148" + nw.toString)
+          (k, nw))
+        println("mapping done")
+        println(newElementsVector)
+        val newVector = IncrementalSchemeTypeDomain.modularLattice.Vec(size = vector.size, elements = newElementsVector.asInstanceOf[vector.elements.type])
+        println(newVector)
+        newVector
+      case bools: IncrementalSchemeTypeDomain.modularLattice.Bool => bools
+      case pointers: IncrementalSchemeTypeDomain.modularLattice.Pointer => pointers
+      case somethingElse: _ =>
+        println(somethingElse.getClass)
+        value
+
 
   def createNewEnvironment(oldEnv: maf.core.BasicEnvironment[_], changedVars: Map[Identifier, Identifier]): Map[String, Address] =
     var newEnv: Map[String, Address] = Map()
