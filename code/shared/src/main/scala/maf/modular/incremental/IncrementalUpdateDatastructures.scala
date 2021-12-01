@@ -11,7 +11,7 @@ import maf.language.scheme.*
 import maf.lattice.interfaces.*
 import maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain.modularLattice.incrementalSchemeLattice
 import maf.modular.incremental.scheme.lattice.{IncrementalLattice, IncrementalModularSchemeLattice, IncrementalSchemeLattice, IncrementalSchemeTypeDomain}
-import maf.modular.scheme.modf.{NoContext, SchemeModFComponent}
+import maf.modular.scheme.modf.{SchemeModFComponent}
 import maf.modular.scheme.{ModularSchemeLatticeWrapper, SchemeAddr}
 
 
@@ -20,6 +20,11 @@ class IncrementalUpdateDatastructures {
   var changedVars: Map[maf.core.Identifier, maf.core.Identifier] = Map()
   var changedExpressions: Map[maf.core.Expression, maf.core.Expression] = Map()
   var allExpressionsInChange: Map[maf.core.Expression, maf.core.Expression] = Map()
+
+  type VarAddr = maf.modular.scheme.VarAddr[_]
+  type RetAddr = maf.modular.ReturnAddr[SchemeModFComponent]
+  type PtrAddr = maf.modular.scheme.PtrAddr[_]
+  type Value = maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain.modularLattice.Value
 
   def changeDataStructures(a: IncrementalModAnalysis[SchemeExp], exp: SchemeExp): Boolean =
     val changed = SchemeChangePatterns.checkForRenamingParameter(exp)
@@ -58,11 +63,11 @@ class IncrementalUpdateDatastructures {
     println(a.store)
     a.store.foreach((k, v) =>
       (k, v) match
-        case (k: maf.modular.scheme.VarAddr[NoContext.type], _) =>
+        case (k: VarAddr, _) =>
           updateVarAddr(a, k, v)
-        case (k: maf.modular.ReturnAddr[SchemeModFComponent], _) =>
+        case (k: RetAddr, _) =>
           updateReturnAddr(a, k, v)
-        case (k: maf.modular.scheme.PtrAddr[NoContext.type], _) =>
+        case (k: PtrAddr, _) =>
           updatePointerAddr(a, k, v)
         case _ =>
     )
@@ -72,7 +77,7 @@ class IncrementalUpdateDatastructures {
   // If the address is of a variable that is directly affected (like a becoming b), we simply remove that from the store
   // We then insert a new key (with the new variable). The value might change or it may not (if not, getNewValue will just return the old value)
   // If the address is not of a directly affected variable (such as a varAddr of a function), the value might still change and we might still have to update it
-  def updateVarAddr(a: IncrementalGlobalStore[SchemeExp], key: maf.modular.scheme.VarAddr[NoContext.type], value: a.Value): Unit =
+  def updateVarAddr(a: IncrementalGlobalStore[SchemeExp], key: VarAddr, value: a.Value): Unit =
     val newValue = getNewValues(a, key, value)
     if changedVars contains key.id then
       val newIdn = changedVars.getOrElse(key.id, key.id)
@@ -89,13 +94,13 @@ class IncrementalUpdateDatastructures {
   // We first build up a new environment, by going through the old environment and if it contains a variable that was changed by the expression, we change it accordingly. Unchanged variables are added to the new env too
   // The new component is created from the new lambda and the new environment, and the new idn becomes the idn of the last subexpression of the new lambda
   // We once again use getNewValue to find the new value, and then remove the old key (and value) from the store, and insert the new key and value
-  def updateReturnAddr(a: IncrementalGlobalStore[SchemeExp], key: maf.modular.ReturnAddr[SchemeModFComponent], value: a.Value): Unit =
+  def updateReturnAddr(a: IncrementalGlobalStore[SchemeExp], key: RetAddr, value: a.Value): Unit =
     val newValue = getNewValues(a, key, value)
     key.cmp match
       case SchemeModFComponent.Main =>
         if newValue != value then
           a.store = a.store + (key -> newValue)
-      case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), ctx: NoContext.type) =>
+      case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), ctx: _) =>
         val changeToLambda = allExpressionsInChange.get(lam)
         changeToLambda match
           case Some(lambda: SchemeLambdaExp) =>
@@ -110,12 +115,12 @@ class IncrementalUpdateDatastructures {
               a.store = a.store + (key -> newValue)
       case _ =>
 
-  def updatePointerAddr(a: IncrementalGlobalStore[SchemeExp], key: maf.modular.scheme.PtrAddr[NoContext.type], value: a.Value): Unit =
+  def updatePointerAddr(a: IncrementalGlobalStore[SchemeExp], key: PtrAddr, value: a.Value): Unit =
     val newValue = getNewValues(a, key, value)
     val newKey = getNewPointerAddr(key)
     a.store = a.store + (newKey -> newValue)
 
-  def getNewPointerAddr(addr: maf.modular.scheme.PtrAddr[_]): maf.modular.scheme.PtrAddr[_] =
+  def getNewPointerAddr(addr: PtrAddr): PtrAddr =
     val changeToExp = allExpressionsInChange.get(addr.exp)
     changeToExp match
       case Some(exp: SchemeExp) =>
@@ -139,7 +144,7 @@ class IncrementalUpdateDatastructures {
         IncrementalSchemeTypeDomain.modularLattice.Elements(newElems).asInstanceOf[a.Value]
       case _ => value
 
-  def getNewValue(a: IncrementalGlobalStore[SchemeExp], key: Address, value:  maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain.modularLattice.Value): maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain.modularLattice.Value =
+  def getNewValue(a: IncrementalGlobalStore[SchemeExp], key: Address, value:  Value): Value =
     value match
       case clos : IncrementalSchemeTypeDomain.modularLattice.Clo =>
         var newClos: Set[maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain.modularLattice.schemeLattice.Closure] = clos.closures.map(e =>
@@ -160,7 +165,7 @@ class IncrementalUpdateDatastructures {
         newVector
       case pointer: IncrementalSchemeTypeDomain.modularLattice.Pointer =>
         IncrementalSchemeTypeDomain.modularLattice.Pointer(pointer.ptrs.map(p => p match
-          case pa: maf.modular.scheme.PtrAddr[_] =>
+          case pa: PtrAddr =>
             getNewPointerAddr(pa)
           case a: _ =>
             println(a)
@@ -172,7 +177,7 @@ class IncrementalUpdateDatastructures {
     var newEnv: Map[String, Address] = Map()
     oldEnv.content.foreach((k, v) =>
       v match
-        case varAddr: maf.modular.scheme.VarAddr[NoContext.type] =>
+        case varAddr: VarAddr =>
           var oldIdn = varAddr.idn
           (changedVars.find((k , v) => k.idn == oldIdn)) match
             case Some(identifiers) =>
