@@ -129,7 +129,7 @@ object TestIncrementalRunDatastructures extends App:
       storeWithUpdate.foreach((k, v) =>
         storeWithReanalysis.get(k) match
           case Some(updatedValue) =>
-          case _ => println("missing in reanalysis: " + k.toString())
+          case _ => println("missing in reanalysis: " + k.toString() + "\n update value: " + v.toString)
       )
 
      // a.updateAnalysis(timeout())

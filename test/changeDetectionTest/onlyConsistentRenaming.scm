@@ -139,3 +139,10 @@ eighth-test
        (vector-set! vector 0 (lambda (b) (+ a b)))))))
 
 (test-with-vector-in-lambda-outer2 5)
+
+(define test-with-cons
+  (<change>
+   (cons 5 (lambda (a) a))
+   (cons 5 (lambda (b) b))))
+
+test-with-cons
