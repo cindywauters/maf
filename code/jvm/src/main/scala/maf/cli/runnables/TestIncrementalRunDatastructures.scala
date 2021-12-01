@@ -39,28 +39,6 @@ object TestIncrementalRunDatastructures extends App:
     i.run(prog, Timeout.start(Duration(3, MINUTES)), New)
     println("*")
 
-  def modconcAnalysis(
-                       bench: String,
-                       config: IncrementalConfiguration,
-                       timeout: () => Timeout.T
-                     ): Unit =
-    val text = CSchemeParser.parseProgram(Reader.loadFile(bench))
-    val a = new IncrementalModConcAnalysisCPLattice(text, config) with IncrementalLogging[SchemeExp] {
-      override def intraAnalysis(
-                                  cmp: Component
-                                ) = new IntraAnalysis(cmp)
-        with IncrementalSmallStepIntra
-        with KCFAIntra
-        with IncrementalGlobalStoreIntraAnalysis
-        with IncrementalLoggingIntra {
-        override def analyzeWithTimeout(timeout: Timeout.T): Unit =
-          println(s"Analyzing $cmp")
-          super.analyzeWithTimeout(timeout)
-      }
-    }
-    a.analyzeWithTimeout(timeout())
-    print(a.finalResult)
-  //a.updateAnalysis(timeout())
 
   def modfAnalysis(bench: String, timeout: () => Timeout.T): Unit =
     def newAnalysis(text: SchemeExp, configuration: IncrementalConfiguration) =
@@ -72,7 +50,6 @@ object TestIncrementalRunDatastructures extends App:
         override def intraAnalysis(cmp: SchemeModFComponent) = new IntraAnalysis(cmp)
           with IncrementalSchemeModFBigStepIntra
           with IncrementalGlobalStoreIntraAnalysis
-          //  with AssertionModFIntra
           with IncrementalLoggingIntra
           with IncrementalVisualIntra
       }
@@ -84,19 +61,13 @@ object TestIncrementalRunDatastructures extends App:
       with SchemeModFSemanticsM
       with LIFOWorklistAlgorithm[SchemeExp]
       with IncrementalSchemeModFBigStepSemantics
-      with IncrementalSchemeTypeDomain // IncrementalSchemeConstantPropagationDomain
+      with IncrementalSchemeTypeDomain
       with IncrementalGlobalStore[SchemeExp]
-      // with IncrementalLogging[SchemeExp]
-      // with IncrementalDataFlowVisualisation[SchemeExp]
     {
-      //override def focus(a: Addr): Boolean =
-      //!a.toString.contains("PrmAddr") && (a.toString.contains("ret") || a.toString.contains("x2") || a.toString.contains("__"))
       var configuration: IncrementalConfiguration = allOptimisations
       override def intraAnalysis(
                                   cmp: Component
                                 ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis
-      // with IncrementalLoggingIntra
-      // with IncrementalVisualIntra
     }
 
     try {
@@ -183,12 +154,9 @@ object TestIncrementalRunDatastructures extends App:
   end modfAnalysis
 
   val modConcbenchmarks: List[String] = List()
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming.scm") //List("test/changes/scheme/generated/selsort-7.scm")
+  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenamingProblems.scm")
   val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 
   modFbenchmarks.foreach(modfAnalysis(_, standardTimeout))
-  //println("Creating graphs")
-  //createPNG("logs/flowsA1.dot", true)
-  //createPNG("logs/flowsA2.dot", true)
-  //createPNG("logs/flowsB.dot", true)
   println("Done")
