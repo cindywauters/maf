@@ -38,6 +38,11 @@ class IncrementalUpdateDatastructures {
           List()
         else expr.subexpressions.flatMap(e => findAllLambdas(e))
 
+  def findAllSubExps(expr: Expression): List[Expression] =
+    if expr.subexpressions.isEmpty then
+      List()
+    else List(expr).appendedAll(expr.subexpressions.flatMap(e => findAllSubExps(e)))
+
   // Update the store in case there is one
   // There are two types of changes: changes to keys that have a variable address and changes to keys that have a return address
   def updateStore(a: IncrementalGlobalStore[SchemeExp], changedVars: Map[Identifier, Identifier], changedExpressions: Map[Expression, Expression]): Unit =
@@ -101,7 +106,17 @@ class IncrementalUpdateDatastructures {
 
   def updatePointerAddr(a: IncrementalGlobalStore[SchemeExp], key: maf.modular.scheme.PtrAddr[NoContext.type], value: a.Value, changedVars: Map[Identifier, Identifier], changedExpressions: Map[Expression, Expression]): Unit =
     val newValue = getNewValues(a, key, value, changedVars, changedExpressions)
-    a.store = a.store + (key -> newValue)
+    val allOldExps = changedExpressions.flatMap(e => findAllSubExps(e._1))
+    val allNewExps = changedExpressions.flatMap(e => findAllSubExps(e._2))
+    val allChangedExps = allOldExps.zip(allNewExps).toMap
+    val changeToExp = allChangedExps.get(key.exp)
+    changeToExp match
+      case Some(exp: SchemeExp) =>
+        println("context idn: " + key.idn + "key idn: " + exp.idn)
+        val newKey = key.copy(exp = exp)
+        a.store = a.store + (newKey -> newValue)
+      case _ =>
+        a.store = a.store + (key -> newValue)
 
   // The value (maybe) only needs to change if the value before was a Closure (things such as Int do not change as it shouldn't change with simple refactorings)
   // We first set the newExpr to the old value (as it might not change after all) and then we go over all the closures of the value
@@ -141,11 +156,7 @@ class IncrementalUpdateDatastructures {
           (k, nw))
         val newVector = IncrementalSchemeTypeDomain.modularLattice.Vec(size = vector.size, elements = newElementsVector.asInstanceOf[vector.elements.type])
         newVector
-      case bools: IncrementalSchemeTypeDomain.modularLattice.Bool => bools
-      case pointers: IncrementalSchemeTypeDomain.modularLattice.Pointer => pointers
-      case somethingElse: _ =>
-        println(somethingElse.getClass)
-        value
+      case _ => value
 
 
   def createNewEnvironment(oldEnv: maf.core.BasicEnvironment[_], changedVars: Map[Identifier, Identifier]): Map[String, Address] =

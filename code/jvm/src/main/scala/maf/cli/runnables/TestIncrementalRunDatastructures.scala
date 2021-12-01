@@ -132,13 +132,7 @@ object TestIncrementalRunDatastructures extends App:
       println("Store with updating: " + storeWithUpdate.toString)
       println("Store with reanalysis: " + storeWithReanalysis.toString)
 
-  /*    storeWithReanalysis.foreach((k, v) =>
-        storeWithUpdate.get(k) match
-          case Some(updatedValue) =>
-            if updatedValue.!=(v) then
-              println(k.toString() + " " + updatedValue.toString +  " " + v.toString)
-          case _ =>)
-*/
+
 
       println("Reanalysis -> Update: " + storeWithReanalysis.forall((k, v) =>
         storeWithUpdate.get(k) match
@@ -150,10 +144,22 @@ object TestIncrementalRunDatastructures extends App:
           case Some(updatedValue) => updatedValue.==(v)
           case _ => false).toString)
 
-      /*storeWithReanalysis.foreach((k, v) =>
+      println()
+      storeWithReanalysis.foreach((k, v) =>
         storeWithUpdate.get(k) match
-          case Some(updatedValue) => println(updatedValue.==(v))
-          case _ => println("missing"))*/
+          case Some(updatedValue) =>
+            if updatedValue.!=(v) then
+              println("key reanalysis: " + k.toString() + "\n value reanalysis: "+ v.toString + "\n value updated: " + updatedValue.toString)
+              println()
+          case _ =>println("missing in update: " + k.toString() + "\n reanalysis value: " + v.toString))
+
+      println()
+
+      storeWithUpdate.foreach((k, v) =>
+        storeWithReanalysis.get(k) match
+          case Some(updatedValue) =>
+          case _ => println("missing in reanalysis: " + k.toString())
+      )
 
      // a.updateAnalysis(timeout())
 
