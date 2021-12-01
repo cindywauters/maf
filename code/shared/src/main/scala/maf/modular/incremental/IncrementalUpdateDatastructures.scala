@@ -23,7 +23,6 @@ class IncrementalUpdateDatastructures {
     var changedVars = changed.flatMap(e => e._2)
     var ChangedVarsSwapped = changedVars.map(_.swap).toMap
     var changedExpressions = changed.map(e => e._1).toMap
-    println(changed)
 
     a match
       case analysis: IncrementalGlobalStore[SchemeExp] =>
@@ -112,16 +111,12 @@ class IncrementalUpdateDatastructures {
   def getNewValues(a: IncrementalGlobalStore[SchemeExp], key: Address, value: a.Value, changedVars: Map[Identifier, Identifier], changedExpressions: Map[Expression, Expression]): a.Value =
     value match
       case element: IncrementalSchemeTypeDomain.modularLattice.AnnotatedElements =>
-        println(element.values)
         var newValues = element.values
         newValues= element.values.map(e => getNewValue(a, key, e, changedVars, changedExpressions))
-        println(newValues)
         IncrementalSchemeTypeDomain.modularLattice.AnnotatedElements(newValues, element.sources).asInstanceOf[a.Value]
       case element: IncrementalSchemeTypeDomain.modularLattice.Elements =>
         val newElems = element.vs.map(e => getNewValue(a, key, e, changedVars, changedExpressions))
-        println("new elems: " + newElems)
         IncrementalSchemeTypeDomain.modularLattice.Elements(newElems).asInstanceOf[a.Value]
-
       case _ => value
 
   def getNewValue(a: IncrementalGlobalStore[SchemeExp], key: Address, value:  maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain.modularLattice.Value, changedVars: Map[Identifier, Identifier], changedExpressions: Map[Expression, Expression]): maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain.modularLattice.Value =
@@ -141,16 +136,10 @@ class IncrementalUpdateDatastructures {
             case _ => e)
         IncrementalSchemeTypeDomain.modularLattice.Clo(newClos)
       case vector: IncrementalSchemeTypeDomain.modularLattice.Vec =>
-        println("vec elements: " + vector.elements.toString)
         val newElementsVector = vector.elements.map((k, vecelem) =>
-          println("yes")
           val nw = getNewValues(a, key, vecelem.asInstanceOf[a.Value], changedVars, changedExpressions)
-          println("lijn 148" + nw.toString)
           (k, nw))
-        println("mapping done")
-        println(newElementsVector)
         val newVector = IncrementalSchemeTypeDomain.modularLattice.Vec(size = vector.size, elements = newElementsVector.asInstanceOf[vector.elements.type])
-        println(newVector)
         newVector
       case bools: IncrementalSchemeTypeDomain.modularLattice.Bool => bools
       case pointers: IncrementalSchemeTypeDomain.modularLattice.Pointer => pointers
