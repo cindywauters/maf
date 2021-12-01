@@ -16,7 +16,17 @@ import scala.util.parsing.combinator.lexical.Lexical
 //    (set-ref! y 10)
 //    (+ x (deref y)))
 // The main advantage of this transformation is that all variables themselves therefore become immutable.
-object SchemeMutableVarBoxer:
+trait BaseSchemeMutableVarBoxer:
+    object LexicalTranslator extends BaseSchemeLexicalAddresser:
+        var mutable: Set[LexicalRef] = Set.empty
+
+        override def translate(exp: SchemeExp, lenv: LexicalEnv): SchemeExp = super.translate(exp, lenv) match
+            case res @ SchemeSetLex(_, ref, _, _) =>
+              mutable += ref
+              res
+            case res => res
+
+    def lexicalTranslator: LexicalTranslator.type = LexicalTranslator
 
     // The transformation works in two phases
     // - first, it extracts all mutable variables from the given program
@@ -26,16 +36,10 @@ object SchemeMutableVarBoxer:
     //      * all references to these variables using `deref`
     def transform(exp: List[SchemeExp]): List[SchemeExp] =
         // first, collect all mutable vars
-        var mutable: Set[LexicalRef] = Set.empty
-        object LexicalTranslator extends BaseSchemeLexicalAddresser:
-            override def translate(exp: SchemeExp, lenv: LexicalEnv): SchemeExp = super.translate(exp, lenv) match
-                case res @ SchemeSetLex(_, ref, _, _) =>
-                  mutable += ref
-                  res
-                case res => res
-        val translated = LexicalTranslator.translateProgram(exp)
+        val translator = lexicalTranslator
+        val translated = translator.translateProgram(exp)
         // then, rewrite for mutable vars
-        rewriteProgram(translated, mutable)
+        rewriteProgram(translated, translator.mutable)
 
     type Rewrites = Map[LexicalRef, Identifier]
 
@@ -56,7 +60,7 @@ object SchemeMutableVarBoxer:
           case Some(oth) => SchemeVar(Identifier(oth.name, id.idn)) // SchemeVarLex(Identifier(oth.name, id.idn), LexicalRef.VarRef(oth))
           case None      => SchemeVar(id) // SchemeVarLex(id, lex)
 
-    private def rewrite(exp: SchemeExp, mut: Set[LexicalRef], rew: Rewrites): SchemeExp = exp match
+    protected def rewrite(exp: SchemeExp, mut: Set[LexicalRef], rew: Rewrites): SchemeExp = exp match
         case vlu: SchemeValue => vlu
         case SchemeVarLex(id, lex) =>
           if mut(lex) then SchemeDeref(varRef(rew, id, lex), id.idn)
@@ -104,6 +108,8 @@ object SchemeMutableVarBoxer:
 
     private def rewriteBody(bdy: List[SchemeExp], mut: Set[LexicalRef], rew: Rewrites): List[SchemeExp] =
       bdy.map(rewrite(_, mut, rew))
+
+object SchemeMutableVarBoxer extends BaseSchemeMutableVarBoxer
 
 //
 // Extra utility to extract all top-level vars of a program
