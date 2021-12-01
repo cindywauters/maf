@@ -119,6 +119,8 @@ class IncrementalUpdateDatastructures {
     val newValue = getNewValues(a, key, value)
     val newKey = getNewPointerAddr(key)
     a.store = a.store + (newKey -> newValue)
+    if allExpressionsInChange contains key.exp then
+      a.store = a.store + (key -> a.lattice.bottom)
 
   def getNewPointerAddr(addr: PtrAddr): PtrAddr =
     val changeToExp = allExpressionsInChange.get(addr.exp)
@@ -162,6 +164,8 @@ class IncrementalUpdateDatastructures {
           val nw = getNewValues(a, key, vecelem.asInstanceOf[a.Value])
           (k, nw))
         val newVector = IncrementalSchemeTypeDomain.modularLattice.Vec(size = vector.size, elements = newElementsVector.asInstanceOf[vector.elements.type])
+       // println(vector)
+        println(newVector)
         newVector
       case pointer: IncrementalSchemeTypeDomain.modularLattice.Pointer =>
         IncrementalSchemeTypeDomain.modularLattice.Pointer(pointer.ptrs.map(p => p match
