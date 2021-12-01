@@ -118,6 +118,7 @@ object TestIncrementalRunDatastructures extends App:
 
       val a = base(text)
       a.analyzeWithTimeout(timeout())
+      println("store before: " + a.store.toString)
       var update = new IncrementalUpdateDatastructures
       update.changeDataStructures(a, text)
       val storeWithUpdate = a.store

@@ -6,10 +6,11 @@ import maf.language.scheme.interpreter.BaseSchemeInterpreter
 import maf.language.scheme.interpreter.ConcreteValues.AddrInfo.VarAddr
 import maf.language.scheme.interpreter.ConcreteValues.Value.Clo
 import maf.language.scheme.interpreter.ConcreteValues.{Addr, AddrInfo}
-import maf.language.scheme.lattices.ModularSchemeLattice
+import maf.language.scheme.lattices.{ModularSchemeLattice, SchemeOp}
 import maf.language.scheme.*
 import maf.lattice.interfaces.*
-import maf.modular.incremental.scheme.lattice.{IncrementalLattice, IncrementalModularSchemeLattice, IncrementalSchemeLattice}
+import maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain.modularLattice.incrementalSchemeLattice
+import maf.modular.incremental.scheme.lattice.{IncrementalLattice, IncrementalModularSchemeLattice, IncrementalSchemeLattice, IncrementalSchemeTypeDomain}
 import maf.modular.scheme.modf.{NoContext, SchemeModFComponent}
 import maf.modular.scheme.{ModularSchemeLatticeWrapper, SchemeAddr}
 
@@ -22,6 +23,7 @@ class IncrementalUpdateDatastructures {
     var changedVars = changed.flatMap(e => e._2)
     var ChangedVarsSwapped = changedVars.map(_.swap).toMap
     var changedExpressions = changed.map(e => e._1).toMap
+    println(changed)
 
     a match
       case analysis: IncrementalGlobalStore[SchemeExp] =>
@@ -102,24 +104,27 @@ class IncrementalUpdateDatastructures {
   // If it is in a changed expression, we get the lambda that is was changed into and create a new closure from that. This will then become newExpr and thereby the new value that is inserted in the store
   // Otherwise the newExpr will just stay the value
   def getNewValue(a: IncrementalGlobalStore[SchemeExp], key: Address, value: a.Value, changedVars: Map[Identifier, Identifier], changedExpressions: Map[Expression, Expression]): a.Value =
-    a.lattice match
-      case l: IncrementalSchemeLattice[_, _]  =>
-        var clos = l.getClosures(value)
-        var newExpr = value
-        clos.map(e =>
-          val allOldLambdas = changedExpressions.flatMap(e => findAllLambdas(e._1))
-          val allNewLambdas = changedExpressions.flatMap(e => findAllLambdas(e._2))
-          val allChangedLambdas = allOldLambdas.zip(allNewLambdas).toMap
-          allChangedLambdas.get(e._1) match
-            case Some(lambda: SchemeLambdaExp) =>
-              e._2 match
-                case env : maf.core.BasicEnvironment[_] =>
-                  var newEnv = createNewEnvironment(env, changedVars)
-                  newExpr = l.closure(lambda, new BasicEnvironment[Address](newEnv))
-                case _ =>
-            case _ =>
-        )
-        newExpr
+    value match
+      case element: IncrementalSchemeTypeDomain.modularLattice.AnnotatedElements =>
+        var newValues = element.values
+        println(newValues)
+        newValues= element.values.map(e => e match
+          case clos : IncrementalSchemeTypeDomain.modularLattice.Clo =>
+            val allOldLambdas = changedExpressions.flatMap(e => findAllLambdas(e._1))
+            val allNewLambdas = changedExpressions.flatMap(e => findAllLambdas(e._2))
+            val allChangedLambdas = allOldLambdas.zip(allNewLambdas).toMap
+            var newClos: Set[maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain.modularLattice.schemeLattice.Closure] = clos.closures.map(e =>
+              allChangedLambdas.get(e._1) match
+                case Some(lambda: SchemeLambdaExp) =>
+                  e._2 match
+                    case env : maf.core.BasicEnvironment[_] =>
+                      var newEnv = createNewEnvironment(env, changedVars)
+                      (lambda, new BasicEnvironment[Address](newEnv))
+                    case _ => e
+                case _ => e)
+            IncrementalSchemeTypeDomain.modularLattice.Clo(newClos)
+          case something: _ => something)
+        IncrementalSchemeTypeDomain.modularLattice.AnnotatedElements(newValues, element.sources).asInstanceOf[a.Value]
       case _ => value
 
   def createNewEnvironment(oldEnv: maf.core.BasicEnvironment[_], changedVars: Map[Identifier, Identifier]): Map[String, Address] =
