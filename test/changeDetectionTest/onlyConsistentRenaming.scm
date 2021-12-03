@@ -90,6 +90,12 @@ eighth-test
 
 (with-vectors)
 
+(define (program-that-uses-with-vectors)
+  (define a-vec (with-vectors))
+  (vector-ref a-vec 0))
+
+(program-that-uses-with-vectors)
+
 (define (with-vectors-finegrained)
   (define vec (make-vector 1))
    (vector-set! vec 0 (<change>
@@ -142,8 +148,8 @@ eighth-test
 
 (define test-with-cons
   (<change>
-   (cons 5 (lambda (a) a))
-   (cons 5 (lambda (b) b))))
+   (list 1 5 (lambda (a) a))
+   (list 1 5 (lambda (b) b))))
 
 test-with-cons
 
