@@ -146,3 +146,39 @@ eighth-test
    (cons 5 (lambda (b) b))))
 
 test-with-cons
+
+(define test-cons-in-vec
+  (lambda (a)
+    (<change>
+     (let ((vec (make-vector 1))
+           (b 5))
+       (vector-set! vec 0 (cons a b)))
+     (let ((vec (make-vector 1))
+           (c 5))
+       (vector-set! vec 0 (cons a c))))))
+
+(test-cons-in-vec 5)
+
+(define test-vec-in-cons
+  (lambda (a)
+    (<change>
+     (let* ((b 5)
+            (vec (make-vector b)))
+       (cons 1 vec))
+     (let* ((c 5)
+            (vec (make-vector c)))
+       (cons 1 vec)))))
+
+(test-vec-in-cons 5)
+
+(define (z arg1 arg2) arg1)
+
+(define test-vec-in-cons2
+  (lambda (a)
+    (<change>
+     (let ((b 5))
+       (z 1 (make-vector b)))
+     (let ((c 5))
+       (z 1 (make-vector c))))))
+
+(test-vec-in-cons2 5)

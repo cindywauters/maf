@@ -64,7 +64,7 @@ object TestIncrementalRunDatastructures extends App:
       with IncrementalSchemeTypeDomain
       with IncrementalGlobalStore[SchemeExp]
     {
-      var configuration: IncrementalConfiguration = allOptimisations
+      var configuration: IncrementalConfiguration = noOptimisations
       override def intraAnalysis(
                                   cmp: Component
                                 ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis
@@ -90,13 +90,14 @@ object TestIncrementalRunDatastructures extends App:
       val a = base(text)
       a.analyzeWithTimeout(timeout())
       println("store before: " + a.store.toString)
+
       var update = new IncrementalUpdateDatastructures
       update.changeDataStructures(a, text)
       val storeWithUpdate = a.store
 
       val b = base(text)
+      b.version = New
       b.analyzeWithTimeout(timeout())
-      b.updateAnalysis(timeout())
 
       val storeWithReanalysis = b.store
 
@@ -120,16 +121,15 @@ object TestIncrementalRunDatastructures extends App:
         storeWithUpdate.get(k) match
           case Some(updatedValue) =>
             if updatedValue.!=(v) then
-              println("key reanalysis: " + k.toString() + "\n value reanalysis: "+ v.toString + "\n value updated: " + updatedValue.toString)
-              println()
-          case _ =>println("missing in update: " + k.toString() + "\n reanalysis value: " + v.toString))
+              println("key reanalysis: " + k.toString() + " " + k.idn.toString() + "\n value reanalysis: "+ v.toString + "\n value updated: " + updatedValue.toString)
+          case _ =>println("missing in update: " + k.toString() + " " + k.idn.toString() + "\n reanalysis value: " + v.toString))
 
       println()
 
       storeWithUpdate.foreach((k, v) =>
         storeWithReanalysis.get(k) match
           case Some(updatedValue) =>
-          case _ => println("missing in reanalysis: " + k.toString() + "\n update value: " + v.toString)
+          case _ => println("missing in reanalysis: " + k.toString() + " " + k.idn.toString() + "\n update value: " + v.toString)
       )
 
      // a.updateAnalysis(timeout())
@@ -155,7 +155,8 @@ object TestIncrementalRunDatastructures extends App:
 
   val modConcbenchmarks: List[String] = List()
   val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming.scm")
- // val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenamingProblems.scm")
+  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenamingProblems.scm")
+  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/vectorTests.scm")
   val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 
   modFbenchmarks.foreach(modfAnalysis(_, standardTimeout))

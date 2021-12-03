@@ -11,7 +11,7 @@ import maf.language.scheme.*
 import maf.lattice.interfaces.*
 import maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain.modularLattice.incrementalSchemeLattice
 import maf.modular.incremental.scheme.lattice.{IncrementalLattice, IncrementalModularSchemeLattice, IncrementalSchemeLattice, IncrementalSchemeTypeDomain}
-import maf.modular.scheme.modf.{SchemeModFComponent}
+import maf.modular.scheme.modf.{NoContext, SchemeModFComponent}
 import maf.modular.scheme.{ModularSchemeLatticeWrapper, SchemeAddr}
 
 
@@ -60,7 +60,6 @@ class IncrementalUpdateDatastructures {
   // Update the store in case there is one
   // There are two types of changes: changes to keys that have a variable address and changes to keys that have a return address
   def updateStore(a: IncrementalGlobalStore[SchemeExp]): Unit =
-    println(a.store)
     a.store.foreach((k, v) =>
       (k, v) match
         case (k: VarAddr, _) =>
@@ -71,7 +70,6 @@ class IncrementalUpdateDatastructures {
           updatePointerAddr(a, k, v)
         case _ =>
     )
-    println(a.store)
 
   // In case we need to update the address: there are two options.
   // If the address is of a variable that is directly affected (like a becoming b), we simply remove that from the store
@@ -120,12 +118,7 @@ class IncrementalUpdateDatastructures {
     val newKey = getNewPointerAddr(key)
     a.store = a.store + (newKey -> newValue)
     if allExpressionsInChange contains key.exp then
-      key.exp match
-        case fun: SchemeFuncall => fun.f match
-          case variable: SchemeVar =>
-            if variable.id.name == "make-vector" then
-              a.store = a.store + (key -> a.lattice.bottom)
-            else a.store = a.store - key
+      a.store = a.store - key
 
   def getNewPointerAddr(addr: PtrAddr): PtrAddr =
     val changeToExp = allExpressionsInChange.get(addr.exp)
@@ -165,6 +158,7 @@ class IncrementalUpdateDatastructures {
             case _ => e)
         IncrementalSchemeTypeDomain.modularLattice.Clo(newClos)
       case vector: IncrementalSchemeTypeDomain.modularLattice.Vec =>
+        var isFalse = false
         val newElementsVector = vector.elements.map((k, vecelem) =>
           val nw = getNewValues(a, key, vecelem.asInstanceOf[a.Value])
           (k, nw))
@@ -178,10 +172,13 @@ class IncrementalUpdateDatastructures {
             println(a)
             a))
       case cons: IncrementalSchemeTypeDomain.modularLattice.Cons =>
-        val newcar = getNewValues(a, key, cons.car.asInstanceOf[a.Value]).asInstanceOf[cons.car.type]
-        val newcdr = getNewValues(a, key, cons.cdr.asInstanceOf[a.Value]).asInstanceOf[cons.car.type]
-        IncrementalSchemeTypeDomain.modularLattice.Cons(newcar, newcdr)
-      case _ => value
+        (cons.car, cons.cdr) match
+          case (car: a.Value, cdr: a.Value) =>
+            val newcar = getNewValues(a, key, car).asInstanceOf[cons.car.type]
+            val newcdr = getNewValues(a, key, cdr).asInstanceOf[cons.cdr.type]
+            IncrementalSchemeTypeDomain.modularLattice.Cons(newcar, newcdr)
+      case _ =>
+        value
 
 
   def createNewEnvironment(oldEnv: maf.core.BasicEnvironment[_]): Map[String, Address] =
