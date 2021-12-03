@@ -4,6 +4,7 @@ import maf.core.*
 import maf.util.graph.*
 import maf.util.graph.Graph.GraphOps
 import maf.util.benchmarks.Timeout
+import scala.annotation.tailrec
 
 case class GraphElementAAM(hsh: Int, label: String, color: Color, data: String) extends GraphElement:
     def metadata: GraphMetadata = GraphMetadataString(data)
@@ -89,14 +90,14 @@ trait AAMAnalysis:
     def registerError(error: Error, state: State): Unit =
       errors += ErrorState(error, state)
 
-    def loop[G](
+    @tailrec private def loop[G](
         work: List[State],
         newWork: List[State],
         graph: G,
         timeout: Timeout.T
       )(using Graph[G, GraphElementAAM, GraphElement]
       ): (Set[State], G) =
-      if (work.isEmpty && newWork.isEmpty) || (timeout.reached) || (false && (seen.size > 1000)) then (work.toSet ++ newWork.toSet, graph)
+      if (work.isEmpty && newWork.isEmpty) || (timeout.reached) || (false && (seen.size > 2000)) then (work.toSet ++ newWork.toSet, graph)
       else if work.isEmpty then loop(newWork, List(), graph, timeout)
       else if seen.contains(work.head) then loop(work.tail, newWork, graph, timeout)
       else
