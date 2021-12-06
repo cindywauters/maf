@@ -47,6 +47,7 @@ class IncrementalUpdateDatastructures {
         updateStore(analysis)
       case _ =>
     updateDependencies(a) // Update the dependencies
+    updateMapping(a) // Update the store
     true
 
   // Find all the subexpressions of an expression, and their subexpressions.
@@ -98,6 +99,18 @@ class IncrementalUpdateDatastructures {
               insertInDeps(a, addrDep, addrDep, oldValue, newValue)
       )
 
+  // In the mapping, the key is a (Scheme) expression and the value is a set of components
+  // So we once again want to update all the components, and update the key
+  // the "new" key will be its equivalent in the allExpressionsInChange map or otherwise it will just be the old key
+  def updateMapping(a: IncrementalModAnalysis[SchemeExp]): Unit =
+    a.mapping.foreach((oldKey, oldValue) =>
+      val newValue = oldValue.map(e => e match
+       case comp: SchemeModFComponent => getNewComponent(comp))
+      (oldKey, allExpressionsInChange.getOrElse(oldKey, oldKey), newValue) match
+        case (oldKey: SchemeExp, newKey: SchemeExp, newValue: Set[a.Component]) =>
+          insertInMapping(a, oldKey, newKey, oldValue, newValue)
+    )
+
   // Insert something in the store:
   //  if the old and new key are the same, but the value has changed
   //  or if there is a new key (in this case: remove the old key)
@@ -119,6 +132,14 @@ class IncrementalUpdateDatastructures {
     else
       a.deps = a.deps - oldKey
       a.deps = a.deps + (newKey -> newValue)
+
+  def insertInMapping(a: IncrementalModAnalysis[SchemeExp], oldKey: SchemeExp, newKey: SchemeExp, oldValue: Set[a.Component], newValue: Set[a.Component]): Unit =
+    if newKey.equals(oldKey) then
+      if !newValue.equals(oldValue) then
+        a.mapping = a.mapping + (oldKey -> newValue)
+    else
+      a.mapping = a.mapping - oldKey
+      a.mapping = a.mapping + (newKey -> newValue)
 
   // A variable address can only change if the variable exists somewhere in the changed expression
   // In this case, get what the variable has changed into and use that to create the new address
