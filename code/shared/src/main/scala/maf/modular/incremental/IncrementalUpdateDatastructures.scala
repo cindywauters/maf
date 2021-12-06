@@ -70,11 +70,11 @@ class IncrementalUpdateDatastructures {
       val newValue = getNewValues(a, oldValue)
       oldKey match
         case key: VarAddr =>
-          insertInStore(a, key, getNewVarAddr(key), oldValue, newValue)
+          insertInStore(a, key, getNewVarAddr(a, key), oldValue, newValue)
         case key: RetAddr =>
-          insertInStore(a, key, getNewRetAddr(key), oldValue, newValue)
+          insertInStore(a, key, getNewRetAddr(a, key), oldValue, newValue)
         case key: PtrAddr =>
-          insertInStore(a, key, getNewPointerAddr(key), oldValue, newValue)
+          insertInStore(a, key, getNewPointerAddr(a, key), oldValue, newValue)
         case _ =>
     )
 
@@ -86,16 +86,18 @@ class IncrementalUpdateDatastructures {
     a.deps.foreach((oldKey, oldValue) =>
       // Get a new set of values making use of getNewComponent
       val newValue = oldValue.map(e => e match
-        case comp: SchemeModFComponent => getNewComponent(comp))
+        case comp: SchemeModFComponent =>
+          getNewComponent(a, comp)
+      )
       (oldKey, newValue) match
         case (addrDep: AddrDependency, newValue: Set[a.Component]) =>
           addrDep.addr match
             case k: VarAddr =>
-              insertInDeps(a, addrDep, addrDep.copy(addr = getNewVarAddr(k)), oldValue, newValue)
+              insertInDeps(a, addrDep, addrDep.copy(addr = getNewVarAddr(a, k)), oldValue, newValue)
             case k: RetAddr =>
-              insertInDeps(a, addrDep, addrDep.copy(addr = getNewRetAddr(k)), oldValue, newValue)
+              insertInDeps(a, addrDep, addrDep.copy(addr = getNewRetAddr(a, k)), oldValue, newValue)
             case k: PtrAddr =>
-              insertInDeps(a, addrDep, addrDep.copy(addr = getNewPointerAddr(k)), oldValue, newValue)
+              insertInDeps(a, addrDep, addrDep.copy(addr = getNewPointerAddr(a, k)), oldValue, newValue)
             case k: PrmAddr =>
               insertInDeps(a, addrDep, addrDep, oldValue, newValue)
       )
@@ -106,7 +108,7 @@ class IncrementalUpdateDatastructures {
   def updateMapping(a: IncrementalModAnalysis[SchemeExp]): Unit =
     a.mapping.foreach((oldKey, oldValue) =>
       val newValue = oldValue.map(e => e match
-       case comp: SchemeModFComponent => getNewComponent(comp))
+       case comp: SchemeModFComponent => getNewComponent(a, comp))
       (oldKey, allExpressionsInChange.getOrElse(oldKey, oldKey), newValue) match
         case (oldKey: SchemeExp, newKey: SchemeExp, newValue: Set[a.Component]) =>
           if newKey.equals(oldKey) then
@@ -119,12 +121,12 @@ class IncrementalUpdateDatastructures {
 
   // Visited consists of a set of components
   // Fir this, we simply want to loop over this set and for each of them create a new component with getNewComponent
-  // Because getNewComponent can return the original component, we test if the original and the new one are the same 
+  // Because getNewComponent can return the original component, we test if the original and the new one are the same
   // If they are not, we replace the old component with the new component. Otherwise, nothing happens
   def updateVisited(a: IncrementalModAnalysis[SchemeExp]): Unit =
     a.visited.foreach(comp => comp match
       case comp: maf.modular.scheme.modf.SchemeModFComponent =>
-        val newComp = getNewComponent(comp)
+        val newComp = getNewComponent(a, comp)
         newComp match
           case newComp: a.Component =>
             if !newComp.equals(comp) then
@@ -158,12 +160,16 @@ class IncrementalUpdateDatastructures {
   // A variable address can only change if the variable exists somewhere in the changed expression
   // In this case, get what the variable has changed into and use that to create the new address
   // Otherwise, just return the old address
-  def getNewVarAddr(addr: VarAddr): VarAddr =
+  def getNewVarAddr(a: IncrementalModAnalysis[SchemeExp], addr: VarAddr): VarAddr =
+    var newCtx = updateCtx(a, addr.ctx).asInstanceOf[addr.ctx.type]
     if changedVars contains addr.id then
       val newIdn = changedVars.getOrElse(addr.id, addr.id)
-      val newAddr = addr.copy(id = newIdn, ctx = addr.ctx)
+      val newAddr = addr.copy(id = newIdn, ctx = newCtx)
       newAddr
-    else addr
+    else
+      val newAddr = addr.copy(id = addr.id, ctx = newCtx)
+      newAddr
+
 
   // Together with the idn of the return address that can change, it contains a component that might need to change
   // First, we look if the key's component is a function call. If it is, we want to find if the lambda of the component exists within a changed expression
@@ -171,44 +177,54 @@ class IncrementalUpdateDatastructures {
   // A new component is created making use of getNewComponent
   // If the lambda does not change, we just return the old address
   // The call might also be main, we just return the address
-  def getNewRetAddr(addr: RetAddr): RetAddr =
+  def getNewRetAddr(a: IncrementalModAnalysis[SchemeExp], addr: RetAddr): RetAddr =
     addr.cmp match
       case SchemeModFComponent.Main =>
         addr
-      case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), ctx: _) =>
+      case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
         val changeToLambda = allExpressionsInChange.get(lam)
         changeToLambda match
+          // TODO: clean up
           case Some(lambda: SchemeLambdaExp) =>
-            val newCmp = getNewComponent(SchemeModFComponent.Call((lam, env), ctx))
+            val newCtx = updateCtx(a, oldCtx).asInstanceOf[oldCtx.type]
+            val newCmp = getNewComponent(a, SchemeModFComponent.Call((lam, env), newCtx))
             val newIdn = lambda.subexpressions.last.idn
             val newAddr = maf.modular.ReturnAddr[SchemeModFComponent](idn = newIdn, cmp = newCmp)
             newAddr
           case _ =>
-            addr
+            val newCtx = updateCtx(a, oldCtx).asInstanceOf[oldCtx.type]
+            val newCmp = getNewComponent(a, SchemeModFComponent.Call((lam, env), newCtx))
+            val newAddr = maf.modular.ReturnAddr[SchemeModFComponent](idn = addr.idn, cmp = newCmp)
+            newAddr
+
 
   // Get a new component. First look if it is a Main call or a function call. In case of main, just return the old component
   // In the case of a function call, only change the component if it exists within a changed expression (otherwise return the old component)
   // Also create a new environment making use of createNewEnvironment
-  def getNewComponent(comp: SchemeModFComponent): SchemeModFComponent =
+  def getNewComponent(a: IncrementalModAnalysis[SchemeExp], comp: SchemeModFComponent): SchemeModFComponent =
     comp match
       case SchemeModFComponent.Main =>
         comp
       case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), ctx: _) =>
         val changeToLambda = allExpressionsInChange.get(lam)
+        val newCtx = updateCtx(a, ctx).asInstanceOf[ctx.type]
         changeToLambda match
           case Some(lambda: SchemeLambdaExp) =>
             var newEnv = createNewEnvironment(env)
             val newCmp = SchemeModFComponent.Call(clo = (lambda, new BasicEnvironment[Address](newEnv)), ctx = ctx)
             newCmp
-          case None => comp
+          case None =>
+            val newCmp = SchemeModFComponent.Call(clo = (lam, env), ctx = newCtx)
+            newCmp
 
 
   // See if the expression is an expression that exists within a change expression. If not, nothing needs to happen. If so, it now becomes the expression of the new version
-  def getNewPointerAddr(addr: PtrAddr): PtrAddr =
+  def getNewPointerAddr(a: IncrementalModAnalysis[SchemeExp], addr: PtrAddr): PtrAddr =
     val changeToExp = allExpressionsInChange.get(addr.exp)
     changeToExp match
       case Some(newExp: SchemeExp) =>
-        addr.copy(exp = newExp)
+        val newCtx = updateCtx(a, addr.ctx).asInstanceOf[addr.ctx.type]
+        addr.copy(exp = newExp, ctx = newCtx)
       case _ =>
         addr
 
@@ -251,7 +267,7 @@ class IncrementalUpdateDatastructures {
       case pointer: IncrementalSchemeTypeDomain.modularLattice.Pointer =>
         IncrementalSchemeTypeDomain.modularLattice.Pointer(pointer.ptrs.map(p => p match
           case pa: PtrAddr =>
-            getNewPointerAddr(pa)
+            getNewPointerAddr(a, pa)
         //  case a: _ => a
         ))
       case cons: IncrementalSchemeTypeDomain.modularLattice.Cons =>
@@ -278,4 +294,25 @@ class IncrementalUpdateDatastructures {
             case _ => newEnv += (k -> v)
         case _ => newEnv += (k -> v))
     newEnv
+
+  def updateCtx(a: IncrementalModAnalysis[SchemeExp], ctx: Any): Any =
+    a match
+      case a: IncrementalGlobalStore[SchemeExp] =>
+        ctx match
+          case Some(ctx: maf.modular.scheme.modf.ArgContext) =>
+            Some(updateArgCtx(a, ctx))
+          case ctx: maf.modular.scheme.modf.ArgContext =>
+            updateArgCtx(a, ctx)
+          case _ =>
+            ctx
+
+  def updateArgCtx(a: IncrementalGlobalStore[SchemeExp], ctx: maf.modular.scheme.modf.ArgContext): maf.modular.scheme.modf.ArgContext =
+    val newValues = ctx.values.map(elements => elements match
+      case elements: a.Value =>
+        getNewValues(a, elements)
+        )
+   // println(ctx)
+   // println(maf.modular.scheme.modf.ArgContext(newValues))
+    maf.modular.scheme.modf.ArgContext(newValues)
+
 }
