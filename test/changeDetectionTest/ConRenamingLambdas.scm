@@ -78,3 +78,17 @@ eighth-test
       (lambda ()(+ b (d 5)))))))
 
 ((change-in-lambda 5) 10)
+
+
+(define (combine-many)
+  ((change-in-lambda 5) 10)
+  ((test-more-lambdas 5) 10)
+  ((test-many-lambdas 5) 10)
+  (<change>
+    (let ((b 2))
+      (fifth-test b))
+    (let ((c 2))
+      (fifth-test c))))
+
+(combine-many)
+

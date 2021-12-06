@@ -119,7 +119,8 @@ object TestIncrementalRunDatastructures extends App:
         storeWithReanalysis.get(k) match
           case Some(updatedValue) => updatedValue.==(v)
           case _ => false).toString)
-/*
+
+
       storeWithReanalysis.foreach((k, v) =>
         storeWithUpdate.get(k) match
           case Some(updatedValue) =>
@@ -132,7 +133,7 @@ object TestIncrementalRunDatastructures extends App:
         storeWithReanalysis.get(k) match
           case Some(updatedValue) =>
           case _ => println("missing in reanalysis: " + k.toString() + " " + k.idn.toString() + "\n update value: " + v.toString)
-      )*/
+      )
 
       println()
 
@@ -164,6 +165,8 @@ object TestIncrementalRunDatastructures extends App:
           case Some(updatedValue) =>
           case _ => println("missing in reanalysis: " + k.toString() + "\n update value: " + v.toString)
       )
+
+     println()
 
 
     } catch {
