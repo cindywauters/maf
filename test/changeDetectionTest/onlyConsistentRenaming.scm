@@ -200,9 +200,20 @@ test-with-cons
   (<change>
     (let ((a-vec (make-vector 1))
           (a-lambda (lambda (a) (+ a 1))))
-      (list a-vec (list a-lambda (cons 1 2))))
+      (list a-vec 7 (list a-lambda (cons 1 2))))
     (let ((vec (make-vector 1))
           (lam (lambda (a) (+ a 1))))
-        (list vec (list lam (cons 1 2))))))
+        (list vec 7 (list lam (cons 1 2))))))
 
 (nested-lists)
+
+(define (if-test a)
+  (if a
+    (<change>
+      (let ((b (cons a 1)))
+        (list b a))
+      (let ((c (cons a 1)))
+        (list c a)))
+    (list a)))
+
+(if-test 7)

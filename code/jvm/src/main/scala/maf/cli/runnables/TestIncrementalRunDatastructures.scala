@@ -154,9 +154,11 @@ object TestIncrementalRunDatastructures extends App:
   end modfAnalysis
 
   val modConcbenchmarks: List[String] = List()
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/ConRenamingVectors.scm", "test/changeDetectionTest/ConRenamingLists.scm")
+  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm")
+  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingVectors.scm")
+  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLists.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenamingProblems.scm")
-  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/vectorTests.scm")
   val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 
   modFbenchmarks.foreach(modfAnalysis(_, standardTimeout))

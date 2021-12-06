@@ -127,7 +127,7 @@ class IncrementalUpdateDatastructures {
     changeToExp match
       case Some(newExp: SchemeExp) =>
         addr.copy(exp = newExp)
-      case e: _ =>
+      case _ =>
         addr
 
   // A value can be either annotated elements or elements. In both cases, we want to get all the values within the elements and update each of them
