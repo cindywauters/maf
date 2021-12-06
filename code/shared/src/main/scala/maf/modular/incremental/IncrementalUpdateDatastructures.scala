@@ -1,6 +1,7 @@
 package maf.modular.incremental
 
 //import maf.cli.runnables
+import maf.aam.scheme.SchemeStoreAllocateReturn
 import maf.core.*
 import maf.language.scheme.interpreter.BaseSchemeInterpreter
 import maf.language.scheme.interpreter.ConcreteValues.AddrInfo.VarAddr
@@ -37,12 +38,14 @@ class IncrementalUpdateDatastructures {
     // get all expressions that exist within an old expression and in a new expression and zip them together to know what has changed to what
     val allOldExps = changedExpressions.flatMap(e => findAllSubExps(e._1))
     val allNewExps = changedExpressions.flatMap(e => findAllSubExps(e._2))
-    println(allOldExps)
     allExpressionsInChange = allOldExps.zip(allNewExps).toMap
 
     a match
       case analysis: IncrementalGlobalStore[SchemeExp] => // Update the store
         updateStore(analysis)
+      case _ =>
+
+    updateDependencies(a)
     true
 
   // Find all the subexpressions of an expression, and their subexpressions.
@@ -76,12 +79,18 @@ class IncrementalUpdateDatastructures {
   def updateVarAddr(a: IncrementalGlobalStore[SchemeExp], key: VarAddr, value: a.Value): Unit =
     val newValue = getNewValues(a, key, value)
     if changedVars contains key.id then
-      val newIdn = changedVars.getOrElse(key.id, key.id)
-      val newKey = key.copy(id = newIdn, ctx = key.ctx)
+      val newKey = newVarAddr(key)
       a.store = a.store - key
       a.store = a.store + (newKey -> newValue)
     else
       a.store = a.store + (key -> newValue)
+
+  def newVarAddr(addr: VarAddr): VarAddr =
+    if changedVars contains addr.id then
+      val newIdn = changedVars.getOrElse(addr.id, addr.id)
+      val newAddr = addr.copy(id = newIdn, ctx = addr.ctx)
+      newAddr
+    else addr
 
 
   // Together with the idn of the return address that can change, it contains a component that might need to change, and the value might too
@@ -101,16 +110,30 @@ class IncrementalUpdateDatastructures {
         val changeToLambda = allExpressionsInChange.get(lam)
         changeToLambda match
           case Some(lambda: SchemeLambdaExp) =>
-            var newEnv = createNewEnvironment(env)
-            val newCmp = SchemeModFComponent.Call(clo = (lambda, new BasicEnvironment[Address](newEnv)), ctx = ctx)
-            val newIdn = lambda.subexpressions.last.idn
-            val newKey = key.copy(idn = newIdn, cmp = newCmp)
+            val newKey = getNewRetAddr(key)
             a.store = a.store - key
             a.store = a.store + (newKey -> newValue)
           case _ =>
             if newValue != value then
               a.store = a.store + (key -> newValue)
       case _ =>
+
+    def getNewRetAddr(addr: RetAddr): RetAddr =
+      addr.cmp match
+        case SchemeModFComponent.Main =>
+          addr
+        case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), ctx: _) =>
+          val changeToLambda = allExpressionsInChange.get(lam)
+          changeToLambda match
+            case Some(lambda: SchemeLambdaExp) =>
+              var newEnv = createNewEnvironment(env)
+              val newCmp = SchemeModFComponent.Call(clo = (lambda, new BasicEnvironment[Address](newEnv)), ctx = ctx)
+              val newIdn = lambda.subexpressions.last.idn
+              val newAddr = maf.modular.ReturnAddr[SchemeModFComponent](idn = newIdn, cmp = newCmp)
+              newAddr
+            case _ =>
+              addr
+
 
   // To update the pointer addresses, we also get the new value, and use a function to calculate the new pointer key.
   // We remove the old key from the store if necessary
@@ -196,4 +219,10 @@ class IncrementalUpdateDatastructures {
             case _ => newEnv += (k -> v)
         case _ => newEnv += (k -> v))
     newEnv
+
+
+  def updateDependencies(a: IncrementalModAnalysis[SchemeExp]): Unit =
+    a.deps.foreach((k, v) =>
+      k.getClass
+    )
 }

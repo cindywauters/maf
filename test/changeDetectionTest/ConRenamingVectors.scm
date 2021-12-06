@@ -54,13 +54,3 @@
         (vector-set! vec 0 b)))))
 
 (test-with-vector-in-lambda 5)
-
-(define test-with-vector-in-lambda-outer2
-  (lambda (a)
-    (<change>
-     (let ((vec (make-vector 1)))
-       (vector-set! vec 0 (lambda (b) (+ a b))))
-     (let ((vector (make-vector 1)))
-       (vector-set! vector 0 (lambda (b) (+ a b)))))))
-
-(test-with-vector-in-lambda-outer2 5)

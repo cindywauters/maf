@@ -89,21 +89,25 @@ object TestIncrementalRunDatastructures extends App:
 
       val a = base(text)
       a.analyzeWithTimeout(timeout())
-      println("store before: " + a.store.toString)
+
+      val storeBefore = a.store
+      val depsBefore = a.deps
 
       var update = new IncrementalUpdateDatastructures
       update.changeDataStructures(a, text)
       val storeWithUpdate = a.store
+      val depsWithUpdate = a.deps
 
       val b = base(text)
       b.version = New
       b.analyzeWithTimeout(timeout())
 
       val storeWithReanalysis = b.store
+      val depsWithReanalysis = b.deps
 
+      println("store before: " + storeBefore.toString)
       println("Store with updating: " + storeWithUpdate.toString)
       println("Store with reanalysis: " + storeWithReanalysis.toString)
-
 
 
       println("Reanalysis -> Update: " + storeWithReanalysis.forall((k, v) =>
@@ -115,8 +119,7 @@ object TestIncrementalRunDatastructures extends App:
         storeWithReanalysis.get(k) match
           case Some(updatedValue) => updatedValue.==(v)
           case _ => false).toString)
-
-      println()
+/*
       storeWithReanalysis.foreach((k, v) =>
         storeWithUpdate.get(k) match
           case Some(updatedValue) =>
@@ -124,25 +127,44 @@ object TestIncrementalRunDatastructures extends App:
               println("key reanalysis: " + k.toString() + " " + k.idn.toString() + "\n value reanalysis: "+ v.toString + "\n value updated: " + updatedValue.toString)
           case _ =>println("missing in update: " + k.toString() + " " + k.idn.toString() + "\n reanalysis value: " + v.toString))
 
-      println()
 
       storeWithUpdate.foreach((k, v) =>
         storeWithReanalysis.get(k) match
           case Some(updatedValue) =>
           case _ => println("missing in reanalysis: " + k.toString() + " " + k.idn.toString() + "\n update value: " + v.toString)
+      )*/
+
+      println()
+
+      println("Dependencies before: " + depsBefore.toString)
+      println("Dependencies with updating: " + depsWithUpdate.toString)
+      println("Dependencies with reanalysis: " + depsWithReanalysis.toString)
+
+
+      println("Reanalysis -> Update: " + depsWithReanalysis.forall((k, v) =>
+        depsWithUpdate.get(k) match
+          case Some(updatedValue) => updatedValue.==(v)
+          case _ => false).toString)
+
+      println("Update -> reanalysis: " + depsWithUpdate.forall((k, v) =>
+        depsWithReanalysis.get(k) match
+          case Some(updatedValue) => updatedValue.==(v)
+          case _ => false).toString)
+
+      depsWithReanalysis.foreach((k, v) =>
+        depsWithUpdate.get(k) match
+          case Some(updatedValue) =>
+            if updatedValue.!=(v) then
+              println("key reanalysis: " + k.toString() + "\n value reanalysis: "+ v.toString + "\n value updated: " + updatedValue.toString)
+          case _ =>println("missing in update: " + k.toString()  + "\n reanalysis value: " + v.toString))
+
+
+      depsWithUpdate.foreach((k, v) =>
+        depsWithReanalysis.get(k) match
+          case Some(updatedValue) =>
+          case _ => println("missing in reanalysis: " + k.toString() + "\n update value: " + v.toString)
       )
 
-     // a.updateAnalysis(timeout())
-
-    /*  println(a.store)
-      println(a.deps)
-      println(a.addressDependencies)
-      println(a.visited)
-      println(a.mapping)
-      println(a.cachedReadDeps)
-      println(a.cachedSpawns)
-      println(a.countedSpawns)
-      println(a.cachedWrites)*/
 
     } catch {
       case e: Exception =>
@@ -154,8 +176,8 @@ object TestIncrementalRunDatastructures extends App:
   end modfAnalysis
 
   val modConcbenchmarks: List[String] = List()
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/ConRenamingVectors.scm", "test/changeDetectionTest/ConRenamingLists.scm")
-  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm")
+  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/ConRenamingVectors.scm", "test/changeDetectionTest/ConRenamingLists.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingVectors.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLists.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenamingProblems.scm")

@@ -69,3 +69,15 @@ test-with-cons
     (list a)))
 
 (if-test 7)
+
+(define test-with-vector-in-lambda-outer2
+  (lambda (a)
+    (<change>
+     (let ((vec (make-vector 2)))
+       (vector-set! vec 0 (lambda (b) (+ a b)))
+       (vector-set! vec 1 (list 1 2 3)))
+     (let ((vector (make-vector 2)))
+       (vector-set! vector 0 (lambda (b) (+ a b)))
+       (vector-set! vector 1 (list 1 2 3))))))
+
+(test-with-vector-in-lambda-outer2 5)
