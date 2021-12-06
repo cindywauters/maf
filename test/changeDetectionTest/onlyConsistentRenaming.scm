@@ -148,8 +148,8 @@ eighth-test
 
 (define test-with-cons
   (<change>
-   (list 1 5 (lambda (a) a))
-   (list 1 5 (lambda (b) b))))
+   (cons 5 (lambda (a) a))
+   (cons 5 (lambda (b) b))))
 
 test-with-cons
 
@@ -188,3 +188,21 @@ test-with-cons
        (z 1 (make-vector c))))))
 
 (test-vec-in-cons2 5)
+
+(define (test-with-list)
+  (<change>
+   (list 1 (lambda (a) a))
+   (list 1 (lambda (b) b))))
+
+(test-with-list)
+
+(define (nested-lists)
+  (<change>
+    (let ((a-vec (make-vector 1))
+          (a-lambda (lambda (a) (+ a 1))))
+      (list a-vec (list a-lambda (cons 1 2))))
+    (let ((vec (make-vector 1))
+          (lam (lambda (a) (+ a 1))))
+        (list vec (list lam (cons 1 2))))))
+
+(nested-lists)

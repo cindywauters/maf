@@ -37,6 +37,7 @@ class IncrementalUpdateDatastructures {
     // get all expressions that exist within an old expression and in a new expression and zip them together to know what has changed to what
     val allOldExps = changedExpressions.flatMap(e => findAllSubExps(e._1))
     val allNewExps = changedExpressions.flatMap(e => findAllSubExps(e._2))
+    println(allOldExps)
     allExpressionsInChange = allOldExps.zip(allNewExps).toMap
 
     a match
@@ -45,9 +46,11 @@ class IncrementalUpdateDatastructures {
     true
 
   // Find all the subexpressions of an expression, and their subexpressions.
-  // Something like (lambda (a) (+ a 1)) will become List((lambda (a) (+ a 1)), (+ a 1), +, a)
+  // Something like (lambda (a) (+ a 1)) will become List((lambda (a) (+ a 1)), (+ a 1), +, a, 1)
   private def findAllSubExps(expr: Expression): List[Expression] =
-    if expr.subexpressions.isEmpty then
+    if expr.subexpressions.isEmpty && expr.height == 1 then
+      List(expr)
+    else if  expr.subexpressions.isEmpty then
       List()
     else List(expr).appendedAll(expr.subexpressions.flatMap(e => findAllSubExps(e)))
 
@@ -124,7 +127,7 @@ class IncrementalUpdateDatastructures {
     changeToExp match
       case Some(newExp: SchemeExp) =>
         addr.copy(exp = newExp)
-      case _ =>
+      case e: _ =>
         addr
 
   // A value can be either annotated elements or elements. In both cases, we want to get all the values within the elements and update each of them
@@ -169,7 +172,6 @@ class IncrementalUpdateDatastructures {
             getNewPointerAddr(pa)
         //  case a: _ => a
         ))
-        // TODO: FIX FOR LISTS!!!!!!!!!!!!
       case cons: IncrementalSchemeTypeDomain.modularLattice.Cons =>
         (cons.car, cons.cdr) match
           case (car: a.Value, cdr: a.Value) =>
