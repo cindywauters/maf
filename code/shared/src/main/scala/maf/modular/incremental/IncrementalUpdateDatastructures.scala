@@ -183,17 +183,14 @@ class IncrementalUpdateDatastructures {
         addr
       case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
         val changeToLambda = allExpressionsInChange.get(lam)
+        val newCtx = updateCtx(a, oldCtx).asInstanceOf[oldCtx.type]
+        val newCmp = getNewComponent(a, SchemeModFComponent.Call((lam, env), newCtx))
         changeToLambda match
-          // TODO: clean up
           case Some(lambda: SchemeLambdaExp) =>
-            val newCtx = updateCtx(a, oldCtx).asInstanceOf[oldCtx.type]
-            val newCmp = getNewComponent(a, SchemeModFComponent.Call((lam, env), newCtx))
             val newIdn = lambda.subexpressions.last.idn
             val newAddr = maf.modular.ReturnAddr[SchemeModFComponent](idn = newIdn, cmp = newCmp)
             newAddr
           case _ =>
-            val newCtx = updateCtx(a, oldCtx).asInstanceOf[oldCtx.type]
-            val newCmp = getNewComponent(a, SchemeModFComponent.Call((lam, env), newCtx))
             val newAddr = maf.modular.ReturnAddr[SchemeModFComponent](idn = addr.idn, cmp = newCmp)
             newAddr
 
@@ -210,8 +207,8 @@ class IncrementalUpdateDatastructures {
         val newCtx = updateCtx(a, ctx).asInstanceOf[ctx.type]
         changeToLambda match
           case Some(lambda: SchemeLambdaExp) =>
-            var newEnv = createNewEnvironment(env)
-            val newCmp = SchemeModFComponent.Call(clo = (lambda, new BasicEnvironment[Address](newEnv)), ctx = ctx)
+            var newEnv = createNewEnvironment(a, env)
+            val newCmp = SchemeModFComponent.Call(clo = (lambda, new BasicEnvironment[Address](newEnv)), ctx = newCtx)
             newCmp
           case None =>
             val newCmp = SchemeModFComponent.Call(clo = (lam, env), ctx = newCtx)
@@ -221,12 +218,12 @@ class IncrementalUpdateDatastructures {
   // See if the expression is an expression that exists within a change expression. If not, nothing needs to happen. If so, it now becomes the expression of the new version
   def getNewPointerAddr(a: IncrementalModAnalysis[SchemeExp], addr: PtrAddr): PtrAddr =
     val changeToExp = allExpressionsInChange.get(addr.exp)
+    val newCtx = updateCtx(a, addr.ctx).asInstanceOf[addr.ctx.type]
     changeToExp match
       case Some(newExp: SchemeExp) =>
-        val newCtx = updateCtx(a, addr.ctx).asInstanceOf[addr.ctx.type]
         addr.copy(exp = newExp, ctx = newCtx)
       case _ =>
-        addr
+        addr.copy(ctx = newCtx)
 
   // A value can be either annotated elements or elements. In both cases, we want to get all the values within the elements and update each of them
   def getNewValues(a: IncrementalGlobalStore[SchemeExp], value: a.Value): a.Value =
@@ -251,7 +248,7 @@ class IncrementalUpdateDatastructures {
             case Some(lambda: SchemeLambdaExp) =>
               closure._2 match // update the environment of the lambda if it needs changing
                 case env : maf.core.BasicEnvironment[_] =>
-                  var newEnv = createNewEnvironment(env)
+                  var newEnv = createNewEnvironment(a, env)
                   (lambda, new BasicEnvironment[Address](newEnv))
                // case env: _ => (lambda, env)
             case _ => closure // Lambda doesn't exist in a change expression: nothing needs to change
@@ -268,7 +265,6 @@ class IncrementalUpdateDatastructures {
         IncrementalSchemeTypeDomain.modularLattice.Pointer(pointer.ptrs.map(p => p match
           case pa: PtrAddr =>
             getNewPointerAddr(a, pa)
-        //  case a: _ => a
         ))
       case cons: IncrementalSchemeTypeDomain.modularLattice.Cons =>
         (cons.car, cons.cdr) match
@@ -282,15 +278,16 @@ class IncrementalUpdateDatastructures {
   // To create an new enviroment, loop over the old enviroment
   // If a variable did not change, it can be added to the new environment
   // If it did change, the variable that it changed into needs to be added to the environment
-  def createNewEnvironment(oldEnv: maf.core.BasicEnvironment[_]): Map[String, Address] =
+  def createNewEnvironment(a: IncrementalModAnalysis[SchemeExp], oldEnv: maf.core.BasicEnvironment[_]): Map[String, Address] =
     var newEnv: Map[String, Address] = Map()
     oldEnv.content.foreach((k, v) =>
       v match
         case varAddr: VarAddr =>
           var oldIdn = varAddr.idn
+          var newCtx = updateCtx(a, varAddr.ctx).asInstanceOf[varAddr.ctx.type]
           changedVars.find((k , v) => k.idn == oldIdn) match
             case Some(identifiers) =>
-              newEnv += (identifiers._2.name -> varAddr.copy(id = identifiers._2))
+              newEnv += (identifiers._2.name -> varAddr.copy(id = identifiers._2, ctx = newCtx))
             case _ => newEnv += (k -> v)
         case _ => newEnv += (k -> v))
     newEnv
@@ -303,7 +300,12 @@ class IncrementalUpdateDatastructures {
             Some(updateArgCtx(a, ctx))
           case ctx: maf.modular.scheme.modf.ArgContext =>
             updateArgCtx(a, ctx)
+          case Some(ctx: maf.modular.scheme.modf.CallSiteContext) =>
+            Some(updateCallSiteCtx(a, ctx))
+          case ctx: maf.modular.scheme.modf.CallSiteContext =>
+            updateCallSiteCtx(a, ctx)
           case _ =>
+            println(ctx.getClass)
             ctx
 
   def updateArgCtx(a: IncrementalGlobalStore[SchemeExp], ctx: maf.modular.scheme.modf.ArgContext): maf.modular.scheme.modf.ArgContext =
@@ -311,8 +313,13 @@ class IncrementalUpdateDatastructures {
       case elements: a.Value =>
         getNewValues(a, elements)
         )
-   // println(ctx)
-   // println(maf.modular.scheme.modf.ArgContext(newValues))
     maf.modular.scheme.modf.ArgContext(newValues)
 
+  def updateCallSiteCtx(a: IncrementalGlobalStore[SchemeExp], ctx: maf.modular.scheme.modf.CallSiteContext): maf.modular.scheme.modf.CallSiteContext =
+   val newCalls = ctx.calls.map(call =>
+      allExpressionsInChange.find((k, v) => k.idn.pos.equals(call)) match
+        case Some(oldCallSite, newCallSite) => newCallSite.idn.pos
+        case _ => call
+    )
+    ctx.copy(calls = newCalls)
 }

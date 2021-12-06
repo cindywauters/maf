@@ -57,8 +57,9 @@ object TestIncrementalRunDatastructures extends App:
     // Analysis from soundness tests.
     def base(program: SchemeExp) = new ModAnalysis[SchemeExp](program)
       with StandardSchemeModFComponents
-      with SchemeModFFullArgumentSensitivity
-    //  with SchemeModFNoSensitivity
+     // with SchemeModFFullArgumentSensitivity
+      with SchemeModFCallSiteSensitivity
+     // with SchemeModFNoSensitivity
       with SchemeModFSemanticsM
       with LIFOWorklistAlgorithm[SchemeExp]
       with IncrementalSchemeModFBigStepSemantics
