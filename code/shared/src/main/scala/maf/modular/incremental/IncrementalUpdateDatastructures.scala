@@ -117,6 +117,10 @@ class IncrementalUpdateDatastructures {
             a.mapping = a.mapping + (newKey -> newValue)
     )
 
+  // Visited consists of a set of components
+  // Fir this, we simply want to loop over this set and for each of them create a new component with getNewComponent
+  // Because getNewComponent can return the original component, we test if the original and the new one are the same 
+  // If they are not, we replace the old component with the new component. Otherwise, nothing happens
   def updateVisited(a: IncrementalModAnalysis[SchemeExp]): Unit =
     a.visited.foreach(comp => comp match
       case comp: maf.modular.scheme.modf.SchemeModFComponent =>

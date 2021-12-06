@@ -94,6 +94,8 @@ object TestIncrementalRunDatastructures extends App:
       val depsBefore = a.deps
       val mappingBefore = a.mapping
       val visitedBefore = a.visited
+      //TODO: implicitFlows, cachedWrites, cachedReadDeps, dataFlowR, cachedSpawns, provenance
+
 
       var update = new IncrementalUpdateDatastructures
       update.changeDataStructures(a, text)
@@ -110,6 +112,7 @@ object TestIncrementalRunDatastructures extends App:
       val depsWithReanalysis = b.deps
       val mappingWithReanalysis = b.mapping
       val visitedWithReanalysis = b.visited
+
 
       println("store before: " + storeBefore.toString)
       println("Store with updating: " + storeWithUpdate.toString)
