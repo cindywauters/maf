@@ -48,6 +48,7 @@ class IncrementalUpdateDatastructures {
       case _ =>
     updateDependencies(a) // Update the dependencies
     updateMapping(a) // Update the store
+    updateVisited(a) // Update visited
     true
 
   // Find all the subexpressions of an expression, and their subexpressions.
@@ -108,7 +109,23 @@ class IncrementalUpdateDatastructures {
        case comp: SchemeModFComponent => getNewComponent(comp))
       (oldKey, allExpressionsInChange.getOrElse(oldKey, oldKey), newValue) match
         case (oldKey: SchemeExp, newKey: SchemeExp, newValue: Set[a.Component]) =>
-          insertInMapping(a, oldKey, newKey, oldValue, newValue)
+          if newKey.equals(oldKey) then
+            if !newValue.equals(oldValue) then
+              a.mapping = a.mapping + (oldKey -> newValue)
+          else
+            a.mapping = a.mapping - oldKey
+            a.mapping = a.mapping + (newKey -> newValue)
+    )
+
+  def updateVisited(a: IncrementalModAnalysis[SchemeExp]): Unit =
+    a.visited.foreach(comp => comp match
+      case comp: maf.modular.scheme.modf.SchemeModFComponent =>
+        val newComp = getNewComponent(comp)
+        newComp match
+          case newComp: a.Component =>
+            if !newComp.equals(comp) then
+              a.visited = a.visited - comp
+              a.visited = a.visited + newComp
     )
 
   // Insert something in the store:
@@ -133,13 +150,6 @@ class IncrementalUpdateDatastructures {
       a.deps = a.deps - oldKey
       a.deps = a.deps + (newKey -> newValue)
 
-  def insertInMapping(a: IncrementalModAnalysis[SchemeExp], oldKey: SchemeExp, newKey: SchemeExp, oldValue: Set[a.Component], newValue: Set[a.Component]): Unit =
-    if newKey.equals(oldKey) then
-      if !newValue.equals(oldValue) then
-        a.mapping = a.mapping + (oldKey -> newValue)
-    else
-      a.mapping = a.mapping - oldKey
-      a.mapping = a.mapping + (newKey -> newValue)
 
   // A variable address can only change if the variable exists somewhere in the changed expression
   // In this case, get what the variable has changed into and use that to create the new address
