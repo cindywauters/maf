@@ -304,6 +304,14 @@ class IncrementalUpdateDatastructures {
             Some(updateCallSiteCtx(a, ctx))
           case ctx: maf.modular.scheme.modf.CallSiteContext =>
             updateCallSiteCtx(a, ctx)
+          case Some(ctx: maf.modular.scheme.modf.ArgCallSiteContext) =>
+            Some(updateArgCallSiteCtx(a, ctx))
+          case ctx: maf.modular.scheme.modf.ArgCallSiteContext =>
+            updateArgCallSiteCtx(a, ctx)
+          case Some(ctx: NoContext.type) =>
+            Some(ctx)
+          case ctx: NoContext.type =>
+            ctx
           case _ =>
             println(ctx.getClass)
             ctx
@@ -322,4 +330,22 @@ class IncrementalUpdateDatastructures {
         case _ => call
     )
     ctx.copy(calls = newCalls)
+
+  def updateArgCallSiteCtx(a: IncrementalGlobalStore[SchemeExp], ctx: maf.modular.scheme.modf.ArgCallSiteContext): maf.modular.scheme.modf.ArgCallSiteContext =
+    val newArgs = ctx.args.map(elements => elements match
+      case elements: a.Value =>
+        getNewValues(a, elements)
+    )
+    var newCall = ctx.call
+    allExpressionsInChange.find((k, v) => k.idn.pos.equals(ctx.call)) match
+        case Some(oldCallSite, newCallSite) => newCall = newCallSite.idn.pos
+        case _ =>
+
+    var newFn = ctx.fn
+    allExpressionsInChange.find((k, v) => k.idn.pos.equals(ctx.fn)) match
+      case Some(oldCallSite, newCallSite) => newFn = newCallSite.idn.pos
+      case _ =>
+
+    new maf.modular.scheme.modf.ArgCallSiteContext(newFn, newCall, newArgs)
+
 }
