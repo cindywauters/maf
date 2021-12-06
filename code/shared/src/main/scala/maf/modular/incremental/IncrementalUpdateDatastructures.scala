@@ -47,7 +47,6 @@ class IncrementalUpdateDatastructures {
       case analysis: IncrementalGlobalStore[SchemeExp] => // Update the store
         updateStore(analysis)
       case _ =>
-
     updateDependencies(a)
     true
 
@@ -64,40 +63,56 @@ class IncrementalUpdateDatastructures {
   // There are three types of keys that can contain changes: Variable addresses, Return addresses, and Pointer Addresses
   // Primitive address can not change
   def updateStore(a: IncrementalGlobalStore[SchemeExp]): Unit =
-    a.store.foreach((k, v) =>
-      (k, v) match
-        case (k: VarAddr, _) =>
-          updateVarAddr(a, k, v)
-        case (k: RetAddr, _) =>
-          updateReturnAddr(a, k, v)
-        case (k: PtrAddr, _) =>
-          updatePointerAddr(a, k, v)
+    a.store.foreach((oldKey, oldValue) =>
+      val newValue = getNewValues(a, oldKey, oldValue)
+      oldKey match
+        case key: VarAddr =>
+          insertInStore(a, key, getNewVarAddr(key), oldValue, newValue)
+        case key: RetAddr =>
+          insertInStore(a, key, getNewRetAddr(key), oldValue, newValue)
+        case key: PtrAddr =>
+          insertInStore(a, key, getNewPointerAddr(key), oldValue, newValue)
         case _ =>
     )
 
-  def insertInStore(a: IncrementalGlobalStore[SchemeExp], oldKey: Address, newKey: Address, value: a.Value): Unit =
+  def updateDependencies(a: IncrementalModAnalysis[SchemeExp]): Unit =
+    a.deps.foreach((oldKey, oldValue) =>
+      // Get a new set of values making use of getNewComponent
+      val newValue = oldValue.map(e => e match
+        case comp: SchemeModFComponent => getNewComponent(comp).asInstanceOf[a.Component])
+      oldKey match
+        case addrDep: AddrDependency =>
+          addrDep.addr match
+            case k: VarAddr =>
+              insertInDeps(a, addrDep, addrDep.copy(addr = getNewVarAddr(k)), oldValue, newValue)
+            case k: RetAddr =>
+              insertInDeps(a, addrDep, addrDep.copy(addr = getNewRetAddr(k)), oldValue, newValue)
+            case k: PtrAddr =>
+              insertInDeps(a, addrDep, addrDep.copy(addr = getNewPointerAddr(k)), oldValue, newValue)
+            case k: PrmAddr =>
+              insertInDeps(a, addrDep, addrDep, oldValue, newValue)
+      )
+
+  def insertInStore(a: IncrementalGlobalStore[SchemeExp], oldKey: Address, newKey: Address, oldValue: a.Value, newValue: a.Value): Unit =
     if newKey.equals(oldKey) then
-      a.store = a.store + (oldKey -> value)
+      if !newValue.equals(oldValue) then
+        a.store = a.store + (oldKey -> newValue)
     else
       a.store = a.store - oldKey
-      a.store = a.store + (newKey -> value)
+      a.store = a.store + (newKey -> newValue)
 
-  def insertInDeps(a: IncrementalModAnalysis[SchemeExp], oldKey: maf.modular.Dependency, newKey: maf.modular.Dependency, value: Set[a.Component]): Unit =
+  def insertInDeps(a: IncrementalModAnalysis[SchemeExp], oldKey: maf.modular.Dependency, newKey: maf.modular.Dependency, oldValue: Set[a.Component], newValue: Set[a.Component]): Unit =
     if newKey.equals(oldKey) then
-      a.deps = a.deps + (oldKey -> value)
+      if !newValue.equals(oldValue) then
+        a.deps = a.deps + (oldKey -> newValue)
     else
       a.deps = a.deps - oldKey
-      a.deps = a.deps + (newKey -> value)
+      a.deps = a.deps + (newKey -> newValue)
 
   // In case we need to update the address there are two options.
   // If the address is of a variable that is directly affected (like a becoming b), we simply remove that a from the store
   // We then insert a new key (with the new variable, in this example b). The value might change or it may not (if not, getNewValue will just return the old value)
   // If the address is not of a directly affected variable (such as a varAddr of a function), the value might still change and we might still have to update it
-  def updateVarAddr(a: IncrementalGlobalStore[SchemeExp], key: VarAddr, value: a.Value): Unit =
-    val newValue = getNewValues(a, key, value)
-    val newKey = getNewVarAddr(key)
-    insertInStore(a, key, newKey, newValue)
-
   def getNewVarAddr(addr: VarAddr): VarAddr =
     if changedVars contains addr.id then
       val newIdn = changedVars.getOrElse(addr.id, addr.id)
@@ -112,13 +127,7 @@ class IncrementalUpdateDatastructures {
   // The new component is created from the new lambda and the new environment, and the new idn becomes the idn of the last subexpression of the new lambda
   // We once again use getNewValue to find the new value, and then remove the old key (and value) from the store, and insert the new key and value
   // The call might also be main, in which case the value might have to change too, but that has no other additional component.
-  def updateReturnAddr(a: IncrementalGlobalStore[SchemeExp], key: RetAddr, value: a.Value): Unit =
-    val newValue = getNewValues(a, key, value)
-    val newKey = getNewRetAddr(key)
-    insertInStore(a, key, newKey, newValue)
-
-
-  def getNewRetAddr(addr: RetAddr): RetAddr =
+   def getNewRetAddr(addr: RetAddr): RetAddr =
     addr.cmp match
       case SchemeModFComponent.Main =>
         addr
@@ -146,13 +155,6 @@ class IncrementalUpdateDatastructures {
             newCmp
           case None => comp
 
-
-  // To update the pointer addresses, we also get the new value, and use a function to calculate the new pointer key.
-  // We remove the old key from the store if necessary
-  def updatePointerAddr(a: IncrementalGlobalStore[SchemeExp], key: PtrAddr, value: a.Value): Unit =
-    val newValue = getNewValues(a, key, value)
-    val newKey = getNewPointerAddr(key)
-    insertInStore(a, key, newKey, newValue)
 
   // See if the expression is an expression that exists within a change expression. If not, nothing needs to happen. If so, it now becomes the expression of the new version
   def getNewPointerAddr(addr: PtrAddr): PtrAddr =
@@ -229,22 +231,4 @@ class IncrementalUpdateDatastructures {
             case _ => newEnv += (k -> v)
         case _ => newEnv += (k -> v))
     newEnv
-
-
-  def updateDependencies(a: IncrementalModAnalysis[SchemeExp]): Unit =
-    a.deps.foreach((k, v) =>
-      k match
-        case addrDep: AddrDependency =>
-          val newV = v.map(e => e match
-            case comp: SchemeModFComponent => getNewComponent(comp).asInstanceOf[a.Component])
-          addrDep.addr match
-            case k: VarAddr =>
-              insertInDeps(a, addrDep, addrDep.copy(addr = getNewVarAddr(k)), newV)
-            case k: RetAddr =>
-              insertInDeps(a, addrDep, addrDep.copy(addr = getNewRetAddr(k)), newV)
-            case k: PtrAddr =>
-              insertInDeps(a, addrDep, addrDep.copy(addr = getNewPointerAddr(k)), newV)
-            case k: PrmAddr =>
-              insertInDeps(a, addrDep, addrDep, newV)
-    )
 }

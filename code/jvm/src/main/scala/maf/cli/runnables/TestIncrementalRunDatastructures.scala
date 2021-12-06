@@ -176,8 +176,8 @@ object TestIncrementalRunDatastructures extends App:
   end modfAnalysis
 
   val modConcbenchmarks: List[String] = List()
-  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/ConRenamingVectors.scm", "test/changeDetectionTest/ConRenamingLists.scm")
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/ConRenamingVectors.scm", "test/changeDetectionTest/ConRenamingLists.scm")
+  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingVectors.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLists.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenamingProblems.scm")
