@@ -292,6 +292,8 @@ class IncrementalUpdateDatastructures {
         case _ => newEnv += (k -> v))
     newEnv
 
+  // Update context. This currently supports SchemeModFNoSensitivity, SchemeModFFullArgumentCallSiteSensitivity, SchemeModFCallSiteSensitivity and SchemeModFFullArgumentSensitivity
+  // Context can either be Some(context), None or just a context alone, and of type ArgContext, CallSiteContext or ArgCallSiteContext
   def updateCtx(a: IncrementalModAnalysis[SchemeExp], ctx: Any): Any =
     a match
       case a: IncrementalGlobalStore[SchemeExp] =>
@@ -312,10 +314,14 @@ class IncrementalUpdateDatastructures {
             Some(ctx)
           case ctx: NoContext.type =>
             ctx
+          case None =>
+            ctx
           case _ =>
             println(ctx.getClass)
             ctx
 
+  // Update the ArgContext: ArgContext has a set of values so for each of them we want to update them
+  // These values are (Annotated)Elements so we can reuse getNewValues
   def updateArgCtx(a: IncrementalGlobalStore[SchemeExp], ctx: maf.modular.scheme.modf.ArgContext): maf.modular.scheme.modf.ArgContext =
     val newValues = ctx.values.map(elements => elements match
       case elements: a.Value =>
@@ -323,6 +329,8 @@ class IncrementalUpdateDatastructures {
         )
     maf.modular.scheme.modf.ArgContext(newValues)
 
+  //Update the CallSiteCtx: a CallSiteContext has a set of calls which is a List of Positions
+  //So we look for each of these positions whether they exists in a changed expression and if they are, we change it to the position of the expression the original expression changed into
   def updateCallSiteCtx(a: IncrementalGlobalStore[SchemeExp], ctx: maf.modular.scheme.modf.CallSiteContext): maf.modular.scheme.modf.CallSiteContext =
    val newCalls = ctx.calls.map(call =>
       allExpressionsInChange.find((k, v) => k.idn.pos.equals(call)) match
@@ -331,6 +339,10 @@ class IncrementalUpdateDatastructures {
     )
     ctx.copy(calls = newCalls)
 
+  // To update the ArgCallSiteContext we must take into account the args, the call and the fn
+  // the arguments are updated in the same way as the arguments (values) of the updateArgCtx
+  // The call is also updated in the same way as the calls in updateCallSiteCtx
+  // The function is also updated in the same way as a call
   def updateArgCallSiteCtx(a: IncrementalGlobalStore[SchemeExp], ctx: maf.modular.scheme.modf.ArgCallSiteContext): maf.modular.scheme.modf.ArgCallSiteContext =
     val newArgs = ctx.args.map(elements => elements match
       case elements: a.Value =>
@@ -343,7 +355,7 @@ class IncrementalUpdateDatastructures {
 
     var newFn = ctx.fn
     allExpressionsInChange.find((k, v) => k.idn.pos.equals(ctx.fn)) match
-      case Some(oldCallSite, newCallSite) => newFn = newCallSite.idn.pos
+      case Some(oldFnExp, newFnExp) => newFn = newFnExp.idn.pos
       case _ =>
 
     new maf.modular.scheme.modf.ArgCallSiteContext(newFn, newCall, newArgs)

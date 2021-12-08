@@ -59,8 +59,8 @@ object TestIncrementalRunDatastructures extends App:
       with StandardSchemeModFComponents
      // with SchemeModFFullArgumentSensitivity
      // with SchemeModFCallSiteSensitivity
-      with SchemeModFFullArgumentCallSiteSensitivity
-      // with SchemeModFNoSensitivity
+      //with SchemeModFFullArgumentCallSiteSensitivity
+      with SchemeModFNoSensitivity
       with SchemeModFSemanticsM
       with LIFOWorklistAlgorithm[SchemeExp]
       with IncrementalSchemeModFBigStepSemantics
