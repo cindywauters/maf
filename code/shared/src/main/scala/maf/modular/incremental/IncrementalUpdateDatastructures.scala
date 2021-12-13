@@ -12,7 +12,7 @@ import maf.language.scheme.*
 import maf.lattice.interfaces.*
 import maf.modular.AddrDependency
 import maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain.modularLattice.incrementalSchemeLattice
-import maf.modular.incremental.scheme.lattice.{IncrementalLattice, IncrementalModularSchemeLattice, IncrementalSchemeLattice, IncrementalSchemeTypeDomain}
+import maf.modular.incremental.scheme.lattice.{IncrementalLattice, IncrementalModularSchemeDomain, IncrementalModularSchemeLattice, IncrementalModularSchemeLatticeWrapper, IncrementalSchemeConstantPropagationDomain, IncrementalSchemeLattice, IncrementalSchemeTypeDomain}
 import maf.modular.scheme.modf.{NoContext, SchemeModFComponent}
 import maf.modular.scheme.{ModularSchemeLatticeWrapper, PrmAddr, SchemeAddr}
 
@@ -225,13 +225,19 @@ class IncrementalUpdateDatastructures {
   def getNewValues(a: IncrementalGlobalStore[SchemeExp], value: Serializable): a.Value =
     value match
       case element: IncrementalSchemeTypeDomain.modularLattice.AnnotatedElements =>
+      //  println(element.getClass)
         var newValues = element.values
         newValues= element.values.map(e => getNewValue(a, e))
-        IncrementalSchemeTypeDomain.modularLattice.AnnotatedElements(newValues, element.sources).asInstanceOf[a.Value]
+        element.copy(values = newValues).asInstanceOf[a.Value]
+        //IncrementalSchemeTypeDomain.modularLattice.AnnotatedElements(newValues, element.sources).asInstanceOf[a.Value]
       case element: IncrementalSchemeTypeDomain.modularLattice.Elements =>
         val newElems = element.vs.map(e => getNewValue(a, e))
-        IncrementalSchemeTypeDomain.modularLattice.Elements(newElems).asInstanceOf[a.Value]
-     // case _ => value
+        element.copy(vs = newElems).asInstanceOf[a.Value]
+     // case element: Value =>
+      //  getNewValue(a, element).asInstanceOf[a.Value]
+      case _ =>
+     //   println(value.getClass)
+        value.asInstanceOf[a.Value]
 
   // If the value is a set of closures, we want to update both the lambda and enviroment within each closure (if necessary).
   // In case of a vector, we want to loop over each of the elements and update them each accordingly
