@@ -20,7 +20,7 @@ import maf.modular.scheme.{ModularSchemeLatticeWrapper, PrmAddr, SchemeAddr}
 class IncrementalUpdateDatastructures {
 
   type VarAddr = maf.modular.scheme.VarAddr[_]
-  type RetAddr = maf.modular.ReturnAddr[SchemeModFComponent]
+  type RetAddr = maf.modular.ReturnAddr[_]
   type PtrAddr = maf.modular.scheme.PtrAddr[_]
   type PrmAddr = maf.modular.scheme.PrmAddr
   type Value = maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain.modularLattice.Value
@@ -206,7 +206,7 @@ class IncrementalUpdateDatastructures {
             var newEnv = createNewEnvironment(a, env)
             val newCmp = SchemeModFComponent.Call(clo = (lambda, new BasicEnvironment[Address](newEnv)), ctx = newCtx)
             newCmp
-          case None =>
+          case _ =>
             val newCmp = SchemeModFComponent.Call(clo = (lam, env), ctx = newCtx)
             newCmp
 
@@ -318,7 +318,7 @@ class IncrementalUpdateDatastructures {
   // These values are (Annotated)Elements so we can reuse getNewValues
   def updateArgCtx(a: IncrementalGlobalStore[SchemeExp], ctx: maf.modular.scheme.modf.ArgContext): maf.modular.scheme.modf.ArgContext =
     val newValues = ctx.values.map(elements => elements match
-      case elements: a.Value =>
+      case elements: Serializable=>
         getNewValues(a, elements)
         )
     maf.modular.scheme.modf.ArgContext(newValues)
@@ -326,12 +326,8 @@ class IncrementalUpdateDatastructures {
   //Update the CallSiteCtx: a CallSiteContext has a set of calls which is a List of Positions
   //So we look for each of these positions whether they exists in a changed expression and if they are, we change it to the position of the expression the original expression changed into
   def updateCallSiteCtx(a: IncrementalGlobalStore[SchemeExp], ctx: maf.modular.scheme.modf.CallSiteContext): maf.modular.scheme.modf.CallSiteContext =
-   val newCalls = ctx.calls.map(call =>
-      allExpressionsInChange.find((k, v) => k.idn.pos.equals(call)) match
-        case Some(oldCallSite, newCallSite) => newCallSite.idn.pos
-        case _ => call
-    )
-    ctx.copy(calls = newCalls)
+   val newCalls = ctx.calls.map(call => findNewPosition(call))
+   ctx.copy(calls = newCalls)
 
   // To update the ArgCallSiteContext we must take into account the args, the call and the fn
   // the arguments are updated in the same way as the arguments (values) of the updateArgCtx
@@ -339,19 +335,17 @@ class IncrementalUpdateDatastructures {
   // The function is also updated in the same way as a call
   def updateArgCallSiteCtx(a: IncrementalGlobalStore[SchemeExp], ctx: maf.modular.scheme.modf.ArgCallSiteContext): maf.modular.scheme.modf.ArgCallSiteContext =
     val newArgs = ctx.args.map(elements => elements match
-      case elements: a.Value =>
+      case elements: Serializable =>
         getNewValues(a, elements)
     )
-    var newCall = ctx.call
-    allExpressionsInChange.find((k, v) => k.idn.pos.equals(ctx.call)) match
-        case Some(oldCallSite, newCallSite) => newCall = newCallSite.idn.pos
-        case _ =>
-
-    var newFn = ctx.fn
-    allExpressionsInChange.find((k, v) => k.idn.pos.equals(ctx.fn)) match
-      case Some(oldFnExp, newFnExp) => newFn = newFnExp.idn.pos
-      case _ =>
-
+    var newCall = findNewPosition(ctx.call)
+    var newFn = findNewPosition(ctx.fn)
     new maf.modular.scheme.modf.ArgCallSiteContext(newFn, newCall, newArgs)
+
+  def findNewPosition(oldPosition: Position.Position): Position.Position =
+    allExpressionsInChange.find((k, v) => k.idn.pos.equals(oldPosition)) match
+      case Some(oldPos, newPos) => newPos.idn.pos
+      case _ => oldPosition
+
 
 }

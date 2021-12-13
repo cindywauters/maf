@@ -57,8 +57,8 @@ object TestIncrementalRunDatastructures extends App:
     // Analysis from soundness tests.
     def base(program: SchemeExp) = new ModAnalysis[SchemeExp](program)
       with StandardSchemeModFComponents
-     // with SchemeModFFullArgumentSensitivity
-     // with SchemeModFCallSiteSensitivity
+      //with SchemeModFFullArgumentSensitivity
+      //with SchemeModFCallSiteSensitivity
       //with SchemeModFFullArgumentCallSiteSensitivity
       with SchemeModFNoSensitivity
       with SchemeModFSemanticsM
@@ -176,7 +176,6 @@ object TestIncrementalRunDatastructures extends App:
           case _ => println("missing in reanalysis: " + k.toString() + "\n update value: " + v.toString)
       )
 
-     println()
 
       println()
 
