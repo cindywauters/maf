@@ -68,15 +68,14 @@ class UpdatingStructuresTest extends AnyPropSpec:
 
   def checkEqual(updated: IncrementalModAnalysis[SchemeExp], analysisOfNew: IncrementalModAnalysis[SchemeExp]): Unit =
     assert(updated.visited == analysisOfNew.visited, "The visited sets of the updated program differs from the visited set of the analysis of the new program.")
-    assert(checkDeps(updated, analysisOfNew), "The dependencies of the updated program differs from the dependencies of the analysis of the new program.")
-    assert(checkMapping(updated, analysisOfNew), "The dependencies of the updated program differs from the dependencies of the analysis of the new program.")
+    assert(updated.deps == analysisOfNew.deps, "The dependencies of the updated program differs from the dependencies of the analysis of the new program.")
+    assert(updated.mapping == updated.mapping, "The mappings of the updated program differs from the mappings of the analysis of the new program.")
 
     (updated, analysisOfNew) match
       case (updated: IncrementalGlobalStore[SchemeExp], analysisOfNew: IncrementalGlobalStore[SchemeExp]) =>
-        assert(checkStores(updated, analysisOfNew), "The store of the updated program differs from the store of the analysis of the new program.")
+        assert(updated.store == analysisOfNew.store, "The store of the updated program differs from the store of the analysis of the new program.")
       case _ =>
 
- // val analyses: List[IncrementalModAnalysis[SchemeExp]] = List(NoSensitivityAnalysis, FullArgSensitivityAnalysis, CallSensitivityAnalysis, FullArgCallSensitivityAnalysis)
   val modFbenchmarks: List[String] = List(
     "test/changeDetectionTest/onlyConsistentRenaming/smallLambdaTests.scm",
     "test/changeDetectionTest/onlyConsistentRenaming/moreLambdas.scm",
@@ -114,50 +113,3 @@ class UpdatingStructuresTest extends AnyPropSpec:
     analysisNew.analyzeWithTimeoutInSeconds(60)
 
     checkEqual(analysisToUpdate, analysisNew)
-
-
-
-
-
-
-
-def checkEqualVisited(updated: IncrementalModAnalysis[SchemeExp], analysisOfNew: IncrementalModAnalysis[SchemeExp]): Boolean =
-  updated.visited.forall(e =>
-    analysisOfNew.visited.contains(e.asInstanceOf[analysisOfNew.Component]))
-  &&
-  analysisOfNew.visited.forall(e =>
-    updated.visited.contains(e.asInstanceOf[updated.Component]))
-
-def checkDeps(updated: IncrementalModAnalysis[SchemeExp], analysisOfNew: IncrementalModAnalysis[SchemeExp]): Boolean =
-  updated.deps.forall((k, v) =>
-    analysisOfNew.deps.get(k) match
-      case Some(updatedValue) => updatedValue.==(v)
-      case _ => false)
-    &&
-    analysisOfNew.deps.forall((k, v) =>
-      updated.deps.get(k) match
-        case Some(updatedValue) => updatedValue.==(v)
-        case _ => false)
-
-def checkMapping(updated: IncrementalModAnalysis[SchemeExp], analysisOfNew: IncrementalModAnalysis[SchemeExp]): Boolean =
-  updated.mapping.forall((k, v) =>
-    analysisOfNew.mapping.get(k) match
-      case Some(updatedValue) => updatedValue.==(v)
-      case _ => false)
-    &&
-    analysisOfNew.mapping.forall((k, v) =>
-      updated.mapping.get(k) match
-        case Some(updatedValue) => updatedValue.==(v)
-        case _ => false)
-
-def checkStores(updated: IncrementalGlobalStore[SchemeExp], analysisOfNew: IncrementalGlobalStore[SchemeExp]): Boolean =
-  var allSame = true
-  updated.store.foreach((k, v) =>
-    analysisOfNew.store.get(k) match
-      case Some(updatedValue) => true
-      case _ => false)
-  analysisOfNew.store.forall((k, v) =>
-    updated.store.get(k) match
-      case Some(updatedValue) => updatedValue.==(v)
-      case _ => false)
-
