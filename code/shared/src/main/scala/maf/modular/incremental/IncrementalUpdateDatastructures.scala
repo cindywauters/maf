@@ -85,10 +85,7 @@ class IncrementalUpdateDatastructures {
   def updateDependencies(a: IncrementalModAnalysis[SchemeExp]): Unit =
     a.deps.foreach((oldKey, oldValue) =>
       // Get a new set of values making use of getNewComponent
-      val newValue = oldValue.map(e => e match
-        case comp: SchemeModFComponent =>
-          getNewComponent(a, comp)
-      )
+      val newValue = oldValue.map(e => getNewComponent(a, e))
       (oldKey, newValue) match
         case (addrDep: AddrDependency, newValue: Set[a.Component]) =>
           addrDep.addr match
@@ -102,13 +99,14 @@ class IncrementalUpdateDatastructures {
               insertInDeps(a, addrDep, addrDep, oldValue, newValue)
       )
 
+ // def updateDatastructure(f: IncrementalModAnalysis[SchemeExp] => Unit, a: IncrementalModAnalysis[SchemeExp], )
+
   // In the mapping, the key is a (Scheme) expression and the value is a set of components
   // So we once again want to update all the components, and update the key
   // the "new" key will be its equivalent in the allExpressionsInChange map or otherwise it will just be the old key
   def updateMapping(a: IncrementalModAnalysis[SchemeExp]): Unit =
     a.mapping.foreach((oldKey, oldValue) =>
-      val newValue = oldValue.map(e => e match
-       case comp: SchemeModFComponent => getNewComponent(a, comp))
+      val newValue = oldValue.map(e => getNewComponent(a, e))
       (oldKey, allExpressionsInChange.getOrElse(oldKey, oldKey), newValue) match
         case (oldKey: SchemeExp, newKey: SchemeExp, newValue: Set[a.Component]) =>
           if newKey.equals(oldKey) then
@@ -124,14 +122,12 @@ class IncrementalUpdateDatastructures {
   // Because getNewComponent can return the original component, we test if the original and the new one are the same
   // If they are not, we replace the old component with the new component. Otherwise, nothing happens
   def updateVisited(a: IncrementalModAnalysis[SchemeExp]): Unit =
-    a.visited.foreach(comp => comp match
-      case comp: maf.modular.scheme.modf.SchemeModFComponent =>
-        val newComp = getNewComponent(a, comp)
-        newComp match
-          case newComp: a.Component =>
-            if !newComp.equals(comp) then
-              a.visited = a.visited - comp
-              a.visited = a.visited + newComp
+    a.visited.foreach(comp =>
+      getNewComponent(a, comp) match
+      case newComp: a.Component =>
+        if !newComp.equals(comp) then
+          a.visited = a.visited - comp
+          a.visited = a.visited + newComp
     )
 
   // Insert something in the store:
@@ -198,9 +194,9 @@ class IncrementalUpdateDatastructures {
   // Get a new component. First look if it is a Main call or a function call. In case of main, just return the old component
   // In the case of a function call, only change the component if it exists within a changed expression (otherwise return the old component)
   // Also create a new environment making use of createNewEnvironment
-  def getNewComponent(a: IncrementalModAnalysis[SchemeExp], comp: SchemeModFComponent): SchemeModFComponent =
+  def getNewComponent(a: IncrementalModAnalysis[SchemeExp], comp: Serializable): SchemeModFComponent =
     comp match
-      case SchemeModFComponent.Main =>
+      case comp: SchemeModFComponent.Main.type =>
         comp
       case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), ctx: _) =>
         val changeToLambda = allExpressionsInChange.get(lam)
@@ -226,7 +222,7 @@ class IncrementalUpdateDatastructures {
         addr.copy(ctx = newCtx)
 
   // A value can be either annotated elements or elements. In both cases, we want to get all the values within the elements and update each of them
-  def getNewValues(a: IncrementalGlobalStore[SchemeExp], value: a.Value): a.Value =
+  def getNewValues(a: IncrementalGlobalStore[SchemeExp], value: Serializable): a.Value =
     value match
       case element: IncrementalSchemeTypeDomain.modularLattice.AnnotatedElements =>
         var newValues = element.values
@@ -256,7 +252,7 @@ class IncrementalUpdateDatastructures {
         IncrementalSchemeTypeDomain.modularLattice.Clo(newClos)
       case vector: IncrementalSchemeTypeDomain.modularLattice.Vec =>
         val newElementsVector = vector.elements.map((k, vecelem) =>
-          val nw = getNewValues(a, vecelem.asInstanceOf[a.Value])
+          val nw = getNewValues(a, vecelem)
           (k, nw)
         )
         val newVector = IncrementalSchemeTypeDomain.modularLattice.Vec(size = vector.size, elements = newElementsVector.asInstanceOf[vector.elements.type])
@@ -267,11 +263,9 @@ class IncrementalUpdateDatastructures {
             getNewPointerAddr(a, pa)
         ))
       case cons: IncrementalSchemeTypeDomain.modularLattice.Cons =>
-        (cons.car, cons.cdr) match
-          case (car: a.Value, cdr: a.Value) =>
-            val newcar = getNewValues(a, car).asInstanceOf[cons.car.type]
-            val newcdr = getNewValues(a, cdr).asInstanceOf[cons.cdr.type]
-            IncrementalSchemeTypeDomain.modularLattice.Cons(newcar, newcdr)
+        val newcar = getNewValues(a, cons.car).asInstanceOf[cons.car.type]
+        val newcdr = getNewValues(a, cons.cdr).asInstanceOf[cons.cdr.type]
+        IncrementalSchemeTypeDomain.modularLattice.Cons(newcar, newcdr)
       case _ =>
         value
 

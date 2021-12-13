@@ -82,11 +82,10 @@ object TestIncrementalRunDatastructures extends App:
       println(a.getClass)
       println(a.store)
       println(a.deps)
-      println(a.addressDependencies)
       println(a.visited)
+     
       println(a.cachedReadDeps)
       println(a.cachedSpawns)
-      println(a.countedSpawns)
       println(a.cachedWrites)
     */
 
@@ -97,7 +96,6 @@ object TestIncrementalRunDatastructures extends App:
       val depsBefore = a.deps
       val mappingBefore = a.mapping
       val visitedBefore = a.visited
-      //TODO: implicitFlows, cachedWrites, cachedReadDeps, dataFlowR, cachedSpawns, provenance
 
 
       var update = new IncrementalUpdateDatastructures
