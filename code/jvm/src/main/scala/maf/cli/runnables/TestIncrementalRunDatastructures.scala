@@ -2,7 +2,6 @@
 package maf.cli.runnables
 
 import maf.bench.scheme.SchemeBenchmarkPrograms
-import maf.cli.runnables.ChangeIncremental.res
 import maf.cli.runnables.IncrementalRun.standardTimeout
 import maf.language.CScheme.*
 import maf.language.change.CodeVersion.*
