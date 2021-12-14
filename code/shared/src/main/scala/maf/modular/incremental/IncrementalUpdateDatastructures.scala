@@ -185,8 +185,8 @@ class IncrementalUpdateDatastructures {
       case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
         val changeToLambda = allExpressionsInChange.get(lam)
         val newCtx = updateCtx(a, oldCtx).asInstanceOf[oldCtx.type]
-      //  val newEnv = createNewEnvironment(a, env)
-        val newCmp = getNewComponent(a, SchemeModFComponent.Call((lam, env), newCtx))
+        val newEnv = createNewEnvironment(a, env)
+        val newCmp = getNewComponent(a, SchemeModFComponent.Call((lam, BasicEnvironment[Address](newEnv)), newCtx))
         changeToLambda match
           case Some(lambda: SchemeLambdaExp) =>
             val newIdn = lambda.body.head.idn
@@ -213,7 +213,8 @@ class IncrementalUpdateDatastructures {
             val newCmp = SchemeModFComponent.Call(clo = (lambda, new BasicEnvironment[Address](newEnv)), ctx = newCtx)
             newCmp
           case _ =>
-            val newCmp = SchemeModFComponent.Call(clo = (lam, env), ctx = newCtx)
+            var newEnv = createNewEnvironment(a, env)
+            val newCmp = SchemeModFComponent.Call(clo = (lam, new BasicEnvironment[Address](newEnv)), ctx = newCtx)
             newCmp
 
 
@@ -257,7 +258,13 @@ class IncrementalUpdateDatastructures {
                   var newEnv = createNewEnvironment(a, env)
                   (lambda, new BasicEnvironment[Address](newEnv))
                // case env: _ => (lambda, env)
-            case _ => closure // Lambda doesn't exist in a change expression: nothing needs to change
+            case _ =>
+              closure._2 match // update the environment of the lambda if it needs changing
+                case env : maf.core.BasicEnvironment[_] =>
+                  var newEnv = createNewEnvironment(a, env)
+                  (closure._1, new BasicEnvironment[Address](newEnv))
+             // var newEnv = createNewEnvironment(a, env)
+             // closure // Lambda doesn't exist in a change expression: nothing needs to change
         )
         IncrementalSchemeTypeDomain.modularLattice.Clo(newClos)
       case vector: IncrementalSchemeTypeDomain.modularLattice.Vec =>
@@ -291,11 +298,13 @@ class IncrementalUpdateDatastructures {
           changedVars.find((k , v) => k.idn == oldIdn) match
             case Some(identifiers) =>
               val newVarAddr = getNewVarAddr(a, varAddr)
-              newEnv = newEnv + (identifiers._2.name -> newVarAddr)
+              newEnv += (identifiers._2.name -> newVarAddr)
             case _ =>
-              val newVarAddr = getNewVarAddr(a, varAddr) // bugfix for some context sensitive things, context might update even if the actual var addr does not
+              var newCtx = updateCtx(a, varAddr.ctx).asInstanceOf[varAddr.ctx.type]
+              val newVarAddr = varAddr.copy(ctx= newCtx) // bugfix for some context sensitive things, context might update even if the actual var addr does not
               newEnv += (k -> newVarAddr)
-        case _ => newEnv += (k -> v))
+        case _ =>
+          newEnv += (k -> v))
     newEnv
 
   // Update context. This currently supports SchemeModFNoSensitivity, SchemeModFFullArgumentCallSiteSensitivity, SchemeModFCallSiteSensitivity and SchemeModFFullArgumentSensitivity
@@ -339,6 +348,7 @@ class IncrementalUpdateDatastructures {
   //So we look for each of these positions whether they exists in a changed expression and if they are, we change it to the position of the expression the original expression changed into
   def updateCallSiteCtx(a: IncrementalGlobalStore[SchemeExp], ctx: maf.modular.scheme.modf.CallSiteContext): maf.modular.scheme.modf.CallSiteContext =
    val newCalls = ctx.calls.map(call => findNewPosition(call))
+  // println(ctx.hashCode())
    ctx.copy(calls = newCalls)
 
   // To update the ArgCallSiteContext we must take into account the args, the call and the fn
@@ -355,9 +365,13 @@ class IncrementalUpdateDatastructures {
     new maf.modular.scheme.modf.ArgCallSiteContext(newFn, newCall, newArgs)
 
   def findNewPosition(oldPosition: Position.Position): Position.Position =
+
     allExpressionsInChange.find((k, v) => k.idn.pos.equals(oldPosition)) match
-      case Some(oldPos, newPos) => newPos.idn.pos
-      case _ => oldPosition
+      case Some(oldPos, newPos) =>
+        newPos.idn.pos
+      case _ =>
+        oldPosition
+
 
 
 }

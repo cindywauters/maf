@@ -79,9 +79,9 @@ class UpdatingStructuresTest extends AnyPropSpec:
 
   val firstTests: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming")()
 
-  val sequentialGenerated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/gambit")()
+  val gambitGenerated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/gambit")()
 
-  val modFbenchmarks: Set[String] = firstTests ++ sequentialGenerated
+  val modFbenchmarks: Set[String] = firstTests ++ gambitGenerated
 
   modFbenchmarks.foreach(benchmark =>
     val program = CSchemeParser.parseProgram(Reader.loadFile(benchmark))
@@ -97,9 +97,19 @@ class UpdatingStructuresTest extends AnyPropSpec:
       property(s"Full Arg Call sensitivity: Check if datastructures are the same in the analysis of new version and update for" + benchmark) {
       callAnalysisOnBenchmark(FullArgCallSensitivityAnalysis(program), program)
     }
-//    callAnalysisOnBenchmark(FullArgSensitivityAnalysis(program), program)
-//    callAnalysisOnBenchmark(CallSensitivityAnalysis(program), program)
-//    callAnalysisOnBenchmark(FullArgCallSensitivityAnalysis(program), program)
+  )
+
+  val gambitGeneratedContextInsensitive: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/gambit/NoSensitivity")()
+
+  gambitGeneratedContextInsensitive.foreach(benchmark =>
+    val program = CSchemeParser.parseProgram(Reader.loadFile(benchmark))
+      property(s"No sensitivity: Check if datastructures are the same in the analysis of new version and update for" + benchmark) {
+      callAnalysisOnBenchmark(NoSensitivityAnalysis(program), program)
+    }
+      property(s"Call sensitivity: Check if datastructures are the same in the analysis of new version and update for" + benchmark) {
+      callAnalysisOnBenchmark(CallSensitivityAnalysis(program), program)
+    }
+
   )
 
   def callAnalysisOnBenchmark(a: IncrementalModAnalysis[SchemeExp], program: SchemeExp): Unit =

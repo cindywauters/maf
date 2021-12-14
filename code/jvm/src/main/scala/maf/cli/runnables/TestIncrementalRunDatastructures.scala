@@ -98,6 +98,8 @@ object TestIncrementalRunDatastructures extends App:
       val mappingBefore = a.mapping
       val visitedBefore = a.visited
 
+      println("first analysis done")
+
 
       var update = new IncrementalUpdateDatastructures//(a)
       update.changeDataStructures(a, text)
@@ -105,6 +107,8 @@ object TestIncrementalRunDatastructures extends App:
       val depsWithUpdate = a.deps
       val mappingWithUpdate = a.mapping
       val visitedWithUpdate = a.visited
+
+      println("updating done")
 
       val b = base(text)
       b.version = New
@@ -115,10 +119,12 @@ object TestIncrementalRunDatastructures extends App:
       val mappingWithReanalysis = b.mapping
       val visitedWithReanalysis = b.visited
 
+      println("second analysis done")
 
-      println("store before: " + storeBefore.toString)
+
+    /*  println("store before: " + storeBefore.toString)
       println("Store with updating: " + storeWithUpdate.toString)
-      println("Store with reanalysis: " + storeWithReanalysis.toString)
+      println("Store with reanalysis: " + storeWithReanalysis.toString)*/
 
 
       println("store reanalysis -> Update: " + storeWithReanalysis.forall((k, v) =>
@@ -162,9 +168,9 @@ object TestIncrementalRunDatastructures extends App:
 
       println()
 
-      println("Dependencies before: " + depsBefore.toString)
+   /*  println("Dependencies before: " + depsBefore.toString)
       println("Dependencies with updating: " + depsWithUpdate.toString)
-      println("Dependencies with reanalysis: " + depsWithReanalysis.toString)
+      println("Dependencies with reanalysis: " + depsWithReanalysis.toString)*/
 
 
       println("Dependencies reanalysis -> Update: " + depsWithReanalysis.forall((k, v) =>
@@ -194,9 +200,9 @@ object TestIncrementalRunDatastructures extends App:
 
       println()
 
-      println("Mapping before: " + mappingBefore.toString)
+     /* println("Mapping before: " + mappingBefore.toString)
       println("Mapping with updating: " + mappingWithUpdate.toString)
-      println("Mapping with reanalysis: " + mappingWithReanalysis.toString)
+      println("Mapping with reanalysis: " + mappingWithReanalysis.toString)*/
 
 
       println("Mapping reanalysis -> Update: " + mappingWithReanalysis.forall((k, v) =>
@@ -227,9 +233,9 @@ object TestIncrementalRunDatastructures extends App:
 
       println()
 
-      println("Visited before: " + visitedBefore.toString)
+   /*   println("Visited before: " + visitedBefore.toString)
       println("Visited with updating: " + visitedWithUpdate.toString)
-      println("Visited with reanalysis: " + visitedWithReanalysis.toString)
+      println("Visited with reanalysis: " + visitedWithReanalysis.toString)*/
 
 
       println("Visited reanalysis -> Update: " + visitedWithReanalysis.forall(e => visitedWithUpdate.contains(e)).toString)
@@ -247,7 +253,6 @@ object TestIncrementalRunDatastructures extends App:
 
       println()
 
-
     } catch {
       case e: Exception =>
         e.printStackTrace(System.out)
@@ -262,7 +267,7 @@ object TestIncrementalRunDatastructures extends App:
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/gambit/ctak.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/gambit/NoSensitivity/paraffins.scm")
 //  val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 
   modFbenchmarks.foreach(modfAnalysis(_, standardTimeout))
