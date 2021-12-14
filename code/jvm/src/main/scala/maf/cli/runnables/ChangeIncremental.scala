@@ -1,62 +1,75 @@
 package maf.cli.runnables
 
-import maf.core.Expression
+import maf.core.{Expression, Identifier, Identity}
 import maf.language.CScheme.CSchemeParser
 import maf.language.change.CodeVersion.New
 import maf.language.scheme.interpreter.SchemeInterpreter
-import maf.language.scheme.{SchemeChangePatterns, SchemeCodeChange, SchemeExp, SchemeLambdaExp, SchemeLet, SchemeLetrec, SchemeLettishExp, SchemeParser, SchemeRenamer}
+import maf.language.scheme.{SchemeChangePatterns, SchemeCodeChange, SchemeDefineVariable, SchemeExp, SchemeLambda, SchemeLambdaExp, SchemeLet, SchemeLetStar, SchemeLetrec, SchemeLettishExp, SchemeParser, SchemeRenamer, SchemeVarArgLambda}
 import maf.util.Reader
 import maf.util.benchmarks.Timeout
 import smtlib.extensions.tip.Terms.Lambda
 import maf.language.change.ChangeExp
+import scala.util.Random
 
 object ChangeIncremental extends App:
- val text = Reader.loadFile("test/R5RS/gambit/array1.scm")
+  val rand = scala.util.Random
+  val text = Reader.loadFile("test/R5RS/gambit/array1.scm")
   val interpreter = new SchemeInterpreter((_, _) => (), stack = true)
-  var fullParsed = SchemeParser.parseProgram(text)
   val parsed = SchemeParser.parse(text)
-  println(fullParsed.prettyString())
-  println()
-  val renamableSubexpr = parsed.flatMap(findAllRenamableExps(_))
+  val renamableSubexpr = parsed.flatMap(findSomeRenamableExps(_))
   val renamedSubexpr = renamableSubexpr.map(SchemeParser.rename(_))
-  val renamableToRenamer = renamableSubexpr.zip(renamedSubexpr).toMap[Expression, Expression]
-  println(fullParsed.getClass)
-  renamableSubexpr.foreach(e => replaceInFull(e))
-  println(fullParsed.prettyString())
-  //parsed.foreach(println(_))
-
- /* println(fullParsed.subexpressions)
-  println(renamableSubexpr)
+  val renamableToRenamer = renamableSubexpr.zip(renamedSubexpr).toMap[SchemeExp, SchemeExp]
+  parsed.foreach(e => println(replaceInParsed(e)))
 
 
-  println(renamableSubexpr.map(SchemeParser.rename(_)))*/
-
-  private def replaceInFull(toFind: SchemeExp) : Unit = fullParsed match {
-    case letrec: SchemeLetrec =>
-      var newBindings = letrec.bindings.map(binding =>
-        if binding._2.eql(toFind) then
-          (toFind, renamableToRenamer.getOrElse(toFind, toFind)) match
-            case (toFind: SchemeExp, renamed: SchemeExp) =>
-              (binding._1, SchemeCodeChange(old = toFind, nw = renamed, idn = toFind.idn))
-        else binding
-      )
-      var newBody = letrec.body.map(e =>
-        if e.eql(toFind) then
-          (toFind, renamableToRenamer.getOrElse(toFind, toFind)) match
-            case (toFind: SchemeExp, renamed: SchemeExp) =>
-              SchemeCodeChange(old = toFind, nw = renamed, idn = toFind.idn)
-        else e)
-      fullParsed = SchemeLetrec(newBindings, newBody, fullParsed.idn)
-
-  }
-
-  private def findAllRenamableExps(expr: Expression): List[SchemeExp] = expr match
-    case lam: SchemeLambdaExp  => List(lam)
-    case let: SchemeLettishExp => List(let)
+  private def findSomeRenamableExps(expr: Expression): List[SchemeExp] = expr match
+    case lam: SchemeLambdaExp  =>
+      if rand.nextFloat() < 0.5 then
+        List(lam)
+      else
+        List().appendedAll(lam.subexpressions.flatMap(e => findSomeRenamableExps(e)))
+    case let: SchemeLettishExp =>
+      if rand.nextFloat() < 0.5 then
+        List(let)
+      else
+        List().appendedAll(let.subexpressions.flatMap(e => findSomeRenamableExps(e)))
     case expr if expr.subexpressions.isEmpty && expr.height == 1 => List()
     case expr if  expr.subexpressions.isEmpty => List()
-    case _ => List().appendedAll(expr.subexpressions.flatMap(e => findAllRenamableExps(e)))
+    case _ => List().appendedAll(expr.subexpressions.flatMap(e => findSomeRenamableExps(e)))
 
-
-
- 
+  private def replaceInParsed(parsed: SchemeExp): SchemeExp = parsed match {
+    case define: SchemeDefineVariable =>
+      SchemeDefineVariable(define.name, replaceInParsed(define.value), define.idn)
+    case lambda: SchemeLambda =>
+      if renamableSubexpr contains lambda then
+        val nw = renamableToRenamer.getOrElse(lambda, lambda)
+        SchemeCodeChange(old = lambda, nw = nw, idn = lambda.idn)
+      else
+        SchemeLambda(lambda.name, lambda.args, lambda.body.map(replaceInParsed(_)), lambda.idn)
+    case lambda: SchemeVarArgLambda =>
+      if renamableSubexpr contains lambda then
+        val nw = renamableToRenamer.getOrElse(lambda, lambda)
+        SchemeCodeChange(old = lambda, nw = nw, idn = lambda.idn)
+      else
+        SchemeVarArgLambda(lambda.name, lambda.args, lambda.vararg, lambda.body.map(replaceInParsed(_)), lambda.idn)
+    case let: SchemeLet =>
+      if renamableSubexpr contains let then
+        val nw = renamableToRenamer.getOrElse(let, let)
+        SchemeCodeChange(old = let, nw = nw, idn = let.idn)
+      else
+        SchemeLet(let.bindings.map(b => (b._1, replaceInParsed(b._2))), let.body.map(replaceInParsed(_)), let.idn)
+    case let: SchemeLetStar =>
+      if renamableSubexpr contains let then
+        val nw = renamableToRenamer.getOrElse(let, let)
+        SchemeCodeChange(old = let, nw = nw, idn = let.idn)
+      else
+        SchemeLetStar(let.bindings.map(b => (b._1, replaceInParsed(b._2))), let.body.map(replaceInParsed(_)), let.idn)
+   case let: SchemeLetrec =>
+      if renamableSubexpr contains let then
+        val nw = renamableToRenamer.getOrElse(let, let)
+        SchemeCodeChange(old = let, nw = nw, idn = let.idn)
+      else
+        SchemeLetrec(let.bindings.map(b => (b._1, replaceInParsed(b._2))), let.body.map(replaceInParsed(_)), let.idn)
+    case _ =>
+      parsed
+  }
