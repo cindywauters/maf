@@ -81,7 +81,7 @@ class UpdatingStructuresTest extends AnyPropSpec:
 
   val sequentialGenerated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/gambit")()
 
-  val modFbenchmarks: Set[String] = firstTests //++ sequentialGenerated
+  val modFbenchmarks: Set[String] = firstTests ++ sequentialGenerated
 
   modFbenchmarks.foreach(benchmark =>
     val program = CSchemeParser.parseProgram(Reader.loadFile(benchmark))

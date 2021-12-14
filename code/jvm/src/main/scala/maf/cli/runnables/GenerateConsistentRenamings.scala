@@ -24,6 +24,7 @@ object GenerateConsistentRenamings extends App:
     "test\\R5RS\\gambit\\scheme.scm",
     "test\\R5RS\\gambit\\slatex.scm", // this file and up: var arg lambdas - renamer problem
     "test\\R5RS\\gambit\\fibc.scm", // Contains call cc: java.lang.Exception: Undefined variable call/cc at position call-with-current-continuation:1:40.
+    "test\\R5RS\\gambit\\puzzle.scm", // call cc
     "test\\R5RS\\gambit\\earley.scm") // gives error in tests: java heapspace
   //runForAllBenchmarks(gambit, gambitSkip, 45)
 
