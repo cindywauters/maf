@@ -3,9 +3,10 @@ package maf.cli.runnables
 
 import maf.bench.scheme.SchemeBenchmarkPrograms
 import maf.cli.runnables.IncrementalRun.standardTimeout
+import maf.core.BasicEnvironment
 import maf.language.CScheme.*
 import maf.language.change.CodeVersion.*
-import maf.language.scheme.{SchemeChangePatterns, SchemeExp}
+import maf.language.scheme.{SchemeChangePatterns, SchemeExp, SchemeLambdaExp}
 import maf.language.scheme.interpreter.SchemeInterpreter
 import maf.language.scheme.primitives.SchemePrelude
 import maf.modular.ModAnalysis
@@ -58,9 +59,9 @@ object TestIncrementalRunDatastructures extends App:
     def base(program: SchemeExp) = new ModAnalysis[SchemeExp](program)
       with StandardSchemeModFComponents
       //with SchemeModFFullArgumentSensitivity
-      //with SchemeModFCallSiteSensitivity
-      //with SchemeModFFullArgumentCallSiteSensitivity
-      with SchemeModFNoSensitivity
+      with SchemeModFCallSiteSensitivity
+     // with SchemeModFFullArgumentCallSiteSensitivity
+     // with SchemeModFNoSensitivity
       with SchemeModFSemanticsM
       with LIFOWorklistAlgorithm[SchemeExp]
       with IncrementalSchemeModFBigStepSemantics
@@ -136,13 +137,27 @@ object TestIncrementalRunDatastructures extends App:
           case Some(updatedValue) =>
             if updatedValue.!=(v) then
               println("key reanalysis: " + k.toString() + " " + k.idn.toString() + "\n value reanalysis: "+ v.toString + "\n value updated: " + updatedValue.toString)
-          case _ =>println("missing in update: " + k.toString() + " " + k.idn.toString() + "\n reanalysis value: " + v.toString))
+          case _ =>
+            println("missing in update: " + k.toString() + " " + k.idn.toString() + "\n reanalysis value: " + v.toString)
+            k match
+              case key: maf.modular.ReturnAddr[_] =>
+                key.cmp match
+                  case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+                    println(lam.toString + " " + env.toString + " " + oldCtx.toString)
+              case _ =>
+      )
 
 
       storeWithUpdate.foreach((k, v) =>
         storeWithReanalysis.get(k) match
           case Some(updatedValue) =>
           case _ => println("missing in reanalysis: " + k.toString() + " " + k.idn.toString() + "\n update value: " + v.toString)
+            k match
+            case key: maf.modular.ReturnAddr[_] =>
+              key.cmp match
+                case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+                  println(lam.toString + " " + env.toString + " " + oldCtx.toString)
+            case _ =>
       )
 
       println()
@@ -247,7 +262,7 @@ object TestIncrementalRunDatastructures extends App:
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/gambit/sumloop.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/gambit/string.scm")
 //  val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 
   modFbenchmarks.foreach(modfAnalysis(_, standardTimeout))

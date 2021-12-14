@@ -57,7 +57,6 @@ class IncrementalUpdateDatastructures {
   // Find all the subexpressions of an expression, and their subexpressions.
   // Something like (lambda (a) (+ a 1)) will become List((lambda (a) (+ a 1)), (+ a 1), +, a, 1)
   private def findAllSubExps(expr: Expression): List[Expression] =
-    println(expr)
     if expr.subexpressions.isEmpty && expr.height == 1 then
       List(expr)
     else if  expr.subexpressions.isEmpty then
@@ -113,11 +112,8 @@ class IncrementalUpdateDatastructures {
   def updateMapping(a: IncrementalModAnalysis[SchemeExp]): Unit =
     a.mapping.foreach((oldKey, oldValue) =>
       val newValue = oldValue.map(e => getNewComponent(a, e))
-     // println(oldKey)
-     // println(allExpressionsInChange.get(oldKey))
       (oldKey, allExpressionsInChange.getOrElse(oldKey, oldKey), newValue) match
         case (oldKey: SchemeExp, newKey: SchemeExp, newValue: Set[a.Component]) =>
-         // println("YES!")
           if newKey.equals(oldKey) then
             if !newValue.equals(oldValue) then
               a.mapping = a.mapping + (oldKey -> newValue)
@@ -189,6 +185,7 @@ class IncrementalUpdateDatastructures {
       case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
         val changeToLambda = allExpressionsInChange.get(lam)
         val newCtx = updateCtx(a, oldCtx).asInstanceOf[oldCtx.type]
+      //  val newEnv = createNewEnvironment(a, env)
         val newCmp = getNewComponent(a, SchemeModFComponent.Call((lam, env), newCtx))
         changeToLambda match
           case Some(lambda: SchemeLambdaExp) =>
@@ -234,7 +231,6 @@ class IncrementalUpdateDatastructures {
   def getNewValues(a: IncrementalGlobalStore[SchemeExp], value: Serializable): a.Value =
     value match
       case element: IncrementalSchemeTypeDomain.modularLattice.AnnotatedElements =>
-      //  println(element.getClass)
         var newValues = element.values
         newValues= element.values.map(e => getNewValue(a, e))
         element.copy(values = newValues).asInstanceOf[a.Value]
@@ -245,7 +241,6 @@ class IncrementalUpdateDatastructures {
      // case element: Value =>
       //  getNewValue(a, element).asInstanceOf[a.Value]
       case _ =>
-     //   println(value.getClass)
         value.asInstanceOf[a.Value]
 
   // If the value is a set of closures, we want to update both the lambda and enviroment within each closure (if necessary).
@@ -293,11 +288,13 @@ class IncrementalUpdateDatastructures {
       v match
         case varAddr: VarAddr =>
           var oldIdn = varAddr.idn
-          var newCtx = updateCtx(a, varAddr.ctx).asInstanceOf[varAddr.ctx.type]
           changedVars.find((k , v) => k.idn == oldIdn) match
             case Some(identifiers) =>
-              newEnv += (identifiers._2.name -> varAddr.copy(id = identifiers._2, ctx = newCtx))
-            case _ => newEnv += (k -> v)
+              val newVarAddr = getNewVarAddr(a, varAddr)
+              newEnv = newEnv + (identifiers._2.name -> newVarAddr)
+            case _ =>
+              val newVarAddr = getNewVarAddr(a, varAddr) // bugfix for some context sensitive things, context might update even if the actual var addr does not
+              newEnv += (k -> newVarAddr)
         case _ => newEnv += (k -> v))
     newEnv
 

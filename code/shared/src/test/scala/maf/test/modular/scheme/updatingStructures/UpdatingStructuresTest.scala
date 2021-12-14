@@ -79,7 +79,7 @@ class UpdatingStructuresTest extends AnyPropSpec:
 
   val firstTests: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming")()
 
- // lazy val sequentialGenerated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/gambit")()
+  val sequentialGenerated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/gambit")()
 
   val modFbenchmarks: Set[String] = firstTests //++ sequentialGenerated
 
