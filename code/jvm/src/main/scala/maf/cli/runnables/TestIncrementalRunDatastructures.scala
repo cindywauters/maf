@@ -58,9 +58,9 @@ object TestIncrementalRunDatastructures extends App:
     // Analysis from soundness tests.
     def base(program: SchemeExp) = new ModAnalysis[SchemeExp](program)
       with StandardSchemeModFComponents
-     // with SchemeModFFullArgumentSensitivity
+      with SchemeModFFullArgumentSensitivity
      // with SchemeModFCallSiteSensitivity
-      with SchemeModFFullArgumentCallSiteSensitivity
+    // with SchemeModFFullArgumentCallSiteSensitivity
      // with SchemeModFNoSensitivity
       with SchemeModFSemanticsM
       with LIFOWorklistAlgorithm[SchemeExp]
@@ -267,7 +267,7 @@ object TestIncrementalRunDatastructures extends App:
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/ad/stack.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/ad/dict.scm")
 //  val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 
   modFbenchmarks.foreach(modfAnalysis(_, standardTimeout))

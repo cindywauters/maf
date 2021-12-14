@@ -242,6 +242,7 @@ class IncrementalUpdateDatastructures {
      // case element: Value =>
       //  getNewValue(a, element).asInstanceOf[a.Value]
       case _ =>
+        println(value.getClass)
         value.asInstanceOf[a.Value]
 
   // If the value is a set of closures, we want to update both the lambda and enviroment within each closure (if necessary).
@@ -282,7 +283,7 @@ class IncrementalUpdateDatastructures {
         val newcdr = getNewValues(a, cons.cdr).asInstanceOf[cons.cdr.type]
         IncrementalSchemeTypeDomain.modularLattice.Cons(newcar, newcdr)
       case _ =>
-        println(value.getClass)
+      //  println(value.getClass)
         value
 
   // To create an new enviroment, loop over the old enviroment
@@ -347,7 +348,6 @@ class IncrementalUpdateDatastructures {
   //So we look for each of these positions whether they exists in a changed expression and if they are, we change it to the position of the expression the original expression changed into
   def updateCallSiteCtx(a: IncrementalGlobalStore[SchemeExp], ctx: maf.modular.scheme.modf.CallSiteContext): maf.modular.scheme.modf.CallSiteContext =
    val newCalls = ctx.calls.map(call => findNewPosition(call))
-  // println(ctx.hashCode())
    ctx.copy(calls = newCalls)
 
   // To update the ArgCallSiteContext we must take into account the args, the call and the fn
