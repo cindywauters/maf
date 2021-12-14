@@ -81,6 +81,10 @@ class UpdatingStructuresTest extends AnyPropSpec:
 
   val gambitGenerated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/gambit")()
 
+  val gambitGeneratedContextInsensitive: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/gambit/NoSensitivity")()
+
+  //val adGenerated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/ad")()
+
   val modFbenchmarks: Set[String] = firstTests ++ gambitGenerated
 
   modFbenchmarks.foreach(benchmark =>
@@ -98,8 +102,6 @@ class UpdatingStructuresTest extends AnyPropSpec:
       callAnalysisOnBenchmark(FullArgCallSensitivityAnalysis(program), program)
     }
   )
-
-  val gambitGeneratedContextInsensitive: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/gambit/NoSensitivity")()
 
   gambitGeneratedContextInsensitive.foreach(benchmark =>
     val program = CSchemeParser.parseProgram(Reader.loadFile(benchmark))

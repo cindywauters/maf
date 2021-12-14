@@ -28,6 +28,17 @@ object GenerateConsistentRenamings extends App:
     "test\\R5RS\\gambit\\earley.scm") // gives error in tests: java heapspace
   //runForAllBenchmarks(gambit, gambitSkip, 45)
 
+  val ad = SchemeBenchmarkPrograms.ad
+  val adSkip = List(
+    "test\\R5RS\\ad\\RBtreeADT.scm", // var arg lambdas
+    "test\\R5RS\\ad\\stspaceCODE.scm", // cannot parse expression
+    "test\\R5RS\\ad\\bfirst.scm",
+    "test\\R5RS\\ad\\linear.scm",
+    "test\\R5RS\\ad\\queue.scm",
+    "test\\R5RS\\ad\\list.scm",
+    "test\\R5RS\\ad\\bst.scm"
+  )
+  runForAllBenchmarks(ad, adSkip, 45)
 
   private def runForAllBenchmarks(bench: Set[String], skipSet: List[String], chance: Int): Unit =
     bench.foreach(benchfile =>
