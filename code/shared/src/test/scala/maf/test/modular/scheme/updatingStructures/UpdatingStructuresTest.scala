@@ -81,11 +81,9 @@ class UpdatingStructuresTest extends AnyPropSpec:
 
   val gambitGenerated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/gambit")()
 
-  val gambitGeneratedContextInsensitive: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/gambit/NoSensitivity")()
-
   val adGenerated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/ad")()
 
-  val modFbenchmarks: Set[String] = adGenerated//firstTests ++ gambitGenerated
+  val modFbenchmarks: Set[String] = firstTests ++ gambitGenerated ++ adGenerated
 
   modFbenchmarks.foreach(benchmark =>
     val program = CSchemeParser.parseProgram(Reader.loadFile(benchmark))
@@ -103,7 +101,13 @@ class UpdatingStructuresTest extends AnyPropSpec:
     }
   )
 
-  gambitGeneratedContextInsensitive.foreach(benchmark =>
+  val gambitGeneratedContextInsensitive: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/gambit/NoSensitivity")()
+
+  val adGeneratedContextInsensitive: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/ad/NoSensitivity")()
+
+  val onlyCallSensitivity = gambitGeneratedContextInsensitive ++ adGeneratedContextInsensitive
+
+  onlyCallSensitivity.foreach(benchmark =>
     val program = CSchemeParser.parseProgram(Reader.loadFile(benchmark))
       property(s"No sensitivity: Check if datastructures are the same in the analysis of new version and update for" + benchmark) {
       callAnalysisOnBenchmark(NoSensitivityAnalysis(program), program)
