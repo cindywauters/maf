@@ -83,7 +83,9 @@ class UpdatingStructuresTest extends AnyPropSpec:
 
   val adGenerated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/ad")()
 
-  val modFbenchmarks: Set[String] = firstTests ++ gambitGenerated ++ adGenerated
+  val tlsGenerated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/WeiChenRompf2019/the-little-schemer")()
+
+  val modFbenchmarks: Set[String] = tlsGenerated ++ firstTests ++ gambitGenerated ++ adGenerated
 
   modFbenchmarks.foreach(benchmark =>
     val program = CSchemeParser.parseProgram(Reader.loadFile(benchmark))
@@ -105,7 +107,9 @@ class UpdatingStructuresTest extends AnyPropSpec:
 
   val adGeneratedContextInsensitive: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/ad/NoSensitivity")()
 
-  val onlyCallSensitivity = gambitGeneratedContextInsensitive ++ adGeneratedContextInsensitive
+  val tlsGeneratedContextInsensitive: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/WeiChenRompf2019/the-little-schemer/NoSensitivity")()
+
+  val onlyCallSensitivity = tlsGeneratedContextInsensitive ++ gambitGeneratedContextInsensitive ++ adGeneratedContextInsensitive
 
   onlyCallSensitivity.foreach(benchmark =>
     val program = CSchemeParser.parseProgram(Reader.loadFile(benchmark))

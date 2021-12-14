@@ -38,7 +38,14 @@ object GenerateConsistentRenamings extends App:
     "test\\R5RS\\ad\\list.scm",
     "test\\R5RS\\ad\\bst.scm"
   )
-  runForAllBenchmarks(ad, adSkip, 45)
+  // runForAllBenchmarks(ad, adSkip, 45)
+
+  val tls = SchemeBenchmarkPrograms.theLittleSchemer
+  val tlsSkip = List(
+    "test\\R5RS\\WeiChenRompf2019\\the-little-schemer\\ch9.scm"
+  )
+  runForAllBenchmarks(tls, tlsSkip, 45)
+
 
   private def runForAllBenchmarks(bench: Set[String], skipSet: List[String], chance: Int): Unit =
     bench.foreach(benchfile =>

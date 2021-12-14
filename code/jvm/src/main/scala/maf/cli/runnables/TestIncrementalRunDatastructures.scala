@@ -22,7 +22,7 @@ import maf.util.Writer.Writer
 import maf.util.benchmarks.Timeout
 import maf.util.graph.DotGraph
 import maf.util.graph.DotGraph.*
-
+import java.time.LocalDateTime
 import scala.concurrent.duration.*
 
 object TestIncrementalRunDatastructures extends App:
@@ -58,10 +58,10 @@ object TestIncrementalRunDatastructures extends App:
     // Analysis from soundness tests.
     def base(program: SchemeExp) = new ModAnalysis[SchemeExp](program)
       with StandardSchemeModFComponents
-      with SchemeModFFullArgumentSensitivity
+   //   with SchemeModFFullArgumentSensitivity
      // with SchemeModFCallSiteSensitivity
-    // with SchemeModFFullArgumentCallSiteSensitivity
-     // with SchemeModFNoSensitivity
+     // with SchemeModFFullArgumentCallSiteSensitivity
+      with SchemeModFNoSensitivity
       with SchemeModFSemanticsM
       with LIFOWorklistAlgorithm[SchemeExp]
       with IncrementalSchemeModFBigStepSemantics
@@ -91,7 +91,9 @@ object TestIncrementalRunDatastructures extends App:
     */
       //val base2 = IncrementalSchemeModFAssertionAnalysisTypeLattice(text, noOptimisations)
       val a = base(text)
+      val beforeAnalysis = System.nanoTime
       a.analyzeWithTimeout(timeout())
+      val timeAnalysis = System.nanoTime - beforeAnalysis
 
       val storeBefore = a.store
       val depsBefore = a.deps
@@ -101,8 +103,10 @@ object TestIncrementalRunDatastructures extends App:
       println("first analysis done")
 
 
-      var update = new IncrementalUpdateDatastructures//(a)
+      var update = new IncrementalUpdateDatastructures
+      val beforeUpdate = System.nanoTime
       update.changeDataStructures(a, text)
+      val timeUpdate = System.nanoTime - beforeUpdate
       val storeWithUpdate = a.store
       val depsWithUpdate = a.deps
       val mappingWithUpdate = a.mapping
@@ -112,7 +116,9 @@ object TestIncrementalRunDatastructures extends App:
 
       val b = base(text)
       b.version = New
+      val beforeNew = System.nanoTime
       b.analyzeWithTimeout(timeout())
+      val timeNew = System.nanoTime - beforeNew
 
       val storeWithReanalysis = b.store
       val depsWithReanalysis = b.deps
@@ -120,6 +126,17 @@ object TestIncrementalRunDatastructures extends App:
       val visitedWithReanalysis = b.visited
 
       println("second analysis done")
+
+      val c = base(text)
+      c.analyzeWithTimeout(timeout())
+      val beforeIncremental = System.nanoTime
+      c.updateAnalysis(timeout())
+      val timeIncremental = System.nanoTime - beforeIncremental
+
+      println("Time first analysis:    " + timeAnalysis)
+      println("Time updating:          " + timeUpdate)
+      println("Time analysis new only: " + timeNew)
+      println("Time incremental:       " + timeIncremental)
 
 
     /*  println("store before: " + storeBefore.toString)
@@ -263,11 +280,11 @@ object TestIncrementalRunDatastructures extends App:
   end modfAnalysis
 
   val modConcbenchmarks: List[String] = List()
- // val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm", "test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm", "test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/ad/dict.scm")
+ // val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/WeiChenRompf2019/the-little-schemer/ch8.scm")
 //  val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 
   modFbenchmarks.foreach(modfAnalysis(_, standardTimeout))
