@@ -19,17 +19,19 @@ object ChangeIncremental extends App:
   val renamableSubexpr = parsed.flatMap(findSomeRenamableExps(_))
   val renamedSubexpr = renamableSubexpr.map(SchemeParser.rename(_))
   val renamableToRenamer = renamableSubexpr.zip(renamedSubexpr).toMap[SchemeExp, SchemeExp]
-  parsed.foreach(e => println(replaceInParsed(e)))
+  parsed.foreach(e => println(replaceInParsed(e).prettyString()))
 
 
   private def findSomeRenamableExps(expr: Expression): List[SchemeExp] = expr match
     case lam: SchemeLambdaExp  =>
-      if rand.nextFloat() < 0.5 then
+      val random = rand.nextInt(10)
+      if random < 5 then
         List(lam)
       else
         List().appendedAll(lam.subexpressions.flatMap(e => findSomeRenamableExps(e)))
     case let: SchemeLettishExp =>
-      if rand.nextFloat() < 0.5 then
+      val random = rand.nextInt(10)
+      if random < 5 then
         List(let)
       else
         List().appendedAll(let.subexpressions.flatMap(e => findSomeRenamableExps(e)))
