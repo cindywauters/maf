@@ -42,6 +42,9 @@ class IncrementalUpdateDatastructures {
     val allNewExps = changedExpressions.flatMap(e => findAllSubExps(e._2))
     allExpressionsInChange = allOldExps.zip(allNewExps).toMap
 
+    //allExpressionsInChange.foreach(e => println(e))
+
+
     a match
       case analysis: IncrementalGlobalStore[SchemeExp] => // Update the store
         updateStore(analysis)
@@ -54,11 +57,14 @@ class IncrementalUpdateDatastructures {
   // Find all the subexpressions of an expression, and their subexpressions.
   // Something like (lambda (a) (+ a 1)) will become List((lambda (a) (+ a 1)), (+ a 1), +, a, 1)
   private def findAllSubExps(expr: Expression): List[Expression] =
+    println(expr)
     if expr.subexpressions.isEmpty && expr.height == 1 then
       List(expr)
     else if  expr.subexpressions.isEmpty then
       List()
-    else List(expr).appendedAll(expr.subexpressions.flatMap(e => findAllSubExps(e)))
+    else expr match
+      case lambda: SchemeLambda => List(expr).appended(SchemeBegin(lambda.body, lambda.body.head.idn)).appendedAll(expr.subexpressions.flatMap(e => findAllSubExps(e)))
+      case _ => List(expr).appendedAll(expr.subexpressions.flatMap(e => findAllSubExps(e)))
 
   // Update the store in case there is one
   // There are three types of keys that can contain changes: Variable addresses, Return addresses, and Pointer Addresses. Primitive address can not change
@@ -107,8 +113,11 @@ class IncrementalUpdateDatastructures {
   def updateMapping(a: IncrementalModAnalysis[SchemeExp]): Unit =
     a.mapping.foreach((oldKey, oldValue) =>
       val newValue = oldValue.map(e => getNewComponent(a, e))
+     // println(oldKey)
+     // println(allExpressionsInChange.get(oldKey))
       (oldKey, allExpressionsInChange.getOrElse(oldKey, oldKey), newValue) match
         case (oldKey: SchemeExp, newKey: SchemeExp, newValue: Set[a.Component]) =>
+         // println("YES!")
           if newKey.equals(oldKey) then
             if !newValue.equals(oldValue) then
               a.mapping = a.mapping + (oldKey -> newValue)
@@ -183,7 +192,7 @@ class IncrementalUpdateDatastructures {
         val newCmp = getNewComponent(a, SchemeModFComponent.Call((lam, env), newCtx))
         changeToLambda match
           case Some(lambda: SchemeLambdaExp) =>
-            val newIdn = lambda.subexpressions.last.idn
+            val newIdn = lambda.body.head.idn
             val newAddr = maf.modular.ReturnAddr[SchemeModFComponent](idn = newIdn, cmp = newCmp)
             newAddr
           case _ =>

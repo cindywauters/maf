@@ -1,4 +1,5 @@
 package maf.test.modular.scheme.updatingStructures
+import maf.bench.scheme.SchemeBenchmarkPrograms
 import maf.language.CScheme.CSchemeParser
 import maf.language.change.CodeVersion.*
 import maf.language.scheme.*
@@ -76,12 +77,11 @@ class UpdatingStructuresTest extends AnyPropSpec:
         assert(updated.store == analysisOfNew.store, "The store of the updated program differs from the store of the analysis of the new program.")
       case _ =>
 
-  val modFbenchmarks: List[String] = List(
-    "test/changeDetectionTest/onlyConsistentRenaming/smallLambdaTests.scm",
-    "test/changeDetectionTest/onlyConsistentRenaming/moreLambdas.scm",
-    "test/changeDetectionTest/onlyConsistentRenaming/moreLambdas2.scm",
-    "test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm",
-    "test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
+  val firstTests: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming")()
+
+ // lazy val sequentialGenerated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/gambit")()
+
+  val modFbenchmarks: Set[String] = firstTests //++ sequentialGenerated
 
   modFbenchmarks.foreach(benchmark =>
     val program = CSchemeParser.parseProgram(Reader.loadFile(benchmark))

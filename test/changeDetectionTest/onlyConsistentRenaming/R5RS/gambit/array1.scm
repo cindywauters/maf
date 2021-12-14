@@ -1,20 +1,25 @@
-(define create-x (lambda (n)
-      (define result (make-vector n 0))
-      (<change>
+;; renamed lambdas/lets: 3
+ 
+(define create-x (<change>
+      (lambda (n)
+         (define result (make-vector n 0))
          (letrec ((__do_loop (lambda (i)
                                (if (>= i n)
                                   result
                                   (begin
                                      (vector-set! result i i)
                                      (__do_loop (+ i 1)))))))
-            (__do_loop 0))
+            (__do_loop 0)))
+      (lambda (_n0)
+         (define result (make-vector _n0 0))
          (letrec ((___do_loop0 (lambda (_i0)
-                                 (if (>= _i0 n)
+                                 (if (>= _i0 _n0)
                                     result
                                     (begin
                                        (vector-set! result _i0 _i0)
                                        (___do_loop0 (+ _i0 1)))))))
             (___do_loop0 0)))))
+ 
 (define create-y (<change>
       (lambda (x)
          (let* ((n (vector-length x))
@@ -36,11 +41,10 @@
                                           (vector-set! _result0 _i0 (vector-ref _x0 _i0))
                                           (___do_loop0 (- _i0 1)))))))
                (___do_loop0 (- _n0 1)))))))
-(define my-try (<change>
-      (lambda (n)
-         (vector-length (create-y (create-x n))))
-      (lambda (_n0)
-         (vector-length (create-y (create-x _n0))))))
+ 
+(define my-try (lambda (n)
+      (vector-length (create-y (create-x n)))))
+ 
 (define go (<change>
       (lambda (n)
          ((letrec ((loop (lambda (repeat result)
@@ -58,4 +62,6 @@
             _loop0)
             100
             ()))))
+ 
 (= 200 (go 200))
+ 
