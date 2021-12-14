@@ -9,6 +9,8 @@ import maf.util.Reader
 import maf.util.benchmarks.Timeout
 import smtlib.extensions.tip.Terms.Lambda
 import maf.language.change.ChangeExp
+
+import java.io.{File, BufferedWriter, FileWriter}
 import scala.util.Random
 
 object ChangeIncremental extends App:
@@ -19,7 +21,11 @@ object ChangeIncremental extends App:
   val renamableSubexpr = parsed.flatMap(findSomeRenamableExps(_))
   val renamedSubexpr = renamableSubexpr.map(SchemeParser.rename(_))
   val renamableToRenamer = renamableSubexpr.zip(renamedSubexpr).toMap[SchemeExp, SchemeExp]
-  parsed.foreach(e => println(replaceInParsed(e).prettyString()))
+
+  val file = new File("test/changeDetectionTest/onlyConsistentRenaming/R5RS/gambit/array1.scm")
+  val bw = new BufferedWriter(new FileWriter(file))
+  parsed.foreach(e => bw.write(replaceInParsed(e).prettyString().concat("\n \n")))
+  bw.close()
 
 
   private def findSomeRenamableExps(expr: Expression): List[SchemeExp] = expr match
