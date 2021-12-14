@@ -263,8 +263,6 @@ class IncrementalUpdateDatastructures {
                 case env : maf.core.BasicEnvironment[_] =>
                   var newEnv = createNewEnvironment(a, env)
                   (closure._1, new BasicEnvironment[Address](newEnv))
-             // var newEnv = createNewEnvironment(a, env)
-             // closure // Lambda doesn't exist in a change expression: nothing needs to change
         )
         IncrementalSchemeTypeDomain.modularLattice.Clo(newClos)
       case vector: IncrementalSchemeTypeDomain.modularLattice.Vec =>
@@ -284,6 +282,7 @@ class IncrementalUpdateDatastructures {
         val newcdr = getNewValues(a, cons.cdr).asInstanceOf[cons.cdr.type]
         IncrementalSchemeTypeDomain.modularLattice.Cons(newcar, newcdr)
       case _ =>
+        println(value.getClass)
         value
 
   // To create an new enviroment, loop over the old enviroment
