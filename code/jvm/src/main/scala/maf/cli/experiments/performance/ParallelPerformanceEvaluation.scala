@@ -4,11 +4,12 @@ import java.util.concurrent.Executors
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success}
 import scala.concurrent.duration.*
+import net.openhft.affinity.{AffinityLock, AffinityStrategies, AffinityThreadFactory}
 
 trait ParallelPerformanceEvaluation(cores: Int) extends PerformanceEvaluation:
-    private def addResult(name: String, benchmark: Benchmark, result: PerformanceResult): Unit =
-      this.synchronized {
-        results = results.add(benchmark, name, result)
+    override def addResult(name: String, benchmark: Benchmark, result: PerformanceResult, metrics: List[Metrics]): Unit =
+      synchronized {
+        super.addResult(name, benchmark, result, metrics)
       }
 
     private def measureBenchmarkFuture(
@@ -22,10 +23,10 @@ trait ParallelPerformanceEvaluation(cores: Int) extends PerformanceEvaluation:
       analyses.map { case (analysis, name) =>
         println(s"***** Scheduling $name on $benchmark [$current/$total] (futures) *****")
         measureAnalysis(benchmark, analysis)
-          .map(result =>
-              println(s"Analysis $name on $benchmark done, with result $result")
-              addResult(name, benchmark, result)
-          )
+          .map { case (result, metrics) =>
+            println(s"Analysis $name on $benchmark done, with result $result")
+            addResult(name, benchmark, result, metrics)
+          }
           .recover { case cause =>
             println(s"$name of $benchmark encountered exception ${cause.getMessage}")
           }
@@ -36,6 +37,8 @@ trait ParallelPerformanceEvaluation(cores: Int) extends PerformanceEvaluation:
         val futs = (0 to total).zip(benchmarks).flatMap { case (current, b) =>
           measureBenchmarkFuture(b, current, total, failFast)
         }
+        Thread.sleep(100)
+        println("\nThe assignment of CPUs is\n" + AffinityLock.dumpLocks());
         Await.result(Future.sequence(futs), Duration.Inf)
 
     /** timeoutfast is ignored for this type of performance benchmark */
@@ -45,7 +48,9 @@ trait ParallelPerformanceEvaluation(cores: Int) extends PerformanceEvaluation:
         failFast: Boolean = true
       )(using AnalysisIsFinished[Analysis]
       ) =
-        val executor = Executors.newFixedThreadPool(cores).nn
+        import AffinityStrategies.*
+        val afinityFactory = new AffinityThreadFactory("bg", SAME_SOCKET)
+        val executor = Executors.newFixedThreadPool(6, afinityFactory).nn
         given ctx: ExecutionContext = ExecutionContext.fromExecutor(executor)
         measureBenchmarks(timeoutFast, failFast)
         printResults()
