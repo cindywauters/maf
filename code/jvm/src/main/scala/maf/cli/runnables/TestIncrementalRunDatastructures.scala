@@ -58,10 +58,10 @@ object TestIncrementalRunDatastructures extends App:
     // Analysis from soundness tests.
     def base(program: SchemeExp) = new ModAnalysis[SchemeExp](program)
       with StandardSchemeModFComponents
-   //   with SchemeModFFullArgumentSensitivity
-     // with SchemeModFCallSiteSensitivity
+      with SchemeModFFullArgumentSensitivity
+    //  with SchemeModFCallSiteSensitivity
      // with SchemeModFFullArgumentCallSiteSensitivity
-      with SchemeModFNoSensitivity
+    //  with SchemeModFNoSensitivity
       with SchemeModFSemanticsM
       with LIFOWorklistAlgorithm[SchemeExp]
       with IncrementalSchemeModFBigStepSemantics
@@ -236,7 +236,7 @@ object TestIncrementalRunDatastructures extends App:
         mappingWithUpdate.get(k) match
           case Some(updatedValue) =>
             if updatedValue.!=(v) then
-              println("key reanalysis: " + k.toString() + "\n value reanalysis: "+ v.toString + "\n value updated: " + updatedValue.toString)
+              println("key reanalysis: " + k.toString() + " " + k.idn.toString() + "\n value reanalysis: "+ v.toString + "\n value updated: " + updatedValue.toString)
           case _ =>println("missing in update: " + k.toString()  + "\n reanalysis value: " + v.toString))
 
 
@@ -280,11 +280,11 @@ object TestIncrementalRunDatastructures extends App:
   end modfAnalysis
 
   val modConcbenchmarks: List[String] = List()
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm", "test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
+ // val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm", "test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
- // val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/WeiChenRompf2019/the-little-schemer/ch8.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/ad/stack.scm")
 //  val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 
   modFbenchmarks.foreach(modfAnalysis(_, standardTimeout))

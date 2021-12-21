@@ -1,13 +1,10 @@
-;; renamed lambdas/lets: 5
+;; renamed lambdas/lets: 2
  
 (define my-++ (lambda (n)
       (+ n 1)))
  
-(define my--- (<change>
-      (lambda (n)
-         (- n 1))
-      (lambda (_n0)
-         (- _n0 1))))
+(define my--- (lambda (n)
+      (- n 1)))
  
 (define false #f)
  
@@ -15,52 +12,36 @@
  
 (define nil ())
  
-(define key (<change>
-      (lambda (x)
-         x)
-      (lambda (_x0)
-         _x0)))
+(define key (lambda (x)
+      x))
  
-(define make-heap (<change>
-      (lambda (a-vector nr-of-elements)
-         (define iter (lambda (index)
+(define make-heap (lambda (a-vector nr-of-elements)
+      (define iter (<change>
+            (lambda (index)
                (if (> index 0)
                   (begin
                      (sift-down a-vector index nr-of-elements)
                      (iter (my--- index)))
-                  #f)))
-         (iter (quotient nr-of-elements 2)))
-      (lambda (_a-vector0 _nr-of-elements0)
-         (define iter (lambda (_index0)
+                  #f))
+            (lambda (_index0)
                (if (> _index0 0)
                   (begin
-                     (sift-down _a-vector0 _index0 _nr-of-elements0)
+                     (sift-down a-vector _index0 nr-of-elements)
                      (iter (my--- _index0)))
-                  #f)))
-         (iter (quotient _nr-of-elements0 2)))))
+                  #f))))
+      (iter (quotient nr-of-elements 2))))
  
 (define sift-down (lambda (heap from to)
-      (define smallest-child (<change>
-            (lambda (parent)
-               (let* ((child1 (* 2 parent))
-                      (child2 (my-++ child1)))
-                  (if (> child1 to)
-                     false
-                     (if (> child2 to)
+      (define smallest-child (lambda (parent)
+            (let* ((child1 (* 2 parent))
+                   (child2 (my-++ child1)))
+               (if (> child1 to)
+                  false
+                  (if (> child2 to)
+                     child1
+                     (if (< (key (vector-ref heap child1)) (key (vector-ref heap child2)))
                         child1
-                        (if (< (key (vector-ref heap child1)) (key (vector-ref heap child2)))
-                           child1
-                           child2)))))
-            (lambda (_parent0)
-               (let* ((_child10 (* 2 _parent0))
-                      (_child20 (my-++ _child10)))
-                  (if (> _child10 to)
-                     false
-                     (if (> _child20 to)
-                        _child10
-                        (if (< (key (vector-ref heap _child10)) (key (vector-ref heap _child20)))
-                           _child10
-                           _child20)))))))
+                        child2))))))
       (define iter (lambda (parent)
             (let ((child (smallest-child parent)))
                (if child
@@ -73,24 +54,29 @@
       (iter from)))
  
 (define swap (lambda (a-vector i1 i2)
-      (<change>
-         (let ((temp (vector-ref a-vector i1)))
-            (vector-set! a-vector i1 (vector-ref a-vector i2))
-            (vector-set! a-vector i2 temp))
-         (let ((_temp0 (vector-ref a-vector i1)))
-            (vector-set! a-vector i1 (vector-ref a-vector i2))
-            (vector-set! a-vector i2 _temp0)))))
+      (let ((temp (vector-ref a-vector i1)))
+         (vector-set! a-vector i1 (vector-ref a-vector i2))
+         (vector-set! a-vector i2 temp))))
  
 (define sift-up (lambda (heap from)
       (define iter (lambda (child)
-            (let ((parent (quotient child 2)))
-               (if (> parent 0)
-                  (if (> (key (vector-ref heap parent)) (key (vector-ref heap child)))
-                     (begin
-                        (swap heap child parent)
-                        (iter parent))
-                     #f)
-                  #f))))
+            (<change>
+               (let ((parent (quotient child 2)))
+                  (if (> parent 0)
+                     (if (> (key (vector-ref heap parent)) (key (vector-ref heap child)))
+                        (begin
+                           (swap heap child parent)
+                           (iter parent))
+                        #f)
+                     #f))
+               (let ((_parent0 (quotient child 2)))
+                  (if (> _parent0 0)
+                     (if (> (key (vector-ref heap _parent0)) (key (vector-ref heap child)))
+                        (begin
+                           (swap heap child _parent0)
+                           (iter _parent0))
+                        #f)
+                     #f)))))
       (iter from)))
  
 (define create-heap (lambda (size)

@@ -68,13 +68,13 @@ class UpdatingStructuresTest extends AnyPropSpec:
 
 
   def checkEqual(updated: IncrementalModAnalysis[SchemeExp], analysisOfNew: IncrementalModAnalysis[SchemeExp]): Unit =
-    assert(updated.visited == analysisOfNew.visited, "The visited sets of the updated program differs from the visited set of the analysis of the new program.")
-    assert(updated.deps == analysisOfNew.deps, "The dependencies of the updated program differs from the dependencies of the analysis of the new program.")
-    assert(updated.mapping == updated.mapping, "The mappings of the updated program differs from the mappings of the analysis of the new program.")
+    assert(updated.visited.hashCode() == analysisOfNew.visited.hashCode(), "The visited sets of the updated program differs from the visited set of the analysis of the new program.")
+    assert(updated.deps.hashCode() == analysisOfNew.deps.hashCode(), "The dependencies of the updated program differs from the dependencies of the analysis of the new program.")
+    assert(updated.mapping.hashCode() == analysisOfNew.mapping.hashCode(), "The mappings of the updated program differs from the mappings of the analysis of the new program.")
 
     (updated, analysisOfNew) match
       case (updated: IncrementalGlobalStore[SchemeExp], analysisOfNew: IncrementalGlobalStore[SchemeExp]) =>
-        assert(updated.store == analysisOfNew.store, "The store of the updated program differs from the store of the analysis of the new program.")
+        assert(updated.store.hashCode() == analysisOfNew.store.hashCode() , "The store of the updated program differs from the store of the analysis of the new program.")
       case _ =>
 
   val firstTests: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming")()
@@ -84,6 +84,7 @@ class UpdatingStructuresTest extends AnyPropSpec:
   val adGenerated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/ad")()
 
   val tlsGenerated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/WeiChenRompf2019/the-little-schemer")()
+
 
   val modFbenchmarks: Set[String] = tlsGenerated ++ firstTests ++ gambitGenerated ++ adGenerated
 
@@ -102,6 +103,7 @@ class UpdatingStructuresTest extends AnyPropSpec:
       callAnalysisOnBenchmark(FullArgCallSensitivityAnalysis(program), program)
     }
   )
+
 
   val gambitGeneratedContextInsensitive: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/gambit/NoSensitivity")()
 

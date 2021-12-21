@@ -150,6 +150,8 @@ class IncrementalUpdateDatastructures {
   //  if the old and new key are the same, but the value has changed
   //  or if there is a new key (in this case: remove the old key)
   def insertInDeps(a: IncrementalModAnalysis[SchemeExp], oldKey: maf.modular.Dependency, newKey: maf.modular.Dependency, oldValue: Set[a.Component], newValue: Set[a.Component]): Unit =
+    println(newValue)
+    println(oldValue)
     if newKey.equals(oldKey) then
       if !newValue.equals(oldValue) then
         a.deps = a.deps + (oldKey -> newValue)
@@ -283,7 +285,7 @@ class IncrementalUpdateDatastructures {
         val newcdr = getNewValues(a, cons.cdr).asInstanceOf[cons.cdr.type]
         IncrementalSchemeTypeDomain.modularLattice.Cons(newcar, newcdr)
       case _ =>
-      //  println(value.getClass)
+        println(value.getClass)
         value
 
   // To create an new enviroment, loop over the old enviroment
@@ -340,6 +342,7 @@ class IncrementalUpdateDatastructures {
   def updateArgCtx(a: IncrementalGlobalStore[SchemeExp], ctx: maf.modular.scheme.modf.ArgContext): maf.modular.scheme.modf.ArgContext =
     val newValues = ctx.values.map(elements => elements match
       case elements: Serializable=>
+        println(elements.toString + "->" + getNewValues(a, elements).toString)
         getNewValues(a, elements)
         )
     maf.modular.scheme.modf.ArgContext(newValues)
@@ -364,7 +367,6 @@ class IncrementalUpdateDatastructures {
     new maf.modular.scheme.modf.ArgCallSiteContext(newFn, newCall, newArgs)
 
   def findNewPosition(oldPosition: Position.Position): Position.Position =
-
     allExpressionsInChange.find((k, v) => k.idn.pos.equals(oldPosition)) match
       case Some(oldPos, newPos) =>
         newPos.idn.pos

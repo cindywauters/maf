@@ -1,12 +1,17 @@
-;; renamed lambdas/lets: 21
+;; renamed lambdas/lets: 37
  
-(define bubble-sort (<change>
-      (lambda (vector)
-         (define swap (lambda (vector index1 index2)
+(define bubble-sort (lambda (vector)
+      (define swap (<change>
+            (lambda (vector index1 index2)
                (let ((temp (vector-ref vector index1)))
                   (vector-set! vector index1 (vector-ref vector index2))
-                  (vector-set! vector index2 temp))))
-         (define bubble (lambda (index)
+                  (vector-set! vector index2 temp)))
+            (lambda (_vector0 _index10 _index20)
+               (let ((_temp0 (vector-ref _vector0 _index10)))
+                  (vector-set! _vector0 _index10 (vector-ref _vector0 _index20))
+                  (vector-set! _vector0 _index20 _temp0)))))
+      (define bubble (<change>
+            (lambda (index)
                (define bubble-iter (lambda (index1 changed)
                      (if (<= index1 index)
                         (begin
@@ -17,38 +22,33 @@
                               #f)
                            (bubble-iter (+ index1 1) changed))
                         changed)))
-               (bubble-iter 0 #f)))
-         (define bubble-sort-iter (lambda (index)
+               (bubble-iter 0 #f))
+            (lambda (_index0)
+               (define bubble-iter (lambda (_index10 _changed0)
+                     (if (<= _index10 _index0)
+                        (begin
+                           (if (> (vector-ref vector _index10) (vector-ref vector (+ _index10 1)))
+                              (begin
+                                 (swap vector _index10 (+ _index10 1))
+                                 (set! _changed0 #t))
+                              #f)
+                           (bubble-iter (+ _index10 1) _changed0))
+                        _changed0)))
+               (bubble-iter 0 #f))))
+      (define bubble-sort-iter (<change>
+            (lambda (index)
                (if (>= index 0)
                   (if (bubble index)
                      (bubble-sort-iter (- index 1))
                      #f)
-                  #f)))
-         (bubble-sort-iter (- (vector-length vector) 2)))
-      (lambda (_vector0)
-         (define swap (lambda (_vector1 _index10 _index20)
-               (let ((_temp0 (vector-ref _vector1 _index10)))
-                  (vector-set! _vector1 _index10 (vector-ref _vector1 _index20))
-                  (vector-set! _vector1 _index20 _temp0))))
-         (define bubble (lambda (_index0)
-               (define bubble-iter (lambda (_index11 _changed0)
-                     (if (<= _index11 _index0)
-                        (begin
-                           (if (> (vector-ref _vector0 _index11) (vector-ref _vector0 (+ _index11 1)))
-                              (begin
-                                 (swap _vector0 _index11 (+ _index11 1))
-                                 (set! _changed0 #t))
-                              #f)
-                           (bubble-iter (+ _index11 1) _changed0))
-                        _changed0)))
-               (bubble-iter 0 #f)))
-         (define bubble-sort-iter (lambda (_index1)
-               (if (>= _index1 0)
-                  (if (bubble _index1)
-                     (bubble-sort-iter (- _index1 1))
+                  #f))
+            (lambda (_index0)
+               (if (>= _index0 0)
+                  (if (bubble _index0)
+                     (bubble-sort-iter (- _index0 1))
                      #f)
-                  #f)))
-         (bubble-sort-iter (- (vector-length _vector0) 2)))))
+                  #f))))
+      (bubble-sort-iter (- (vector-length vector) 2))))
  
 (define vect (vector 9 5 1 7 8 9 4 6 2 3))
  
@@ -117,29 +117,41 @@
       (lambda ()
          (set! result (cons 'newline result)))))
  
-(define make-row (<change>
-      (lambda (key name age wage)
-         (vector key name age wage))
-      (lambda (_key0 _name0 _age0 _wage0)
-         (vector _key0 _name0 _age0 _wage0))))
+(define make-row (lambda (key name age wage)
+      (vector key name age wage)))
  
-(define key-ref (lambda (row)
-      (vector-ref row 0)))
+(define key-ref (<change>
+      (lambda (row)
+         (vector-ref row 0))
+      (lambda (_row0)
+         (vector-ref _row0 0))))
  
-(define name-ref (lambda (row)
-      (vector-ref row 1)))
+(define name-ref (<change>
+      (lambda (row)
+         (vector-ref row 1))
+      (lambda (_row0)
+         (vector-ref _row0 1))))
  
 (define age-ref (lambda (row)
       (vector-ref row 2)))
  
-(define wage-ref (lambda (row)
-      (vector-ref row 3)))
+(define wage-ref (<change>
+      (lambda (row)
+         (vector-ref row 3))
+      (lambda (_row0)
+         (vector-ref _row0 3))))
  
-(define key-set! (lambda (row value)
-      (vector-set! row 0 value)))
+(define key-set! (<change>
+      (lambda (row value)
+         (vector-set! row 0 value))
+      (lambda (_row0 _value0)
+         (vector-set! _row0 0 _value0))))
  
-(define name-set! (lambda (row value)
-      (vector-set! row 1 value)))
+(define name-set! (<change>
+      (lambda (row value)
+         (vector-set! row 1 value))
+      (lambda (_row0 _value0)
+         (vector-set! _row0 1 _value0))))
  
 (define age-set! (lambda (row value)
       (vector-set! row 2 value)))
@@ -175,38 +187,43 @@
          (display2 (wage-ref _row0))
          (display2 "]"))))
  
-(define make-table (lambda (rows)
-      (make-vector rows 0)))
+(define make-table (<change>
+      (lambda (rows)
+         (make-vector rows 0))
+      (lambda (_rows0)
+         (make-vector _rows0 0))))
  
 (define table-size (lambda (table)
       (vector-length table)))
  
-(define row-ref (lambda (table pos)
-      (if (< pos (table-size table))
-         (vector-ref table pos)
-         #f)))
+(define row-ref (<change>
+      (lambda (table pos)
+         (if (< pos (table-size table))
+            (vector-ref table pos)
+            #f))
+      (lambda (_table0 _pos0)
+         (if (< _pos0 (table-size _table0))
+            (vector-ref _table0 _pos0)
+            #f))))
  
-(define row-set! (lambda (table pos row)
-      (if (< pos (table-size table))
-         (vector-set! table pos row)
-         #f)))
+(define row-set! (<change>
+      (lambda (table pos row)
+         (if (< pos (table-size table))
+            (vector-set! table pos row)
+            #f))
+      (lambda (_table0 _pos0 _row0)
+         (if (< _pos0 (table-size _table0))
+            (vector-set! _table0 _pos0 _row0)
+            #f))))
  
 (define show-table (lambda (table)
-      (define iter (<change>
-            (lambda (index)
-               (if (= index (table-size table))
+      (define iter (lambda (index)
+            (if (= index (table-size table))
+               (newline2)
+               (begin
+                  (show-row (row-ref table index))
                   (newline2)
-                  (begin
-                     (show-row (row-ref table index))
-                     (newline2)
-                     (iter (+ index 1)))))
-            (lambda (_index0)
-               (if (= _index0 (table-size table))
-                  (newline2)
-                  (begin
-                     (show-row (row-ref table _index0))
-                     (newline2)
-                     (iter (+ _index0 1)))))))
+                  (iter (+ index 1))))))
       (iter 0)))
  
 (define table (make-table 10))
@@ -647,14 +664,14 @@
  
 #t
  
-(define my-++ (<change>
-      (lambda (n)
-         (+ n 1))
-      (lambda (_n0)
-         (+ _n0 1))))
+(define my-++ (lambda (n)
+      (+ n 1)))
  
-(define my--- (lambda (n)
-      (- n 1)))
+(define my--- (<change>
+      (lambda (n)
+         (- n 1))
+      (lambda (_n0)
+         (- _n0 1))))
  
 (define false #f)
  
@@ -665,33 +682,46 @@
 (define key (lambda (x)
       x))
  
-(define make-heap (lambda (a-vector nr-of-elements)
-      (define iter (<change>
-            (lambda (index)
+(define make-heap (<change>
+      (lambda (a-vector nr-of-elements)
+         (define iter (lambda (index)
                (if (> index 0)
                   (begin
                      (sift-down a-vector index nr-of-elements)
                      (iter (my--- index)))
-                  #f))
-            (lambda (_index0)
+                  #f)))
+         (iter (quotient nr-of-elements 2)))
+      (lambda (_a-vector0 _nr-of-elements0)
+         (define iter (lambda (_index0)
                (if (> _index0 0)
                   (begin
-                     (sift-down a-vector _index0 nr-of-elements)
+                     (sift-down _a-vector0 _index0 _nr-of-elements0)
                      (iter (my--- _index0)))
-                  #f))))
-      (iter (quotient nr-of-elements 2))))
+                  #f)))
+         (iter (quotient _nr-of-elements0 2)))))
  
 (define sift-down (lambda (heap from to)
-      (define smallest-child (lambda (parent)
-            (let* ((child1 (* 2 parent))
-                   (child2 (my-++ child1)))
-               (if (> child1 to)
-                  false
-                  (if (> child2 to)
-                     child1
-                     (if (< (key (vector-ref heap child1)) (key (vector-ref heap child2)))
+      (define smallest-child (<change>
+            (lambda (parent)
+               (let* ((child1 (* 2 parent))
+                      (child2 (my-++ child1)))
+                  (if (> child1 to)
+                     false
+                     (if (> child2 to)
                         child1
-                        child2))))))
+                        (if (< (key (vector-ref heap child1)) (key (vector-ref heap child2)))
+                           child1
+                           child2)))))
+            (lambda (_parent0)
+               (let* ((_child10 (* 2 _parent0))
+                      (_child20 (my-++ _child10)))
+                  (if (> _child10 to)
+                     false
+                     (if (> _child20 to)
+                        _child10
+                        (if (< (key (vector-ref heap _child10)) (key (vector-ref heap _child20)))
+                           _child10
+                           _child20)))))))
       (define iter (lambda (parent)
             (let ((child (smallest-child parent)))
                (if child
@@ -743,19 +773,33 @@
       (lambda (_heap0)
          (eq? (car _heap0) 0))))
  
-(define insert (lambda (heap item)
-      (let* ((content (cdr heap))
-             (new-nr-of-elements (my-++ (car heap)))
-             (size (my--- (vector-length content))))
-         (display "insert    ")
-         (if (> new-nr-of-elements size)
-            false
-            (begin
-               (vector-set! content new-nr-of-elements item)
-               (sift-up content new-nr-of-elements)
-               (set-car! heap new-nr-of-elements)))
-         (display heap)
-         (newline))))
+(define insert (<change>
+      (lambda (heap item)
+         (let* ((content (cdr heap))
+                (new-nr-of-elements (my-++ (car heap)))
+                (size (my--- (vector-length content))))
+            (display "insert    ")
+            (if (> new-nr-of-elements size)
+               false
+               (begin
+                  (vector-set! content new-nr-of-elements item)
+                  (sift-up content new-nr-of-elements)
+                  (set-car! heap new-nr-of-elements)))
+            (display heap)
+            (newline)))
+      (lambda (_heap0 _item0)
+         (let* ((_content0 (cdr _heap0))
+                (_new-nr-of-elements0 (my-++ (car _heap0)))
+                (_size0 (my--- (vector-length _content0))))
+            (display "insert    ")
+            (if (> _new-nr-of-elements0 _size0)
+               false
+               (begin
+                  (vector-set! _content0 _new-nr-of-elements0 _item0)
+                  (sift-up _content0 _new-nr-of-elements0)
+                  (set-car! _heap0 _new-nr-of-elements0)))
+            (display _heap0)
+            (newline)))))
  
 (define v (vector 'lol 5 8 1 3 9 10 2 0))
  
@@ -763,20 +807,35 @@
  
 (equal? v (vector 'lol 0 3 1 5 9 10 2 8))
  
-(define quick-sort (lambda (a-list)
-      (define rearrange (lambda (pivot some-list)
-            (define rearrange-iter (lambda (rest result)
-                  (if (null? rest)
-                     result
-                     (if (<= (car rest) pivot)
-                        (rearrange-iter (cdr rest) (cons (cons (car rest) (car result)) (cdr result)))
-                        (rearrange-iter (cdr rest) (cons (car result) (cons (car rest) (cdr result))))))))
-            (rearrange-iter some-list (cons () ()))))
-      (if (<= (length a-list) 1)
-         a-list
-         (let* ((pivot (car a-list))
-                (sub-lists (rearrange pivot (cdr a-list))))
-            (append (quick-sort (car sub-lists)) (append (list pivot) (quick-sort (cdr sub-lists))))))))
+(define quick-sort (<change>
+      (lambda (a-list)
+         (define rearrange (lambda (pivot some-list)
+               (define rearrange-iter (lambda (rest result)
+                     (if (null? rest)
+                        result
+                        (if (<= (car rest) pivot)
+                           (rearrange-iter (cdr rest) (cons (cons (car rest) (car result)) (cdr result)))
+                           (rearrange-iter (cdr rest) (cons (car result) (cons (car rest) (cdr result))))))))
+               (rearrange-iter some-list (cons () ()))))
+         (if (<= (length a-list) 1)
+            a-list
+            (let* ((pivot (car a-list))
+                   (sub-lists (rearrange pivot (cdr a-list))))
+               (append (quick-sort (car sub-lists)) (append (list pivot) (quick-sort (cdr sub-lists)))))))
+      (lambda (_a-list0)
+         (define rearrange (lambda (_pivot0 _some-list0)
+               (define rearrange-iter (lambda (_rest0 _result0)
+                     (if (null? _rest0)
+                        _result0
+                        (if (<= (car _rest0) _pivot0)
+                           (rearrange-iter (cdr _rest0) (cons (cons (car _rest0) (car _result0)) (cdr _result0)))
+                           (rearrange-iter (cdr _rest0) (cons (car _result0) (cons (car _rest0) (cdr _result0))))))))
+               (rearrange-iter _some-list0 (cons () ()))))
+         (if (<= (length _a-list0) 1)
+            _a-list0
+            (let* ((_pivot1 (car _a-list0))
+                   (_sub-lists0 (rearrange _pivot1 (cdr _a-list0))))
+               (append (quick-sort (car _sub-lists0)) (append (list _pivot1) (quick-sort (cdr _sub-lists0)))))))))
  
 (equal?
    (quick-sort
@@ -859,17 +918,20 @@
  
 (equal? vect3 (vector 0 1 2 3 4 5 6 7 8 9))
  
-(define make-item (<change>
-      (lambda (priority element)
-         (cons priority element))
-      (lambda (_priority0 _element0)
-         (cons _priority0 _element0))))
+(define make-item (lambda (priority element)
+      (cons priority element)))
  
-(define get-priority (lambda (item)
-      (car item)))
+(define get-priority (<change>
+      (lambda (item)
+         (car item))
+      (lambda (_item0)
+         (car _item0))))
  
-(define get-element (lambda (item)
-      (cdr item)))
+(define get-element (<change>
+      (lambda (item)
+         (cdr item))
+      (lambda (_item0)
+         (cdr _item0))))
  
 (define create-priority-queue (<change>
       (lambda ()
@@ -976,57 +1038,40 @@
 (define copy (lambda (from-vector to-vector from-index to-index)
       (vector-set! to-vector to-index (vector-ref from-vector from-index))))
  
-(define move (<change>
-      (lambda (from-vector to-vector from-low from-high to-index)
-         (define move-iter (lambda (n)
+(define move (lambda (from-vector to-vector from-low from-high to-index)
+      (define move-iter (<change>
+            (lambda (n)
                (if (<= (+ from-low n) from-high)
                   (begin
                      (copy from-vector to-vector (+ from-low n) (+ to-index n))
                      (move-iter (+ n 1)))
-                  #f)))
-         (move-iter 0))
-      (lambda (_from-vector0 _to-vector0 _from-low0 _from-high0 _to-index0)
-         (define move-iter (lambda (_n0)
-               (if (<= (+ _from-low0 _n0) _from-high0)
+                  #f))
+            (lambda (_n0)
+               (if (<= (+ from-low _n0) from-high)
                   (begin
-                     (copy _from-vector0 _to-vector0 (+ _from-low0 _n0) (+ _to-index0 _n0))
+                     (copy from-vector to-vector (+ from-low _n0) (+ to-index _n0))
                      (move-iter (+ _n0 1)))
-                  #f)))
-         (move-iter 0))))
+                  #f))))
+      (move-iter 0)))
  
-(define merge (<change>
-      (lambda (vector1 vector2 vector low1 high1 low2 high2 to-index)
-         (define merge-iter (lambda (index index1 index2)
-               (if (> index1 high1)
-                  (move vector2 vector index2 high2 index)
-                  (if (> index2 high2)
-                     (move vector1 vector index1 high1 index)
-                     (if (< (vector-ref vector1 index1) (vector-ref vector2 index2))
-                        (begin
-                           (copy vector1 vector index1 index)
-                           (merge-iter (+ index 1) (+ index1 1) index2))
-                        (begin
-                           (copy vector2 vector index2 index)
-                           (merge-iter (+ index 1) index1 (+ index2 1))))))))
-         (merge-iter to-index low1 low2))
-      (lambda (_vector10 _vector20 _vector0 _low10 _high10 _low20 _high20 _to-index0)
-         (define merge-iter (lambda (_index0 _index10 _index20)
-               (if (> _index10 _high10)
-                  (move _vector20 _vector0 _index20 _high20 _index0)
-                  (if (> _index20 _high20)
-                     (move _vector10 _vector0 _index10 _high10 _index0)
-                     (if (< (vector-ref _vector10 _index10) (vector-ref _vector20 _index20))
-                        (begin
-                           (copy _vector10 _vector0 _index10 _index0)
-                           (merge-iter (+ _index0 1) (+ _index10 1) _index20))
-                        (begin
-                           (copy _vector20 _vector0 _index20 _index0)
-                           (merge-iter (+ _index0 1) _index10 (+ _index20 1))))))))
-         (merge-iter _to-index0 _low10 _low20))))
+(define merge (lambda (vector1 vector2 vector low1 high1 low2 high2 to-index)
+      (define merge-iter (lambda (index index1 index2)
+            (if (> index1 high1)
+               (move vector2 vector index2 high2 index)
+               (if (> index2 high2)
+                  (move vector1 vector index1 high1 index)
+                  (if (< (vector-ref vector1 index1) (vector-ref vector2 index2))
+                     (begin
+                        (copy vector1 vector index1 index)
+                        (merge-iter (+ index 1) (+ index1 1) index2))
+                     (begin
+                        (copy vector2 vector index2 index)
+                        (merge-iter (+ index 1) index1 (+ index2 1))))))))
+      (merge-iter to-index low1 low2)))
  
-(define bottom-up-merge-sort (lambda (vector)
-      (define merge-subs (<change>
-            (lambda (len)
+(define bottom-up-merge-sort (<change>
+      (lambda (vector)
+         (define merge-subs (lambda (len)
                (let ((aux-vector (make-vector (vector-length vector) 0)))
                   (define merge-subs-iter (lambda (index)
                         (if (< index (- (vector-length vector) (* 2 len)))
@@ -1047,57 +1092,74 @@
                                     index)
                                  (move aux-vector vector index (- (vector-length vector) 1) index))
                               #f))))
-                  (merge-subs-iter 0)))
-            (lambda (_len0)
-               (let ((_aux-vector0 (make-vector (vector-length vector) 0)))
+                  (merge-subs-iter 0))))
+         (define merge-sort-iter (lambda (len)
+               (if (< len (vector-length vector))
+                  (begin
+                     (merge-subs len)
+                     (merge-sort-iter (* 2 len)))
+                  #f)))
+         (merge-sort-iter 1))
+      (lambda (_vector0)
+         (define merge-subs (lambda (_len0)
+               (let ((_aux-vector0 (make-vector (vector-length _vector0) 0)))
                   (define merge-subs-iter (lambda (_index0)
-                        (if (< _index0 (- (vector-length vector) (* 2 _len0)))
+                        (if (< _index0 (- (vector-length _vector0) (* 2 _len0)))
                            (begin
                               (merge
-                                 vector
-                                 vector
+                                 _vector0
+                                 _vector0
                                  _aux-vector0
                                  _index0
                                  (+ _index0 _len0 -1)
                                  (+ _index0 _len0)
                                  (+ _index0 _len0 _len0 -1)
                                  _index0)
-                              (move _aux-vector0 vector _index0 (+ _index0 _len0 _len0 -1) _index0)
+                              (move _aux-vector0 _vector0 _index0 (+ _index0 _len0 _len0 -1) _index0)
                               (merge-subs-iter (+ _index0 _len0 _len0)))
-                           (if (< _index0 (- (vector-length vector) _len0))
+                           (if (< _index0 (- (vector-length _vector0) _len0))
                               (begin
                                  (merge
-                                    vector
-                                    vector
+                                    _vector0
+                                    _vector0
                                     _aux-vector0
                                     _index0
                                     (+ _index0 _len0 -1)
                                     (+ _index0 _len0)
-                                    (- (vector-length vector) 1)
+                                    (- (vector-length _vector0) 1)
                                     _index0)
-                                 (move _aux-vector0 vector _index0 (- (vector-length vector) 1) _index0))
+                                 (move _aux-vector0 _vector0 _index0 (- (vector-length _vector0) 1) _index0))
                               #f))))
-                  (merge-subs-iter 0)))))
-      (define merge-sort-iter (lambda (len)
-            (if (< len (vector-length vector))
-               (begin
-                  (merge-subs len)
-                  (merge-sort-iter (* 2 len)))
-               #f)))
-      (merge-sort-iter 1)))
+                  (merge-subs-iter 0))))
+         (define merge-sort-iter (lambda (_len1)
+               (if (< _len1 (vector-length _vector0))
+                  (begin
+                     (merge-subs _len1)
+                     (merge-sort-iter (* 2 _len1)))
+                  #f)))
+         (merge-sort-iter 1))))
  
-(let ((aVector (vector 8 3 6 6 0 5 4 2 9 6)))
-   (bottom-up-merge-sort aVector)
-   (equal? aVector (vector 0 2 3 4 5 6 6 6 8 9)))
+(<change>
+   (let ((aVector (vector 8 3 6 6 0 5 4 2 9 6)))
+      (bottom-up-merge-sort aVector)
+      (equal? aVector (vector 0 2 3 4 5 6 6 6 8 9)))
+   (let ((_aVector0 (vector 8 3 6 6 0 5 4 2 9 6)))
+      (bottom-up-merge-sort _aVector0)
+      (equal? _aVector0 (vector 0 2 3 4 5 6 6 6 8 9))))
  
-(define quick-sort2 (<change>
-      (lambda (vector)
-         (define swap (lambda (v index1 index2)
+(define quick-sort2 (lambda (vector)
+      (define swap (<change>
+            (lambda (v index1 index2)
                (let ((temp (vector-ref v index1)))
                   (vector-set! v index1 (vector-ref v index2))
-                  (vector-set! v index2 temp))))
-         (define quick-sort-aux (lambda (low high)
-               (define quick-sort-aux-iter (lambda (mid-value from to)
+                  (vector-set! v index2 temp)))
+            (lambda (_v0 _index10 _index20)
+               (let ((_temp0 (vector-ref _v0 _index10)))
+                  (vector-set! _v0 _index10 (vector-ref _v0 _index20))
+                  (vector-set! _v0 _index20 _temp0)))))
+      (define quick-sort-aux (lambda (low high)
+            (define quick-sort-aux-iter (<change>
+                  (lambda (mid-value from to)
                      (define quick-right (lambda (index1)
                            (if (if (< index1 high) (< (vector-ref vector index1) mid-value) #f)
                               (quick-right (+ index1 1))
@@ -1112,8 +1174,25 @@
                            (begin
                               (swap vector index1 index2)
                               (quick-sort-aux-iter mid-value index1 index2))
-                           index2))))
-               (if (< low high)
+                           index2)))
+                  (lambda (_mid-value0 _from0 _to0)
+                     (define quick-right (lambda (_index10)
+                           (if (if (< _index10 high) (< (vector-ref vector _index10) _mid-value0) #f)
+                              (quick-right (+ _index10 1))
+                              _index10)))
+                     (define quick-left (lambda (_index20)
+                           (if (if (> _index20 low) (> (vector-ref vector _index20) _mid-value0) #f)
+                              (quick-left (- _index20 1))
+                              _index20)))
+                     (let ((_index11 (quick-right (+ _from0 1)))
+                           (_index21 (quick-left _to0)))
+                        (if (< _index11 _index21)
+                           (begin
+                              (swap vector _index11 _index21)
+                              (quick-sort-aux-iter _mid-value0 _index11 _index21))
+                           _index21)))))
+            (if (< low high)
+               (<change>
                   (let ((middle (quotient (+ low high) 2))
                         (pivot-index (+ low 1)))
                      (swap vector middle pivot-index)
@@ -1130,49 +1209,24 @@
                         (swap vector mid-index pivot-index)
                         (quick-sort-aux low (- mid-index 1))
                         (quick-sort-aux (+ mid-index 1) high)))
-                  #f)))
-         (quick-sort-aux 0 (- (vector-length vector) 1)))
-      (lambda (_vector0)
-         (define swap (lambda (_v0 _index10 _index20)
-               (let ((_temp0 (vector-ref _v0 _index10)))
-                  (vector-set! _v0 _index10 (vector-ref _v0 _index20))
-                  (vector-set! _v0 _index20 _temp0))))
-         (define quick-sort-aux (lambda (_low0 _high0)
-               (define quick-sort-aux-iter (lambda (_mid-value0 _from0 _to0)
-                     (define quick-right (lambda (_index11)
-                           (if (if (< _index11 _high0) (< (vector-ref _vector0 _index11) _mid-value0) #f)
-                              (quick-right (+ _index11 1))
-                              _index11)))
-                     (define quick-left (lambda (_index21)
-                           (if (if (> _index21 _low0) (> (vector-ref _vector0 _index21) _mid-value0) #f)
-                              (quick-left (- _index21 1))
-                              _index21)))
-                     (let ((_index12 (quick-right (+ _from0 1)))
-                           (_index22 (quick-left _to0)))
-                        (if (< _index12 _index22)
-                           (begin
-                              (swap _vector0 _index12 _index22)
-                              (quick-sort-aux-iter _mid-value0 _index12 _index22))
-                           _index22))))
-               (if (< _low0 _high0)
-                  (let ((_middle0 (quotient (+ _low0 _high0) 2))
-                        (_pivot-index0 (+ _low0 1)))
-                     (swap _vector0 _middle0 _pivot-index0)
-                     (if (> (vector-ref _vector0 _pivot-index0) (vector-ref _vector0 _high0))
-                        (swap _vector0 _pivot-index0 _high0)
+                  (let ((_middle0 (quotient (+ low high) 2))
+                        (_pivot-index0 (+ low 1)))
+                     (swap vector _middle0 _pivot-index0)
+                     (if (> (vector-ref vector _pivot-index0) (vector-ref vector high))
+                        (swap vector _pivot-index0 high)
                         #f)
-                     (if (> (vector-ref _vector0 _low0) (vector-ref _vector0 _high0))
-                        (swap _vector0 _low0 _high0)
+                     (if (> (vector-ref vector low) (vector-ref vector high))
+                        (swap vector low high)
                         #f)
-                     (if (< (vector-ref _vector0 _pivot-index0) (vector-ref _vector0 _low0))
-                        (swap _vector0 _pivot-index0 _low0)
+                     (if (< (vector-ref vector _pivot-index0) (vector-ref vector low))
+                        (swap vector _pivot-index0 low)
                         #f)
-                     (let ((_mid-index0 (quick-sort-aux-iter (vector-ref _vector0 _pivot-index0) (+ _low0 1) _high0)))
-                        (swap _vector0 _mid-index0 _pivot-index0)
-                        (quick-sort-aux _low0 (- _mid-index0 1))
-                        (quick-sort-aux (+ _mid-index0 1) _high0)))
-                  #f)))
-         (quick-sort-aux 0 (- (vector-length _vector0) 1)))))
+                     (let ((_mid-index0 (quick-sort-aux-iter (vector-ref vector _pivot-index0) (+ low 1) high)))
+                        (swap vector _mid-index0 _pivot-index0)
+                        (quick-sort-aux low (- _mid-index0 1))
+                        (quick-sort-aux (+ _mid-index0 1) high))))
+               #f)))
+      (quick-sort-aux 0 (- (vector-length vector) 1))))
  
 (define test3 (vector 8 3 6 6 1 5 4 2 9 6))
  
@@ -1180,78 +1234,74 @@
  
 (equal? test3 (vector 1 2 3 4 5 6 6 6 8 9))
  
-(define create-stack (<change>
-      (lambda (eq-fnct)
-         (let ((content ()))
-            (define empty? (lambda ()
-                  (null? content)))
-            (define push (lambda (element)
+(define create-stack (lambda (eq-fnct)
+      (let ((content ()))
+         (define empty? (<change>
+               (lambda ()
+                  (null? content))
+               (lambda ()
+                  (null? content))))
+         (define push (<change>
+               (lambda (element)
                   (set! content (cons element content))
-                  #t))
-            (define pop (lambda ()
+                  #t)
+               (lambda (_element0)
+                  (set! content (cons _element0 content))
+                  #t)))
+         (define pop (<change>
+               (lambda ()
                   (if (null? content)
                      #f
                      (let ((temp (car content)))
                         (set! content (cdr content))
-                        temp))))
-            (define top (lambda ()
-                  (if (null? content) #f (car content))))
-            (define is-in (lambda (element)
-                  (if (member element content) #t #f)))
-            (define dispatch (lambda (m)
-                  (if (eq? m 'empty?)
-                     empty?
-                     (if (eq? m 'push)
-                        push
-                        (if (eq? m 'pop)
-                           pop
-                           (if (eq? m 'top)
-                              top
-                              (if (eq? m 'is-in)
-                                 is-in
-                                 (error "unknown request -- create-stack" m))))))))
-            dispatch))
-      (lambda (_eq-fnct0)
-         (let ((_content0 ()))
-            (define empty? (lambda ()
-                  (null? _content0)))
-            (define push (lambda (_element0)
-                  (set! _content0 (cons _element0 _content0))
-                  #t))
-            (define pop (lambda ()
-                  (if (null? _content0)
+                        temp)))
+               (lambda ()
+                  (if (null? content)
                      #f
-                     (let ((_temp0 (car _content0)))
-                        (set! _content0 (cdr _content0))
-                        _temp0))))
-            (define top (lambda ()
-                  (if (null? _content0) #f (car _content0))))
-            (define is-in (lambda (_element1)
-                  (if (member _element1 _content0) #t #f)))
-            (define dispatch (lambda (_m0)
-                  (if (eq? _m0 'empty?)
-                     empty?
-                     (if (eq? _m0 'push)
-                        push
-                        (if (eq? _m0 'pop)
-                           pop
-                           (if (eq? _m0 'top)
-                              top
-                              (if (eq? _m0 'is-in)
-                                 is-in
-                                 (error "unknown request -- create-stack" _m0))))))))
-            dispatch))))
+                     (let ((_temp0 (car content)))
+                        (set! content (cdr content))
+                        _temp0)))))
+         (define top (lambda ()
+               (if (null? content) #f (car content))))
+         (define is-in (lambda (element)
+               (if (member element content) #t #f)))
+         (define dispatch (lambda (m)
+               (if (eq? m 'empty?)
+                  empty?
+                  (if (eq? m 'push)
+                     push
+                     (if (eq? m 'pop)
+                        pop
+                        (if (eq? m 'top)
+                           top
+                           (if (eq? m 'is-in)
+                              is-in
+                              (error "unknown request -- create-stack" m))))))))
+         dispatch)))
  
-(let ((stack (create-stack =)))
-   (if ((stack 'empty?))
-      (if (begin ((stack 'push) 13) (not ((stack 'empty?))))
-         (if ((stack 'is-in) 13)
-            (if (= ((stack 'top)) 13)
-               (begin
-                  ((stack 'push) 14)
-                  (= ((stack 'pop)) 14))
+(<change>
+   (let ((stack (create-stack =)))
+      (if ((stack 'empty?))
+         (if (begin ((stack 'push) 13) (not ((stack 'empty?))))
+            (if ((stack 'is-in) 13)
+               (if (= ((stack 'top)) 13)
+                  (begin
+                     ((stack 'push) 14)
+                     (= ((stack 'pop)) 14))
+                  #f)
                #f)
             #f)
-         #f)
-      #f))
+         #f))
+   (let ((_stack0 (create-stack =)))
+      (if ((_stack0 'empty?))
+         (if (begin ((_stack0 'push) 13) (not ((_stack0 'empty?))))
+            (if ((_stack0 'is-in) 13)
+               (if (= ((_stack0 'top)) 13)
+                  (begin
+                     ((_stack0 'push) 14)
+                     (= ((_stack0 'pop)) 14))
+                  #f)
+               #f)
+            #f)
+         #f)))
  

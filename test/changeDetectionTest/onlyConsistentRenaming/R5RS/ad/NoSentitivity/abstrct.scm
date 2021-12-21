@@ -1,4 +1,4 @@
-;; renamed lambdas/lets: 10
+;; renamed lambdas/lets: 6
  
 (define result ())
  
@@ -17,38 +17,23 @@
       (lambda (_key0 _name0 _age0 _wage0)
          (vector _key0 _name0 _age0 _wage0))))
  
-(define key-ref (<change>
-      (lambda (row)
-         (vector-ref row 0))
-      (lambda (_row0)
-         (vector-ref _row0 0))))
+(define key-ref (lambda (row)
+      (vector-ref row 0)))
  
 (define name-ref (lambda (row)
       (vector-ref row 1)))
  
-(define age-ref (<change>
-      (lambda (row)
-         (vector-ref row 2))
-      (lambda (_row0)
-         (vector-ref _row0 2))))
+(define age-ref (lambda (row)
+      (vector-ref row 2)))
  
-(define wage-ref (<change>
-      (lambda (row)
-         (vector-ref row 3))
-      (lambda (_row0)
-         (vector-ref _row0 3))))
+(define wage-ref (lambda (row)
+      (vector-ref row 3)))
  
-(define key-set! (<change>
-      (lambda (row value)
-         (vector-set! row 0 value))
-      (lambda (_row0 _value0)
-         (vector-set! _row0 0 _value0))))
+(define key-set! (lambda (row value)
+      (vector-set! row 0 value)))
  
-(define name-set! (<change>
-      (lambda (row value)
-         (vector-set! row 1 value))
-      (lambda (_row0 _value0)
-         (vector-set! _row0 1 _value0))))
+(define name-set! (lambda (row value)
+      (vector-set! row 1 value)))
  
 (define age-set! (<change>
       (lambda (row value)
@@ -59,22 +44,39 @@
 (define wage-set! (lambda (row value)
       (vector-set! row 3 value)))
  
-(define show-row (lambda (row)
-      (display2 "[Sleutel:")
-      (display2 (key-ref row))
-      (display2 "]")
-      (display2 "[Naam:")
-      (display2 (name-ref row))
-      (display2 "]")
-      (display2 "[Leeftijd:")
-      (display2 (age-ref row))
-      (display2 "]")
-      (display2 "[Salaris:")
-      (display2 (wage-ref row))
-      (display2 "]")))
+(define show-row (<change>
+      (lambda (row)
+         (display2 "[Sleutel:")
+         (display2 (key-ref row))
+         (display2 "]")
+         (display2 "[Naam:")
+         (display2 (name-ref row))
+         (display2 "]")
+         (display2 "[Leeftijd:")
+         (display2 (age-ref row))
+         (display2 "]")
+         (display2 "[Salaris:")
+         (display2 (wage-ref row))
+         (display2 "]"))
+      (lambda (_row0)
+         (display2 "[Sleutel:")
+         (display2 (key-ref _row0))
+         (display2 "]")
+         (display2 "[Naam:")
+         (display2 (name-ref _row0))
+         (display2 "]")
+         (display2 "[Leeftijd:")
+         (display2 (age-ref _row0))
+         (display2 "]")
+         (display2 "[Salaris:")
+         (display2 (wage-ref _row0))
+         (display2 "]"))))
  
-(define make-table (lambda (rows)
-      (make-vector rows 0)))
+(define make-table (<change>
+      (lambda (rows)
+         (make-vector rows 0))
+      (lambda (_rows0)
+         (make-vector _rows0 0))))
  
 (define table-size (lambda (table)
       (vector-length table)))
@@ -84,33 +86,30 @@
          (vector-ref table pos)
          #f)))
  
-(define row-set! (<change>
-      (lambda (table pos row)
-         (if (< pos (table-size table))
-            (vector-set! table pos row)
-            #f))
-      (lambda (_table0 _pos0 _row0)
-         (if (< _pos0 (table-size _table0))
-            (vector-set! _table0 _pos0 _row0)
-            #f))))
+(define row-set! (lambda (table pos row)
+      (if (< pos (table-size table))
+         (vector-set! table pos row)
+         #f)))
  
-(define show-table (lambda (table)
-      (define iter (<change>
-            (lambda (index)
+(define show-table (<change>
+      (lambda (table)
+         (define iter (lambda (index)
                (if (= index (table-size table))
                   (newline2)
                   (begin
                      (show-row (row-ref table index))
                      (newline2)
-                     (iter (+ index 1)))))
-            (lambda (_index0)
-               (if (= _index0 (table-size table))
+                     (iter (+ index 1))))))
+         (iter 0))
+      (lambda (_table0)
+         (define iter (lambda (_index0)
+               (if (= _index0 (table-size _table0))
                   (newline2)
                   (begin
-                     (show-row (row-ref table _index0))
+                     (show-row (row-ref _table0 _index0))
                      (newline2)
-                     (iter (+ _index0 1)))))))
-      (iter 0)))
+                     (iter (+ _index0 1))))))
+         (iter 0))))
  
 (define table (make-table 10))
  

@@ -5,7 +5,7 @@ import maf.core.{Expression, Identifier, Identity}
 import maf.language.CScheme.CSchemeParser
 import maf.language.change.CodeVersion.New
 import maf.language.scheme.interpreter.SchemeInterpreter
-import maf.language.scheme.{SchemeChangePatterns, SchemeCodeChange, SchemeDefineVariable, SchemeExp, SchemeLambda, SchemeLambdaExp, SchemeLet, SchemeLetStar, SchemeLetrec, SchemeLettishExp, SchemeParser, SchemeRenamer, SchemeVarArgLambda}
+import maf.language.scheme.{SchemeChangePatterns, SchemeCodeChange, SchemeDefineVariable, SchemeExp, SchemeIf, SchemeLambda, SchemeLambdaExp, SchemeLet, SchemeLetStar, SchemeLetrec, SchemeLettishExp, SchemeParser, SchemeRenamer, SchemeVarArgLambda, SchemeFuncall}
 import maf.util.Reader
 import maf.util.benchmarks.Timeout
 import smtlib.extensions.tip.Terms.Lambda
@@ -24,8 +24,7 @@ object GenerateConsistentRenamings extends App:
     "test\\R5RS\\gambit\\scheme.scm",
     "test\\R5RS\\gambit\\slatex.scm", // this file and up: var arg lambdas - renamer problem
     "test\\R5RS\\gambit\\fibc.scm", // Contains call cc: java.lang.Exception: Undefined variable call/cc at position call-with-current-continuation:1:40.
-    "test\\R5RS\\gambit\\puzzle.scm", // call cc
-    "test\\R5RS\\gambit\\earley.scm") // gives error in tests: java heapspace
+    "test\\R5RS\\gambit\\puzzle.scm")
   //runForAllBenchmarks(gambit, gambitSkip, 45)
 
   val ad = SchemeBenchmarkPrograms.ad
@@ -38,13 +37,13 @@ object GenerateConsistentRenamings extends App:
     "test\\R5RS\\ad\\list.scm",
     "test\\R5RS\\ad\\bst.scm"
   )
-  // runForAllBenchmarks(ad, adSkip, 45)
+  runForAllBenchmarks(ad, adSkip, 45)
 
   val tls = SchemeBenchmarkPrograms.theLittleSchemer
   val tlsSkip = List(
     "test\\R5RS\\WeiChenRompf2019\\the-little-schemer\\ch9.scm"
   )
-  runForAllBenchmarks(tls, tlsSkip, 45)
+ // runForAllBenchmarks(tls, tlsSkip, 45)
 
 
   private def runForAllBenchmarks(bench: Set[String], skipSet: List[String], chance: Int): Unit =
@@ -111,12 +110,17 @@ object GenerateConsistentRenamings extends App:
         SchemeCodeChange(old = let, nw = nw, idn = let.idn)
       else
         SchemeLetStar(let.bindings.map(b => (b._1, replaceInParsed(b._2, renamableSubexpr, renamableToRenamer))), let.body.map(replaceInParsed(_, renamableSubexpr, renamableToRenamer)), let.idn)
-   case let: SchemeLetrec =>
+    case let: SchemeLetrec =>
       if renamableSubexpr contains let then
         val nw = renamableToRenamer.getOrElse(let, let)
         SchemeCodeChange(old = let, nw = nw, idn = let.idn)
       else
         SchemeLetrec(let.bindings.map(b => (b._1, replaceInParsed(b._2, renamableSubexpr, renamableToRenamer))), let.body.map(replaceInParsed(_, renamableSubexpr, renamableToRenamer)), let.idn)
+    case ifExp: SchemeIf =>
+      SchemeIf(replaceInParsed(ifExp.cond, renamableSubexpr, renamableToRenamer), replaceInParsed(ifExp.cons, renamableSubexpr, renamableToRenamer), replaceInParsed(ifExp.alt, renamableSubexpr, renamableToRenamer), ifExp.idn)
+    case fun: SchemeFuncall =>
+      SchemeFuncall(replaceInParsed(fun.f, renamableSubexpr, renamableToRenamer), fun.args.map(a => replaceInParsed(a, renamableSubexpr, renamableToRenamer)), fun.idn)
     case _ =>
+      println(parsed.getClass)
       parsed
   }
