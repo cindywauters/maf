@@ -1,4 +1,4 @@
-;; renamed lambdas/lets: 3
+;; renamed lambdas/lets: 1
  
 (define interval-list (<change>
       (lambda (m n)
@@ -10,33 +10,19 @@
             ()
             (cons _m0 (interval-list (+ 1 _m0) _n0))))))
  
-(define sieve (<change>
-      (lambda (l)
-         (letrec ((remove-multiples (lambda (n l)
-                                      (if (null? l)
-                                         ()
-                                         (if (= (modulo (car l) n) 0)
-                                            (remove-multiples n (cdr l))
-                                            (cons (car l) (remove-multiples n (cdr l))))))))
-            (if (null? l)
-               ()
-               (cons (car l) (sieve (remove-multiples (car l) (cdr l)))))))
-      (lambda (_l0)
-         (letrec ((_remove-multiples0 (lambda (_n0 _l1)
-                                        (if (null? _l1)
-                                           ()
-                                           (if (= (modulo (car _l1) _n0) 0)
-                                              (_remove-multiples0 _n0 (cdr _l1))
-                                              (cons (car _l1) (_remove-multiples0 _n0 (cdr _l1))))))))
-            (if (null? _l0)
-               ()
-               (cons (car _l0) (sieve (_remove-multiples0 (car _l0) (cdr _l0)))))))))
+(define sieve (lambda (l)
+      (letrec ((remove-multiples (lambda (n l)
+                                   (if (null? l)
+                                      ()
+                                      (if (= (modulo (car l) n) 0)
+                                         (remove-multiples n (cdr l))
+                                         (cons (car l) (remove-multiples n (cdr l))))))))
+         (if (null? l)
+            ()
+            (cons (car l) (sieve (remove-multiples (car l) (cdr l))))))))
  
-(define primes<= (<change>
-      (lambda (n)
-         (sieve (interval-list 2 n)))
-      (lambda (_n0)
-         (sieve (interval-list 2 _n0)))))
+(define primes<= (lambda (n)
+      (sieve (interval-list 2 n))))
  
 (equal?
    (primes<= 100)

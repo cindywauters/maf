@@ -1,33 +1,28 @@
 ;; renamed lambdas/lets: 2
  
-(define append-to-tail! (<change>
-      (lambda (x y)
-         (if (null? x)
-            y
-            ((letrec ((loop (lambda (a b)
+(define append-to-tail! (lambda (x y)
+      (if (null? x)
+         y
+         ((<change>
+            (letrec ((loop (lambda (a b)
                              (if (null? b)
                                 (begin
                                    (set-cdr! a y)
                                    x)
                                 (loop b (cdr b))))))
                loop)
-               x
-               (cdr x))))
-      (lambda (_x0 _y0)
-         (if (null? _x0)
-            _y0
-            ((letrec ((_loop0 (lambda (_a0 _b0)
+            (letrec ((_loop0 (lambda (_a0 _b0)
                                (if (null? _b0)
                                   (begin
-                                     (set-cdr! _a0 _y0)
-                                     _x0)
+                                     (set-cdr! _a0 y)
+                                     x)
                                   (_loop0 _b0 (cdr _b0))))))
-               _loop0)
-               _x0
-               (cdr _x0))))))
+               _loop0))
+            x
+            (cdr x)))))
  
-(define destructive (lambda (n m)
-      (<change>
+(define destructive (<change>
+      (lambda (n m)
          (let ((l (letrec ((__do_loop (lambda (i a)
                                        (if (= i 0) a (__do_loop (- i 1) (cons () a))))))
                     (__do_loop 10 ()))))
@@ -77,7 +72,8 @@
                                                                        (__do_loop (cdr l1) (cdr l2)))))))
                                               (__do_loop l (cdr l))))
                                         (__do_loop (- i 1)))))))
-               (__do_loop n)))
+               (__do_loop n))))
+      (lambda (_n0 _m0)
          (let ((_l0 (letrec ((___do_loop0 (lambda (_i0 _a0)
                                            (if (= _i0 0)
                                               _a0
@@ -101,7 +97,7 @@
                                                                                                       (if (= _j0 0)
                                                                                                          _a1
                                                                                                          (___do_loop3 (- _j0 1) (cons () _a1))))))
-                                                                                 (___do_loop3 m ())))
+                                                                                 (___do_loop3 _m0 ())))
                                                                            (___do_loop2 (cdr _l1)))))))
                                                 (___do_loop2 _l0))
                                              (letrec ((___do_loop4 (lambda (_l10 _l20)
@@ -116,8 +112,8 @@
                                                                                                             (set-car! _a2 _i1)
                                                                                                             (___do_loop5 (- _j1 1) (cdr _a2)))))))
                                                                                  (___do_loop5 (quotient (length (car _l20)) 2) (car _l20)))
-                                                                              (let ((_n0 (quotient (length (car _l10)) 2)))
-                                                                                 (if (= _n0 0)
+                                                                              (let ((_n1 (quotient (length (car _l10)) 2)))
+                                                                                 (if (= _n1 0)
                                                                                     (begin
                                                                                        (set-car! _l10 ())
                                                                                        (car _l10))
@@ -129,11 +125,11 @@
                                                                                                                (begin
                                                                                                                   (set-car! _a3 _i1)
                                                                                                                   (___do_loop6 (- _j2 1) (cdr _a3)))))))
-                                                                                       (___do_loop6 _n0 (car _l10))))))
+                                                                                       (___do_loop6 _n1 (car _l10))))))
                                                                            (___do_loop4 (cdr _l10) (cdr _l20)))))))
                                                 (___do_loop4 _l0 (cdr _l0))))
                                           (___do_loop1 (- _i1 1)))))))
-               (___do_loop1 n))))))
+               (___do_loop1 _n0))))))
  
 (equal?
    (destructive 600 50)

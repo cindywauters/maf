@@ -85,8 +85,13 @@ class UpdatingStructuresTest extends AnyPropSpec:
 
   val tlsGenerated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/WeiChenRompf2019/the-little-schemer")()
 
+  val scp1Generated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/scp1")()
 
-  val modFbenchmarks: Set[String] = tlsGenerated ++ firstTests ++ gambitGenerated ++ adGenerated
+  val scp1CompressedGenerated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/scp1-compressed")()
+
+  val variousGenerated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/various")()
+
+  val modFbenchmarks: Set[String] = variousGenerated ++ scp1CompressedGenerated ++ scp1Generated ++ tlsGenerated ++ firstTests ++ gambitGenerated ++ adGenerated
 
   modFbenchmarks.foreach(benchmark =>
     val program = CSchemeParser.parseProgram(Reader.loadFile(benchmark))
@@ -111,7 +116,13 @@ class UpdatingStructuresTest extends AnyPropSpec:
 
   val tlsGeneratedContextInsensitive: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/WeiChenRompf2019/the-little-schemer/NoSensitivity")()
 
-  val onlyCallSensitivity = tlsGeneratedContextInsensitive ++ gambitGeneratedContextInsensitive ++ adGeneratedContextInsensitive
+  val scp1GeneratedContextInsensitive: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/scp1/NoSensitivity")()
+
+  val scp1ComGeneratedContextInsensitive: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/scp1-compressed/NoSensitivity")()
+
+  val VariousGeneratedContextInsensitive: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/various/NoSensitivity")()
+
+  val onlyCallSensitivity = tlsGeneratedContextInsensitive ++ gambitGeneratedContextInsensitive ++ adGeneratedContextInsensitive ++ scp1GeneratedContextInsensitive ++ scp1ComGeneratedContextInsensitive ++ VariousGeneratedContextInsensitive
 
   onlyCallSensitivity.foreach(benchmark =>
     val program = CSchemeParser.parseProgram(Reader.loadFile(benchmark))

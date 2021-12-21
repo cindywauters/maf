@@ -1,4 +1,4 @@
-;; renamed lambdas/lets: 2
+;; renamed lambdas/lets: 3
  
 (define sum 0)
  
@@ -16,25 +16,28 @@
                (tail-rec-aux (+ _i0 1) _n0))
             sum))))
  
-(define tail-rec-loop (lambda (n)
-      (set! sum 0)
-      (tail-rec-aux 0 n)
-      sum))
- 
-(define do-loop (<change>
+(define tail-rec-loop (<change>
       (lambda (n)
          (set! sum 0)
+         (tail-rec-aux 0 n)
+         sum)
+      (lambda (_n0)
+         (set! sum 0)
+         (tail-rec-aux 0 _n0)
+         sum)))
+ 
+(define do-loop (lambda (n)
+      (set! sum 0)
+      (<change>
          (letrec ((__do_loop (lambda (i)
                                (if (>= i n)
                                   sum
                                   (begin
                                      (set! sum (+ sum 1))
                                      (__do_loop (+ i 1)))))))
-            (__do_loop 0)))
-      (lambda (_n0)
-         (set! sum 0)
+            (__do_loop 0))
          (letrec ((___do_loop0 (lambda (_i0)
-                                 (if (>= _i0 _n0)
+                                 (if (>= _i0 n)
                                     sum
                                     (begin
                                        (set! sum (+ sum 1))

@@ -1,25 +1,33 @@
-;; renamed lambdas/lets: 2
+;; renamed lambdas/lets: 3
  
-(define one-to (<change>
-      (lambda (n)
+(define one-to (lambda (n)
+      (<change>
          (letrec ((loop (lambda (i l)
                           (if (= i 0) l (loop (- i 1) (cons i l))))))
-            (loop n ())))
-      (lambda (_n0)
+            (loop n ()))
          (letrec ((_loop0 (lambda (_i0 _l0)
                             (if (= _i0 0)
                                _l0
                                (_loop0 (- _i0 1) (cons _i0 _l0))))))
-            (_loop0 _n0 ())))))
+            (_loop0 n ())))))
  
-(define ok? (lambda (row dist placed)
-      (if (null? placed)
-         #t
-         (if (not (= (car placed) (+ row dist)))
-            (if (not (= (car placed) (- row dist)))
-               (ok? row (+ dist 1) (cdr placed))
-               #f)
-            #f))))
+(define ok? (<change>
+      (lambda (row dist placed)
+         (if (null? placed)
+            #t
+            (if (not (= (car placed) (+ row dist)))
+               (if (not (= (car placed) (- row dist)))
+                  (ok? row (+ dist 1) (cdr placed))
+                  #f)
+               #f)))
+      (lambda (_row0 _dist0 _placed0)
+         (if (null? _placed0)
+            #t
+            (if (not (= (car _placed0) (+ _row0 _dist0)))
+               (if (not (= (car _placed0) (- _row0 _dist0)))
+                  (ok? _row0 (+ _dist0 1) (cdr _placed0))
+                  #f)
+               #f)))))
  
 (define try-it (<change>
       (lambda (x y z)

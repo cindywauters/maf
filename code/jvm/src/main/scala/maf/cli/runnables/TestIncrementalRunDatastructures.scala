@@ -2,7 +2,7 @@
 package maf.cli.runnables
 
 import maf.bench.scheme.SchemeBenchmarkPrograms
-import maf.cli.runnables.IncrementalRun.standardTimeout
+//import maf.cli.runnables.IncrementalRun.standardTimeout
 import maf.core.BasicEnvironment
 import maf.language.CScheme.*
 import maf.language.change.CodeVersion.*
@@ -58,10 +58,10 @@ object TestIncrementalRunDatastructures extends App:
     // Analysis from soundness tests.
     def base(program: SchemeExp) = new ModAnalysis[SchemeExp](program)
       with StandardSchemeModFComponents
-      with SchemeModFFullArgumentSensitivity
-    //  with SchemeModFCallSiteSensitivity
-     // with SchemeModFFullArgumentCallSiteSensitivity
-    //  with SchemeModFNoSensitivity
+    //  with SchemeModFFullArgumentSensitivity
+   //   with SchemeModFCallSiteSensitivity
+      with SchemeModFFullArgumentCallSiteSensitivity
+      //with SchemeModFNoSensitivity
       with SchemeModFSemanticsM
       with LIFOWorklistAlgorithm[SchemeExp]
       with IncrementalSchemeModFBigStepSemantics
@@ -101,7 +101,6 @@ object TestIncrementalRunDatastructures extends App:
       val visitedBefore = a.visited
 
       println("first analysis done")
-
 
       var update = new IncrementalUpdateDatastructures
       val beforeUpdate = System.nanoTime
@@ -264,9 +263,9 @@ object TestIncrementalRunDatastructures extends App:
           println("missing in update: " + e.toString()))
 
 
-      visitedWithUpdate.foreach(e =>
-        if !visitedWithReanalysis.contains(e) then
-          println("missing in reanalysis: " + e.toString()))
+    //  visitedWithUpdate.foreach(e =>
+      //  if !visitedWithReanalysis.contains(e) then
+        //  println("missing in reanalysis: " + e.toString()))
 
       println()
 
@@ -280,12 +279,12 @@ object TestIncrementalRunDatastructures extends App:
   end modfAnalysis
 
   val modConcbenchmarks: List[String] = List()
- // val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm", "test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
+  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm", "test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm")
-  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/ad/stack.scm")
-//  val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/scp1-compressed/7.scm")
+  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/gambit/NoSensitivity/peval.scm")
+  val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 
   modFbenchmarks.foreach(modfAnalysis(_, standardTimeout))
   println("Done")

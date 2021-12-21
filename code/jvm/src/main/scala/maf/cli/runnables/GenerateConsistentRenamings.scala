@@ -37,13 +37,35 @@ object GenerateConsistentRenamings extends App:
     "test\\R5RS\\ad\\list.scm",
     "test\\R5RS\\ad\\bst.scm"
   )
-  runForAllBenchmarks(ad, adSkip, 45)
+ // runForAllBenchmarks(ad, adSkip, 45)
 
   val tls = SchemeBenchmarkPrograms.theLittleSchemer
   val tlsSkip = List(
     "test\\R5RS\\WeiChenRompf2019\\the-little-schemer\\ch9.scm"
   )
  // runForAllBenchmarks(tls, tlsSkip, 45)
+
+  val scp1 = SchemeBenchmarkPrograms.scp1
+  val scp1Skip = List(
+    "test\\R5RS\\scp1\\parking-counter.scm",
+    "test\\R5RS\\scp1\\twitter.scm"
+  )
+  //runForAllBenchmarks(scp1, scp1Skip, 50)
+
+  val scp1c = SchemeBenchmarkPrograms.scp1_compressed
+  val scp1CSkip = List(
+    "test\\R5RS\\scp1-compressed\\all.scm",
+    "test\\R5RS\\scp1-compressed\\8.scm"
+  )
+  //runForAllBenchmarks(scp1c, scp1CSkip, 90)
+
+  val various = SchemeBenchmarkPrograms.various
+  val variousSkip = List(
+    "test\\R5RS\\various\\pico.scm",
+    "test\\R5RS\\various\\Streams.scm",
+    "test\\R5RS\\various\\quasiquoting.scm"
+  )
+ // runForAllBenchmarks(various, variousSkip, 50)
 
 
   private def runForAllBenchmarks(bench: Set[String], skipSet: List[String], chance: Int): Unit =
@@ -121,6 +143,6 @@ object GenerateConsistentRenamings extends App:
     case fun: SchemeFuncall =>
       SchemeFuncall(replaceInParsed(fun.f, renamableSubexpr, renamableToRenamer), fun.args.map(a => replaceInParsed(a, renamableSubexpr, renamableToRenamer)), fun.idn)
     case _ =>
-      println(parsed.getClass)
+    //  println(parsed.getClass)
       parsed
   }

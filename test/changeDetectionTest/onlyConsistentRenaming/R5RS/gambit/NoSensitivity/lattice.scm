@@ -1,4 +1,4 @@
-;; renamed lambdas/lets: 10
+;; renamed lambdas/lets: 11
  
 (define apply-append (lambda (args)
       (if (null? args)
@@ -13,13 +13,21 @@
  
 (define lexico (lambda (base)
       (define lex-fixed (lambda (fixed lhs rhs)
-            (define check (lambda (lhs rhs)
-                  (if (null? lhs)
-                     fixed
-                     (let ((probe (base (car lhs) (car rhs))))
-                        (if (let ((__or_res (eq? probe 'equal))) (if __or_res __or_res (eq? probe fixed)))
-                           (check (cdr lhs) (cdr rhs))
-                           'uncomparable)))))
+            (define check (<change>
+                  (lambda (lhs rhs)
+                     (if (null? lhs)
+                        fixed
+                        (let ((probe (base (car lhs) (car rhs))))
+                           (if (let ((__or_res (eq? probe 'equal))) (if __or_res __or_res (eq? probe fixed)))
+                              (check (cdr lhs) (cdr rhs))
+                              'uncomparable))))
+                  (lambda (_lhs0 _rhs0)
+                     (if (null? _lhs0)
+                        fixed
+                        (let ((_probe0 (base (car _lhs0) (car _rhs0))))
+                           (if (let ((___or_res0 (eq? _probe0 'equal))) (if ___or_res0 ___or_res0 (eq? _probe0 fixed)))
+                              (check (cdr _lhs0) (cdr _rhs0))
+                              'uncomparable))))))
             (check lhs rhs)))
       (define lex-first (<change>
             (lambda (lhs rhs)
@@ -42,8 +50,11 @@
                            (if (eq? _probe0 'uncomparable) 'uncomparable #f))))))))
       lex-first))
  
-(define make-lattice (lambda (elem-list cmp-func)
-      (cons elem-list cmp-func)))
+(define make-lattice (<change>
+      (lambda (elem-list cmp-func)
+         (cons elem-list cmp-func))
+      (lambda (_elem-list0 _cmp-func0)
+         (cons _elem-list0 _cmp-func0))))
  
 (define lattice->elements car)
  
@@ -94,25 +105,22 @@
                      (cdr _lst1)))))
          (select-a () _lst0))))
  
-(define map-and (<change>
-      (lambda (proc lst)
-         (if (null? lst)
-            #t
+(define map-and (lambda (proc lst)
+      (if (null? lst)
+         #t
+         (<change>
             (letrec ((drudge (lambda (lst)
                                (let ((rest (cdr lst)))
                                   (if (null? rest)
                                      (proc (car lst))
                                      (if (proc (car lst)) (drudge rest) #f))))))
-               (drudge lst))))
-      (lambda (_proc0 _lst0)
-         (if (null? _lst0)
-            #t
-            (letrec ((_drudge0 (lambda (_lst1)
-                                 (let ((_rest0 (cdr _lst1)))
+               (drudge lst))
+            (letrec ((_drudge0 (lambda (_lst0)
+                                 (let ((_rest0 (cdr _lst0)))
                                     (if (null? _rest0)
-                                       (_proc0 (car _lst1))
-                                       (if (_proc0 (car _lst1)) (_drudge0 _rest0) #f))))))
-               (_drudge0 _lst0))))))
+                                       (proc (car _lst0))
+                                       (if (proc (car _lst0)) (_drudge0 _rest0) #f))))))
+               (_drudge0 lst))))))
  
 (define maps-1 (<change>
       (lambda (source target pas new)
@@ -144,13 +152,21 @@
 (define maps-rest (lambda (source target pas rest to-1 to-collect)
       (if (null? rest)
          (to-1 pas)
-         (let ((next (car rest))
-               (rest (cdr rest)))
-            (to-collect
-               (map
-                  (lambda (x)
-                     (maps-rest source target (cons (cons next x) pas) rest to-1 to-collect))
-                  (maps-1 source target pas next)))))))
+         (<change>
+            (let ((next (car rest))
+                  (rest (cdr rest)))
+               (to-collect
+                  (map
+                     (lambda (x)
+                        (maps-rest source target (cons (cons next x) pas) rest to-1 to-collect))
+                     (maps-1 source target pas next))))
+            (let ((_next0 (car rest))
+                  (_rest0 (cdr rest)))
+               (to-collect
+                  (map
+                     (lambda (_x0)
+                        (maps-rest source target (cons (cons _next0 _x0) pas) _rest0 to-1 to-collect))
+                     (maps-1 source target pas _next0))))))))
  
 (define maps (lambda (source target)
       (make-lattice
@@ -166,7 +182,17 @@
          (lexico (lattice->cmp target)))))
  
 (define count-maps (lambda (source target)
-      (maps-rest source target () (lattice->elements source) (lambda (x) 1) sum)))
+      (maps-rest
+         source
+         target
+         ()
+         (lattice->elements source)
+         (<change>
+            (lambda (x)
+               1)
+            (lambda (_x0)
+               1))
+         sum)))
  
 (define sum (lambda (lst)
       (if (null? lst) 0 (+ (car lst) (sum (cdr lst))))))

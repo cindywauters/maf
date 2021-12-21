@@ -9,17 +9,18 @@
               (substring s 0 (+ 1 (quotient (string-length s) 2)))))
       s))
  
-(define trial (lambda (n)
-      (<change>
+(define trial (<change>
+      (lambda (n)
          (letrec ((__do_loop (lambda (i)
                                (if (> (string-length s) n)
                                   (string-length s)
                                   (begin
                                      (grow)
                                      (__do_loop (+ i 1)))))))
-            (__do_loop 0))
+            (__do_loop 0)))
+      (lambda (_n0)
          (letrec ((___do_loop0 (lambda (_i0)
-                                 (if (> (string-length s) n)
+                                 (if (> (string-length s) _n0)
                                     (string-length s)
                                     (begin
                                        (grow)

@@ -42,8 +42,7 @@ class IncrementalUpdateDatastructures {
     val allNewExps = changedExpressions.flatMap(e => findAllSubExps(e._2))
     allExpressionsInChange = allOldExps.zip(allNewExps).toMap
 
-    //allExpressionsInChange.foreach(e => println(e))
-
+    println(changedExpressions.size)
 
     a match
       case analysis: IncrementalGlobalStore[SchemeExp] => // Update the store
@@ -57,6 +56,9 @@ class IncrementalUpdateDatastructures {
   // Find all the subexpressions of an expression, and their subexpressions.
   // Something like (lambda (a) (+ a 1)) will become List((lambda (a) (+ a 1)), (+ a 1), +, a, 1)
   private def findAllSubExps(expr: Expression): List[Expression] =
+ /*   print(expr.getClass)
+    print(" ")
+    println(expr)*/
     if expr.subexpressions.isEmpty && expr.height == 1 then
       List(expr)
     else if  expr.subexpressions.isEmpty then
@@ -130,6 +132,11 @@ class IncrementalUpdateDatastructures {
     a.visited.foreach(comp =>
       getNewComponent(a, comp) match
       case newComp: a.Component =>
+    /*    print(comp)
+        print(" ")
+        print(newComp)
+        print(" ")
+        println(newComp.equals(comp))*/
         if !newComp.equals(comp) then
           a.visited = a.visited - comp
           a.visited = a.visited + newComp
@@ -150,8 +157,6 @@ class IncrementalUpdateDatastructures {
   //  if the old and new key are the same, but the value has changed
   //  or if there is a new key (in this case: remove the old key)
   def insertInDeps(a: IncrementalModAnalysis[SchemeExp], oldKey: maf.modular.Dependency, newKey: maf.modular.Dependency, oldValue: Set[a.Component], newValue: Set[a.Component]): Unit =
-    println(newValue)
-    println(oldValue)
     if newKey.equals(oldKey) then
       if !newValue.equals(oldValue) then
         a.deps = a.deps + (oldKey -> newValue)
@@ -285,7 +290,7 @@ class IncrementalUpdateDatastructures {
         val newcdr = getNewValues(a, cons.cdr).asInstanceOf[cons.cdr.type]
         IncrementalSchemeTypeDomain.modularLattice.Cons(newcar, newcdr)
       case _ =>
-        println(value.getClass)
+       // println(value.getClass)
         value
 
   // To create an new enviroment, loop over the old enviroment
@@ -342,7 +347,6 @@ class IncrementalUpdateDatastructures {
   def updateArgCtx(a: IncrementalGlobalStore[SchemeExp], ctx: maf.modular.scheme.modf.ArgContext): maf.modular.scheme.modf.ArgContext =
     val newValues = ctx.values.map(elements => elements match
       case elements: Serializable=>
-        println(elements.toString + "->" + getNewValues(a, elements).toString)
         getNewValues(a, elements)
         )
     maf.modular.scheme.modf.ArgContext(newValues)
