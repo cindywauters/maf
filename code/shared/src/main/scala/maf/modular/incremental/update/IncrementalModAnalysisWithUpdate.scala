@@ -3,10 +3,10 @@ package maf.modular.incremental.update
 import maf.core.Expression
 import maf.language.change.CodeVersion.New
 import maf.language.scheme.{SchemeChangePatterns, SchemeExp}
-import maf.modular.incremental.{IncrementalModAnalysis, IncrementalUpdateDatastructures}
+import maf.modular.incremental.IncrementalModAnalysis
 import maf.util.benchmarks.Timeout
 
-trait IncrementalModAnalysisWithUpdate[Expr <: Expression] extends IncrementalModAnalysis[Expr]{
+trait IncrementalModAnalysisWithUpdate[Expr <: Expression] extends IncrementalModAnalysis[Expr]:
 
   val update = new IncrementalUpdateDatastructures
 
@@ -19,6 +19,9 @@ trait IncrementalModAnalysisWithUpdate[Expr <: Expression] extends IncrementalMo
         val notRenamed = changedAndRenamings.filter(e => !e._2._1)
         val renamed = changedAndRenamings.filter(e => e._2._1).map(e => (e._1, e._2._2))
         val notRenamedOld = notRenamed.map(e => e._1._1).toSet
+        println(changedAndRenamings)
+        println(notRenamed.size)
+        println(findUpdatedExpressions(program).size)
         (this, notRenamedOld) match
           case (a: IncrementalModAnalysis[Expression], notRenamedOld: Set[Expr]) =>
             update.changeDataStructures(a, program, renamed)
@@ -31,4 +34,4 @@ trait IncrementalModAnalysisWithUpdate[Expr <: Expression] extends IncrementalMo
     analyzeWithTimeout(timeout)
 
 
-}
+

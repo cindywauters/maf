@@ -10,7 +10,7 @@ import maf.modular.incremental.{IncrementalModAnalysis, *}
 import maf.modular.incremental.scheme.lattice.{IncrementalSchemeConstantPropagationDomain, IncrementalSchemeTypeDomain}
 import maf.modular.incremental.scheme.modconc.IncrementalSchemeModConcSmallStepSemantics
 import maf.modular.incremental.scheme.modf.IncrementalSchemeModFBigStepSemantics
-import maf.modular.incremental.update.IncrementalUpdateDatastructures
+import maf.modular.incremental.update.{IncrementalGlobalStoreWithUpdate, IncrementalUpdateDatastructures}
 import maf.modular.scheme.modf.*
 import maf.modular.scheme.ssmodconc.*
 import maf.modular.worklist.LIFOWorklistAlgorithm
@@ -20,7 +20,9 @@ import maf.util.benchmarks.Timeout
 import org.scalatest.Tag
 import org.scalatest.propspec.AnyPropSpec
 
-class UpdatingStructuresTest extends AnyPropSpec:
+import scala.concurrent.duration.{Duration, MINUTES}
+
+class IncrementalAnalysisConsistentRenamingOnlyTest extends AnyPropSpec:
 
   type Analysis <: IncrementalModAnalysis[SchemeExp]
 
@@ -35,7 +37,7 @@ class UpdatingStructuresTest extends AnyPropSpec:
   class NoSensitivityAnalysis(program: SchemeExp)
     extends BaseAnalysis(program)
       with SchemeModFNoSensitivity
-      with IncrementalGlobalStore[SchemeExp]:
+      with IncrementalGlobalStoreWithUpdate[SchemeExp]:
       var configuration: IncrementalConfiguration = noOptimisations
       override def intraAnalysis(
                                 cmp: Component
@@ -44,7 +46,7 @@ class UpdatingStructuresTest extends AnyPropSpec:
   class FullArgSensitivityAnalysis(program: SchemeExp)
     extends BaseAnalysis(program)
       with SchemeModFFullArgumentSensitivity
-      with IncrementalGlobalStore[SchemeExp]:
+      with IncrementalGlobalStoreWithUpdate[SchemeExp]:
       var configuration: IncrementalConfiguration = noOptimisations
       override def intraAnalysis(
                                 cmp: Component
@@ -53,7 +55,7 @@ class UpdatingStructuresTest extends AnyPropSpec:
   class CallSensitivityAnalysis(program: SchemeExp)
     extends BaseAnalysis(program)
       with SchemeModFCallSiteSensitivity
-      with IncrementalGlobalStore[SchemeExp]:
+      with IncrementalGlobalStoreWithUpdate[SchemeExp]:
       var configuration: IncrementalConfiguration =  noOptimisations
       override def intraAnalysis(
                                 cmp: Component
@@ -62,7 +64,7 @@ class UpdatingStructuresTest extends AnyPropSpec:
   class FullArgCallSensitivityAnalysis(program: SchemeExp)
     extends BaseAnalysis(program)
       with SchemeModFFullArgumentCallSiteSensitivity
-      with IncrementalGlobalStore[SchemeExp]:
+      with IncrementalGlobalStoreWithUpdate[SchemeExp]:
       var configuration: IncrementalConfiguration = noOptimisations
       override def intraAnalysis(
                                 cmp: Component
@@ -139,15 +141,11 @@ class UpdatingStructuresTest extends AnyPropSpec:
 
   def callAnalysisOnBenchmark(a: IncrementalModAnalysis[SchemeExp], program: SchemeExp): Unit =
     val analysisToUpdate = a.deepCopy()
-    analysisToUpdate.analyzeWithTimeoutInSeconds(60)
-    var update = new IncrementalUpdateDatastructures
-    analysisToUpdate match
-      case analysis: IncrementalModAnalysis[Expression] =>
-        val changedAndRenamings = SchemeChangePatterns.checkForRenamingParameter(program).filter(e => e._2._1).map(e => (e._1, e._2._2))
-        update.changeDataStructures(analysis, program, changedAndRenamings)
+    analysisToUpdate.analyzeWithTimeout(Timeout.start(Duration(2, MINUTES)))
+    analysisToUpdate.updateAnalysis(Timeout.start(Duration(2, MINUTES)))
 
     val analysisNew = a.deepCopy()
     analysisNew.version = New
-    analysisNew.analyzeWithTimeoutInSeconds(60)
+    analysisNew.analyzeWithTimeout(Timeout.start(Duration(2, MINUTES)))
 
     checkEqual(analysisToUpdate, analysisNew)

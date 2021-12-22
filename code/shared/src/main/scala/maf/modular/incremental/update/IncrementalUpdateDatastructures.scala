@@ -1,18 +1,19 @@
-package maf.modular.incremental
+package maf.modular.incremental.update
 
 //import maf.cli.runnables
 import maf.aam.scheme.SchemeStoreAllocateReturn
 import maf.core.*
+import maf.language.scheme.*
 import maf.language.scheme.interpreter.BaseSchemeInterpreter
 import maf.language.scheme.interpreter.ConcreteValues.AddrInfo.VarAddr
 import maf.language.scheme.interpreter.ConcreteValues.Value.Clo
 import maf.language.scheme.interpreter.ConcreteValues.{Addr, AddrInfo}
 import maf.language.scheme.lattices.{ModularSchemeLattice, SchemeOp}
-import maf.language.scheme.*
 import maf.lattice.interfaces.*
 import maf.modular.AddrDependency
 import maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain.modularLattice.incrementalSchemeLattice
-import maf.modular.incremental.scheme.lattice.{IncrementalLattice, IncrementalModularSchemeDomain, IncrementalModularSchemeLattice, IncrementalModularSchemeLatticeWrapper, IncrementalSchemeConstantPropagationDomain, IncrementalSchemeLattice, IncrementalSchemeTypeDomain}
+import maf.modular.incremental.scheme.lattice.*
+import maf.modular.incremental.{IncrementalGlobalStore, IncrementalModAnalysis}
 import maf.modular.scheme.modf.{NoContext, SchemeModFComponent}
 import maf.modular.scheme.{ModularSchemeLatticeWrapper, PrmAddr, SchemeAddr}
 

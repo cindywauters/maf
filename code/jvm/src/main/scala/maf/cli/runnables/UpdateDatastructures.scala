@@ -3,6 +3,7 @@ package maf.cli.runnables
 
 import maf.bench.scheme.SchemeBenchmarkPrograms
 import maf.core.Expression
+import maf.modular.incremental.update.IncrementalUpdateDatastructures
 //import maf.cli.runnables.IncrementalRun.standardTimeout
 import maf.core.BasicEnvironment
 import maf.language.CScheme.*
@@ -26,7 +27,7 @@ import maf.util.graph.DotGraph.*
 import java.time.LocalDateTime
 import scala.concurrent.duration.*
 
-object TestIncrementalRunDatastructures extends App:
+object UpdateDatastructures extends App:
 
   val w = Writer.open("benchOutput/incremental/errors.txt")
 
