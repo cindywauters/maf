@@ -60,10 +60,10 @@ object UpdateStructuresInAnalysis extends App:
     // Analysis from soundness tests.
     def baseNoUpdates(program: SchemeExp) = new ModAnalysis[SchemeExp](program)
       with StandardSchemeModFComponents
-      //  with SchemeModFFullArgumentSensitivity
+      with SchemeModFFullArgumentSensitivity
       //   with SchemeModFCallSiteSensitivity
       //with SchemeModFFullArgumentCallSiteSensitivity
-      with SchemeModFNoSensitivity
+     // with SchemeModFNoSensitivity
       with SchemeModFSemanticsM
       with LIFOWorklistAlgorithm[SchemeExp]
       with IncrementalSchemeModFBigStepSemantics
@@ -78,10 +78,10 @@ object UpdateStructuresInAnalysis extends App:
 
     def baseUpdates(program: SchemeExp) = new ModAnalysis[SchemeExp](program)
       with StandardSchemeModFComponents
-      //  with SchemeModFFullArgumentSensitivity
+      with SchemeModFFullArgumentSensitivity
       //   with SchemeModFCallSiteSensitivity
       // with SchemeModFFullArgumentCallSiteSensitivity
-      with SchemeModFNoSensitivity
+     // with SchemeModFNoSensitivity
       with SchemeModFSemanticsM
       with LIFOWorklistAlgorithm[SchemeExp]
       with IncrementalSchemeModFBigStepSemantics
@@ -129,8 +129,8 @@ object UpdateStructuresInAnalysis extends App:
       println("Time updating:                " + timeUpdateAnalysis)
 
 
-      println("Store with updating: " + storeWithUpdate.toString)
-      println("Store with regular reanalysis: " + storeWithoutUpdate.toString)
+   //   println("Store with updating: " + storeWithUpdate.toString)
+   //   println("Store with regular reanalysis: " + storeWithoutUpdate.toString)
 
 
       println("store reanalysis -> Update: " + storeWithoutUpdate.forall((k, v) =>
@@ -143,7 +143,7 @@ object UpdateStructuresInAnalysis extends App:
           case Some(updatedValue) => updatedValue.==(v)
           case _ => false).toString)
 
-
+/*
       storeWithoutUpdate.foreach((k, v) =>
         storeWithUpdate.get(k) match
           case Some(updatedValue) =>
@@ -171,11 +171,11 @@ object UpdateStructuresInAnalysis extends App:
                   println(lam.toString + " " + env.toString + " " + oldCtx.toString)
             case _ =>
       )
-
+*/
       println()
 
-      println("Dependencies with updating: " + depsWithUpdate.toString)
-      println("Dependencies with regular reanalysis: " + depsWithoutUpdate.toString)
+  //    println("Dependencies with updating: " + depsWithUpdate.toString)
+    //  println("Dependencies with regular reanalysis: " + depsWithoutUpdate.toString)
 
 
       println("Dependencies reanalysis -> Update: " + depsWithoutUpdate.forall((k, v) =>
@@ -187,7 +187,7 @@ object UpdateStructuresInAnalysis extends App:
         depsWithoutUpdate.get(k) match
           case Some(updatedValue) => depsWithoutUpdate.==(v)
           case _ => false).toString)
-
+/*
       depsWithoutUpdate.foreach((k, v) =>
         depsWithUpdate.get(k) match
           case Some(updatedValue) =>
@@ -202,11 +202,11 @@ object UpdateStructuresInAnalysis extends App:
           case _ => println("missing in reanalysis: " + k.toString() + "\n update value: " + v.toString)
       )
 
-
+*/
       println()
 
-      println("Mapping with updating: " + mappingWithUpdate.toString)
-      println("Mapping with regular reanalysis: " + mappingWithoutUpdate.toString)
+   //   println("Mapping with updating: " + mappingWithUpdate.toString)
+     // println("Mapping with regular reanalysis: " + mappingWithoutUpdate.toString)
 
 
       println("Mapping reanalysis -> Update: " + mappingWithoutUpdate.forall((k, v) =>
@@ -218,7 +218,7 @@ object UpdateStructuresInAnalysis extends App:
         mappingWithoutUpdate.get(k) match
           case Some(updatedValue) => mappingWithoutUpdate.==(v)
           case _ => false).toString)
-
+/*
       mappingWithoutUpdate.foreach((k, v) =>
         mappingWithUpdate.get(k) match
           case Some(updatedValue) =>
@@ -240,7 +240,7 @@ object UpdateStructuresInAnalysis extends App:
       println("Visited with updating: " + visitedWithUpdate.toString)
       println("Visited with regular reanalysis: " + visitedWithoutUpdate.toString)
 
-
+*/
       println("Visited reanalysis -> Update: " + visitedWithoutUpdate.forall(e => visitedWithUpdate.contains(e)).toString)
 
       println("Visited update -> reanalysis: " + visitedWithUpdate.forall(e => visitedWithoutUpdate.contains(e)).toString)
@@ -270,8 +270,8 @@ object UpdateStructuresInAnalysis extends App:
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/scp1-compressed/7.scm")
-  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/gambit/NoSensitivity/peval.scm")
-  val modFbenchmarks: List[String] = List("test/changes/scheme/nboyer.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/various/regex.scm")
+  //val modFbenchmarks: List[String] = List("test/changes/scheme/nboyer.scm")
   val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 
   modFbenchmarks.foreach(modfAnalysis(_, standardTimeout))

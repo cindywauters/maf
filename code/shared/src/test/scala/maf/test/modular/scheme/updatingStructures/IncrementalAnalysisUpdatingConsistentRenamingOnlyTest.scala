@@ -22,7 +22,7 @@ import org.scalatest.propspec.AnyPropSpec
 
 import scala.concurrent.duration.{Duration, MINUTES}
 
-class IncrementalAnalysisConsistentRenamingOnlyTest extends AnyPropSpec:
+class IncrementalAnalysisUpdatingConsistentRenamingOnlyTest extends AnyPropSpec:
 
   type Analysis <: IncrementalModAnalysis[SchemeExp]
 
