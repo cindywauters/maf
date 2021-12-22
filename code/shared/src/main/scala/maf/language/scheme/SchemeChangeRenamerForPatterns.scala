@@ -3,10 +3,10 @@ package maf.language.scheme
 import maf.core.Identifier
 
 /**
- * Object that provides a method to rename variables in a Scheme program in order to have only unique names. For example, (let ((x 1)) (let ((x 2))
- * x)) will be converted to (let ((_x0 1)) (let ((_x1 2)) _x1)). This is useful to perform ANF conversion.
+ * almost entirely the same as SchemeRenamer with the only difference being in the count1 function
+ * Needed to find consistent renamings 
  */
-object SchemeChangeRenamer:
+object SchemeChangeRenamerForPatterns:
 
   /** Maps each variables to their alpha-renamed version (eg. x -> _x0) */
   type NameMap = Map[String, String]
@@ -121,9 +121,7 @@ object SchemeChangeRenamer:
                   case (rest1, names2, count3) =>
                     ((v1, e1) :: rest1, names2, count3)
       case Nil => (Nil, names, count)
-
-  // TODO: make this into a higher order function
-  /** To be called when a new variable is introduced in the scope. Adds it to the name map and count map */
+  
   def count1(
               variable: Identifier,
               names: NameMap,

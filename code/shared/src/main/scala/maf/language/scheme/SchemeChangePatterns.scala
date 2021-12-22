@@ -60,7 +60,7 @@ object SchemeChangePatterns:
         var mappedVars = variablesNew.map(e => e.name).zip(variablesOld.map(e => e.name)).toMap
         var mappedRenamedVars = variablesRenamedNew.map(e => e.name).zip(variablesRenamedOld.map(e => e.name)).toMap
         var mappedIdentifiers = variablesNew.zip(variablesOld).toMap
-        if renamedOld.eql(SchemeChangeRenamer.rename(renamedNew, mappedRenamedVars, Map[String, Int]())._1) then
+        if renamedOld.eql(SchemeChangeRenamerForPatterns.rename(renamedNew, mappedRenamedVars, Map[String, Int]())._1) then
           return (true, mappedIdentifiers)
     return (false, Map())
 
