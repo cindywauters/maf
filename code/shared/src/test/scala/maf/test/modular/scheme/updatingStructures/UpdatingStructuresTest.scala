@@ -1,5 +1,6 @@
 package maf.test.modular.scheme.updatingStructures
 import maf.bench.scheme.SchemeBenchmarkPrograms
+import maf.core.Expression
 import maf.language.CScheme.CSchemeParser
 import maf.language.change.CodeVersion.*
 import maf.language.scheme.*
@@ -139,7 +140,10 @@ class UpdatingStructuresTest extends AnyPropSpec:
     val analysisToUpdate = a.deepCopy()
     analysisToUpdate.analyzeWithTimeoutInSeconds(60)
     var update = new IncrementalUpdateDatastructures
-    update.changeDataStructures(analysisToUpdate, program)
+    analysisToUpdate match
+      case analysis: IncrementalModAnalysis[Expression] =>
+        val changedAndRenamings = SchemeChangePatterns.checkForRenamingParameter(program).filter(e => e._2._1).map(e => (e._1, e._2._2))
+        update.changeDataStructures(analysis, program, changedAndRenamings)
 
     val analysisNew = a.deepCopy()
     analysisNew.version = New

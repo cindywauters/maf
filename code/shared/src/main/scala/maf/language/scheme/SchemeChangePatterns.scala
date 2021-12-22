@@ -11,8 +11,8 @@ import scala.::
 object SchemeChangePatterns:
 
 // find all the changed expressions and create a set with all the old and new expressions
-  def findAllChangedExpressions(expr: Expression): Set[(Expression, Expression)] = expr match
-    case e: ChangeExp[Expression] => Set((e.old, e.nw)) // Assumption: change expressions are not nested.
+  def findAllChangedExpressions(expr: Expression): Set[ChangeExp[Expression]] = expr match
+    case e: ChangeExp[Expression] => Set(e) // Assumption: change expressions are not nested.
     case e                  => e.subexpressions.asInstanceOf[List[Expression]].flatMap(findAllChangedExpressions).toSet
 
 
@@ -64,7 +64,8 @@ object SchemeChangePatterns:
           return (true, mappedIdentifiers)
     (false, Map())
 
-  def checkForRenamingParameter(exp: SchemeExp): Set[((maf.core.Expression, maf.core.Expression), Map[maf.core.Identifier, maf.core.Identifier])] =
+  def checkForRenamingParameter(exp: SchemeExp): Set[((maf.core.Expression, maf.core.Expression), (Boolean, Map[Identifier, Identifier]))] =
     var changedExpr = findAllChangedExpressions(exp)
-    val renamings: Set[(Boolean, Map[Identifier, Identifier])] = changedExpr.map(e => checkRenamingsVariables(e._1, e._2))
-    changedExpr.zip(renamings.map(e => e._2))
+    var changedExprAsPairs = changedExpr.map(e => (e.old, e.nw))
+    val renamings: Set[(Boolean, Map[Identifier, Identifier])] = changedExprAsPairs.map(e => checkRenamingsVariables(e._1, e._2))
+    changedExprAsPairs.zip(renamings)//.map(e => e._2))

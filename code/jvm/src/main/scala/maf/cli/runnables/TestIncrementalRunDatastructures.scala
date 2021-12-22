@@ -2,6 +2,7 @@
 package maf.cli.runnables
 
 import maf.bench.scheme.SchemeBenchmarkPrograms
+import maf.core.Expression
 //import maf.cli.runnables.IncrementalRun.standardTimeout
 import maf.core.BasicEnvironment
 import maf.language.CScheme.*
@@ -104,7 +105,10 @@ object TestIncrementalRunDatastructures extends App:
 
       var update = new IncrementalUpdateDatastructures
       val beforeUpdate = System.nanoTime
-      update.changeDataStructures(a, text)
+      a match
+        case a: IncrementalModAnalysis[Expression] =>
+          val changedAndRenamings = SchemeChangePatterns.checkForRenamingParameter(text).filter(e => e._2._1).map(e => (e._1, e._2._2))
+          update.changeDataStructures(a, text, changedAndRenamings)
       val timeUpdate = System.nanoTime - beforeUpdate
       val storeWithUpdate = a.store
       val depsWithUpdate = a.deps
@@ -279,10 +283,10 @@ object TestIncrementalRunDatastructures extends App:
   end modfAnalysis
 
   val modConcbenchmarks: List[String] = List()
-  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm", "test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm", "test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm")
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/scp1-compressed/7.scm")
+  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/scp1-compressed/7.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/gambit/NoSensitivity/peval.scm")
   val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 
