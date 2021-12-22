@@ -1,5 +1,3 @@
-
-
 ;; Expected result: 1
 (define (square x) (* x x))
 (define (modulo-power base exp n)
