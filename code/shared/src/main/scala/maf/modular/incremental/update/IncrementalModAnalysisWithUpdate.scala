@@ -18,9 +18,6 @@ trait IncrementalModAnalysisWithUpdate[Expr <: Expression] extends IncrementalMo
         val notRenamed = changedAndRenamings.filter(e => !e._2._1)
         val renamed = changedAndRenamings.filter(e => e._2._1).map(e => (e._1, e._2._2))
         val notRenamedOld = notRenamed.map(e => e._1._1).toSet
-        println(changedAndRenamings.size)
-        println(notRenamed.size)
-        println(findUpdatedExpressions(program).size)
         (this, notRenamedOld) match
           case (a: IncrementalModAnalysis[Expression], notRenamedOld: Set[Expr]) =>
             update.changeDataStructures(a, program, renamed)

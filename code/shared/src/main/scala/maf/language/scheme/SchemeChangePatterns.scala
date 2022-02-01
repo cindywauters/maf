@@ -19,7 +19,7 @@ object SchemeChangePatterns:
 // Get a list of all the variables that are declared within an expression (through lambdas, let, letrec, or let*)
   def findAllVarsInOrder(exp: Expression): List[Identifier] = exp match
     // In case of lambda, add the arguments and look at the body for more
-    case SchemeLambda(name, args, body, pos) =>
+    case SchemeLambda(name, args, body, annotation, pos) =>
       args.map(arg => arg).appendedAll(body.flatMap(e => findAllVarsInOrder(e)))
     // In case of let, let* and letrec, take the names of the bindings and look in the body for more
     case SchemeLet(bindings, body, pos) =>

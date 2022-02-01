@@ -113,13 +113,13 @@ object GenerateConsistentRenamings extends App:
         val nw = renamableToRenamer.getOrElse(lambda, lambda)
         SchemeCodeChange(old = lambda, nw = nw, idn = lambda.idn)
       else
-        SchemeLambda(lambda.name, lambda.args, lambda.body.map(replaceInParsed(_, renamableSubexpr, renamableToRenamer)), lambda.idn)
+        SchemeLambda(lambda.name, lambda.args, lambda.body.map(replaceInParsed(_, renamableSubexpr, renamableToRenamer)), lambda.annotation, lambda.idn)
     case lambda: SchemeVarArgLambda =>
       if renamableSubexpr contains lambda then
         val nw = renamableToRenamer.getOrElse(lambda, lambda)
         SchemeCodeChange(old = lambda, nw = nw, idn = lambda.idn)
       else
-        SchemeVarArgLambda(lambda.name, lambda.args, lambda.vararg, lambda.body.map(replaceInParsed(_, renamableSubexpr, renamableToRenamer)), lambda.idn)
+        SchemeVarArgLambda(lambda.name, lambda.args, lambda.vararg, lambda.body.map(replaceInParsed(_, renamableSubexpr, renamableToRenamer)), lambda.annotation, lambda.idn)
     case let: SchemeLet =>
       if renamableSubexpr contains let then
         val nw = renamableToRenamer.getOrElse(let, let)
