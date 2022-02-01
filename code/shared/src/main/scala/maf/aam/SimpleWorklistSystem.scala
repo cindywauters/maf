@@ -6,10 +6,13 @@ import maf.util.Trampoline.run
 import maf.aam.scheme.AAMPeformanceMetrics
 
 trait BaseSimpleWorklistSystem extends AAMAnalysis, AAMPeformanceMetrics:
+    val enableGraph: Boolean = false
+
     trait SeenStateSystem extends BaseSystem:
         this: System =>
         var seen: HashSet[Conf] = HashSet()
         var work: List[(Option[Conf], Conf)] = List()
+        var bumps: Set[(Conf, Conf)] = Set()
         var newWork: List[(Option[Conf], Conf)] = List()
 
         def popWork(): Option[(Option[Conf], Conf)] =
@@ -38,6 +41,10 @@ trait BaseSimpleWorklistSystem extends AAMAnalysis, AAMPeformanceMetrics:
         def addSeen(work: Conf): Unit = change {
           report(Seen, seen.size) // logging
           seen = seen + work
+        }
+
+        def addBump(from: Conf, to: Conf): Unit = change {
+          bumps = bumps + (from -> to)
         }
 
         def allConfs: Set[Conf] = seen
@@ -73,14 +80,25 @@ trait BaseSimpleWorklistSystem extends AAMAnalysis, AAMPeformanceMetrics:
         //println(s"seen ${system.seen.size}, work ${system.work.size}, newWork ${system.newWork.size}")
         val conf = system.popWork()
         // no more work; reached fixed point
-        if conf.isEmpty then (system, dependencyGraph)
+        if conf.isEmpty then
+            val fpdg =
+              if enableGraph then
+                  system.bumps.foldLeft(dependencyGraph) { case (deps, (from, to)) =>
+                    val n1 = asGraphElement(from, system)
+                    val n2 = asGraphElement(to, system)
+
+                    g.addEdge(deps, n1, BumpTransition(), n2)
+                  }
+              else dependencyGraph
+
+            (system, fpdg)
         else
             // add an edge in the graph about the work
-            val fdpg = if conf.get._1.nonEmpty then
+            val fdpg = if enableGraph && conf.get._1.nonEmpty then
                 val n1 = asGraphElement(conf.get._1.get, system)
                 val n2 = asGraphElement(conf.get._2, system)
-                val dpg2 = g.addNode(dependencyGraph, n2)
-                g.addEdge(dpg2, n1, NoTransition(), n2)
+
+                g.addEdge(dependencyGraph, n1, NoTransition(), n2)
             else dependencyGraph
 
             // candidate successors

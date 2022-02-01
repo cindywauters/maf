@@ -14,6 +14,7 @@ import maf.modular.scv._
 import maf.cli.modular.scv.JVMSatSolver
 import maf.language.scheme.lattices.SchemeLattice
 import maf.core.Address
+import scala.reflect.ClassTag
 
 object SchemeAnalysesBoundedDomain:
     object NoSensitivity:
@@ -130,6 +131,12 @@ object SchemeAnalyses:
         with SchemeModFLocalCallSiteSensitivity(k)
         with FIFOWorklistAlgorithm[SchemeExp]
         with SchemeModFLocalAnalysisResults
+    def modflocalFSAnalysis(prg: SchemeExp, k: Int) =
+      new SchemeModFLocalFS(prg)
+        with SchemeConstantPropagationDomain
+        with SchemeModFLocalCallSiteSensitivity(k)
+        with FIFOWorklistAlgorithm[SchemeExp]
+        with SchemeModFLocalFSAnalysisResults
     def modflocalAnalysisAdaptiveA(prg: SchemeExp, k: Int, n: Int) =
       new SchemeModFLocal(prg)
         with SchemeConstantPropagationDomain
@@ -163,7 +170,32 @@ object SchemeAnalyses:
           with SchemeModFSemanticsM
           with ScvOneContextSensitivity:
             override def intraAnalysis(cmp: Component) = new IntraScvSemantics(cmp)
-            // TODO: use Z3 as solver instead of always returning "unknown"
+            override val sat: ScvSatSolver[Value] =
+                given SchemeLattice[Value, Address] = lattice
+                new JVMSatSolver
+
+    /**
+     * SCV analysis with Racket features:
+     *
+     *   - provide/contract
+     *   - structs
+     */
+    def scvModAnalysisWithRacketFeatures(prg: SchemeExp) =
+        import maf.modular.scv.ScvSymbolicStore.given
+        new ModAnalysis(prg)
+          with ScvBigStepSemantics
+          with ScvBigStepWithProvides
+          with ScvWithStructs
+          with SchemeConstantPropagationDomain
+          with StandardSchemeModFComponents
+          with LIFOWorklistAlgorithm[SchemeExp]
+          with SchemeModFSemanticsM
+          with ScvOneContextSensitivity:
+            protected val valueClassTag: ClassTag[Value] = summon[ClassTag[Value]]
+
+            override def intraAnalysis(
+                cmp: Component
+              ) = new IntraScvSemantics(cmp) with IntraScvSemanticsWithProvides with IntraScvSemanticsWithStructs
             override val sat: ScvSatSolver[Value] =
                 given SchemeLattice[Value, Address] = lattice
                 new JVMSatSolver

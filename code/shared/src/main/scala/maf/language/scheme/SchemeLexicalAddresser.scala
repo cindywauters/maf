@@ -44,10 +44,10 @@ trait BaseSchemeLexicalAddresser:
     def translate(exp: SchemeExp, lenv: LexicalEnv): SchemeExp = exp match
         case vexp: SchemeValue =>
           vexp
-        case SchemeLambda(nam, prs, bdy, pos) =>
-          SchemeLambda(nam, prs, translateBody(bdy, lenv.newFrame.extend(prs)), pos)
-        case SchemeVarArgLambda(nam, prs, vararg, bdy, pos) =>
-          SchemeVarArgLambda(nam, prs, vararg, translateBody(bdy, lenv.newFrame.extend(prs).extend(vararg)), pos)
+        case SchemeLambda(nam, prs, bdy, ann, pos) =>
+          SchemeLambda(nam, prs, translateBody(bdy, lenv.newFrame.extend(prs)), ann, pos)
+        case SchemeVarArgLambda(nam, prs, vararg, bdy, ann, pos) =>
+          SchemeVarArgLambda(nam, prs, vararg, translateBody(bdy, lenv.newFrame.extend(prs).extend(vararg)), ann, pos)
         case SchemeVar(id) =>
           SchemeVarLex(id, lenv.resolve(id.name))
         case SchemeBegin(eps, pos) =>
@@ -87,7 +87,17 @@ trait BaseSchemeLexicalAddresser:
           ContractSchemeFlatContract(translate(contract, lenv), idn)
         case ContractSchemeDepContract(domains, rangeMaker, idn) =>
           ContractSchemeDepContract(domains.map(translate(_, lenv)), translate(rangeMaker, lenv), idn)
-        case _ => throw new Exception(s"Unsupported Scheme expression: $exp")
+        case ContractSchemeProvide(outs, idn) =>
+          ContractSchemeProvide(translateContractSchemeOut(outs, lenv), idn)
+        case ContractSchemeCheck(contract, valueExpression, idn) =>
+          ContractSchemeCheck(translate(contract, lenv), translate(valueExpression, lenv), idn)
+        case m: MakeStruct => m // no variables inside a makestruct expression so lexical adressing does not need to be recursively called
+        case _             => throw new Exception(s"Unsupported Scheme expression: $exp")
+
+    def translateContractSchemeOut(outs: List[ContractSchemeProvideOut], lenv: LexicalEnv): List[ContractSchemeProvideOut] =
+      outs.map { case ContractSchemeContractOut(name, contract, idn) =>
+        ContractSchemeContractOut(name, translate(contract, lenv), idn)
+      }
 
     def translate(bdy: List[SchemeExp], lenv: LexicalEnv): List[SchemeExp] =
       bdy.map(translate(_, lenv))

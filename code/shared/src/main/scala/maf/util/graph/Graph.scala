@@ -16,10 +16,22 @@ trait GraphElement:
     def color: Color
     def metadata: GraphMetadata
 
+    /** Should  the graph element constrain  the ranking of the node during visualisation */
+    def constrain: Boolean = true
+
 class NoTransition extends GraphElement:
     def label = ""
     def color = Colors.Black
     def metadata = GraphMetadataNone
+
+/** Defines an edge to be equal when it is from and to the same node1 otherwise same as <code>NoTransition</code> */
+case class NoTransitionBetween(n1: GraphElement, n2: GraphElement) extends NoTransition
+
+class BumpTransition extends GraphElement:
+    def label = ""
+    def color = Colors.Red
+    def metadata = GraphMetadataNone
+    override def constrain = false
 
 object EmptyGraphElement
 

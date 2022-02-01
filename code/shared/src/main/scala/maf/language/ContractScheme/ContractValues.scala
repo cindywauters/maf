@@ -4,8 +4,10 @@ package maf.language.ContractScheme
 
 import maf.core.Identity
 import maf.language.scheme._
+import scala.reflect.ClassTag
 
 object ContractValues:
+    sealed trait Value[+L]
 
     /**
      * A blame represents two (possibly distinct) source locations.
@@ -13,7 +15,7 @@ object ContractValues:
      * The `blamedPosition` represents the location of the code that violated a particular contract, while `blamingPosition` represents the location
      * of the contract that is being violated.
      */
-    case class Blame(blamedPosition: Identity, blamingPosition: Identity)
+    case class Blame(blamedPosition: Identity, blamingPosition: Identity) extends Value[Nothing]
 
     /**
      * A guard which represents the value of a dependent contract after evaluation. <code> (~> domain rangeMaker) </code>
@@ -21,7 +23,7 @@ object ContractValues:
      * @tparam L
      *   the type of abstract value contained within the contract value
      */
-    case class Grd[L](domain: List[L], rangeMaker: L, domainIdns: List[Identity], rangeMakerExpr: SchemeExp):
+    case class Grd[L](domain: List[L], rangeMaker: L, domainIdns: List[Identity], rangeMakerExpr: SchemeExp) extends Value[L]:
         def map[AL](f: L => AL): Grd[AL] = Grd(domain.map(f), f(rangeMaker), domainIdns, rangeMakerExpr)
 
     /**
@@ -35,7 +37,8 @@ object ContractValues:
         lserver: Identity,
         contract: Grd[L],
         e: L,
-        topLevel: Boolean = false):
+        topLevel: Boolean = false)
+        extends Value[L]:
         def map[AL](f: L => AL): Arr[AL] = Arr(lcontract, lserver, contract.map(f), f(e), topLevel)
         def checkArgs[A](l: List[A]): Boolean =
           contract.domain.size == l.size
@@ -55,7 +58,7 @@ object ContractValues:
      * @tparam L
      *   the type of abstract value contained within the contract value
      */
-    case class Flat[L](contract: L, fexp: SchemeExp, sym: Option[SchemeExp], contractIdn: Identity):
+    case class Flat[L](contract: L, fexp: SchemeExp, sym: Option[SchemeExp], contractIdn: Identity) extends Value[L]:
         def map[AL](f: L => AL): Flat[AL] = Flat(f(contract), fexp, sym, contractIdn)
 
     /**
@@ -65,4 +68,50 @@ object ContractValues:
      * The value is used instead of top because (1) it makes it explicit that it is coming from SCV and is not a result of some over-approximation (2)
      * allows for a "top" value to exist in any abstract domain, which is not possible in for example a (non-bounded) constant propagation lattice
      */
-    case class Opq()
+    case class Opq() extends Value[Nothing]
+
+    /**
+     * A struct value.
+     *
+     * A struct consists of a set of fields. The names of the fields are not kept as they can be compiled in the accessors and mutators of that
+     * struct.
+     *
+     * For convience and debugging purposes the name of the struct is kept.
+     *
+     * A primitive called (_make-struct symbol number) is provided to create an instance of this struct. The primitive (_struct_ref instance number)
+     * can be used to access a particular field, while (_struct_set! instance number value) can be used to set a field in the struct.
+     */
+    case class Struct[L](tag: String, fields: maf.util.ArrayEq[L]) extends Value[L]:
+        def map[AL: ClassTag](f: L => AL): Struct[AL] =
+          this.copy(fields = fields.map(f))
+
+    /**
+     * A struct getter/setter. Works just like an application of _struct_set!.
+     *
+     * It is provided as an additional value in order to achieve exact precision without requiring n-m-cfa with m >= 1.
+     * @param tag
+     *   the name of the struct, used for tagging purposes
+     * @param idx
+     *   the index of the field to receive/update
+     * @param isSetter
+     *   true if this value is a setter.
+     */
+    case class StructSetterGetter(tag: String, idx: Int, isSetter: Boolean) extends Value[Nothing]
+
+    /**
+     * A constructor for a struct
+     *
+     * @param tag
+     *   the name of the struct used for tagging purposes
+     * @param siz
+     *   the number of fields in the struct
+     */
+    case class StructConstructor(tag: String, size: Int) extends Value[Nothing]
+
+    /**
+     * A predicate for a struct
+     *
+     * @param tag
+     *   the name of the struct to use when checking the predicate in the semantics
+     */
+    case class StructPredicate(tag: String) extends Value[Nothing]

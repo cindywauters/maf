@@ -45,7 +45,9 @@ trait AAMPerformanceComparison extends PerformanceEvaluation:
     protected def wrapModF(f: SchemeExp => ModAnalysis[SchemeExp]): SchemeExp => Analysis = (exp) => AllAnalyisTypes.ModF(f(exp))
 
 object AAMModFPerformanceComparison extends AAMPerformanceComparison:
-    def benchmarks = Set("test/R5RS/various/blur.scm")
+    override def maxWarmupRuns = 0
+    override def analysisRuns = 2
+    def _benchmarks = Set("test/R5RS/various/blur.scm")
     def __benchmarks = SchemeBenchmarkPrograms.various -- Set(
       "test/R5RS/various/loop2.scm", // weirdly seems to be stuck for classic AAM
       "test/R5RS/various/grid.scm", // timeout even with function boundaries
@@ -54,28 +56,38 @@ object AAMModFPerformanceComparison extends AAMPerformanceComparison:
       "test/R5RS/various/mceval.scm"
     )
 
-    def _benchmarks: Set[String] = SchemeBenchmarkPrograms.jss2021
+    def ___benchmarks: Set[String] = SchemeBenchmarkPrograms.jss2021
+    def benchmarks: Set[String] = Set(
+      "test/R5RS/WeiChenRompf2019/toplas98/boyer.scm",
+    )
 
     def analyses: List[(SchemeExp => Analysis, String)] =
       List(
         //(wrap(AAMAnalyses.aamBase), "aamBase"),
-        (wrap(AAMAnalyses.aamConf1), "aamConf1"),
-        (wrap(AAMAnalyses.aamConf2), "aamConf2"),
-        (wrap(AAMAnalyses.aamConf3), "aamConf3"),
-        (wrap(AAMAnalyses.aamConf4), "aamConf4"),
-        (wrapModF(SchemeAnalyses.kCFAAnalysis(_, 0)), "0cfaModf")
+        //(wrap(AAMAnalyses.aamConf1), "aamConf1"),
+        //(wrap(AAMAnalyses.aamConf2), "aamConf2"),
+        //(wrap(AAMAnalyses.aamConf3), "aamConf3"),
+        //(wrap(AAMAnalyses.aamConf4), "aamConf4"),
+        (wrap(AAMAnalyses.aamConf6), "aamConf6"),
+        (wrapModF(SchemeAnalyses.kCFAAnalysis(_, 1)), "1cfaModf")
       )
     def main(args: Array[String]): Unit =
       run(timeoutFast = false)
 
 object ScvPerformanceComparison extends AAMPerformanceComparison:
     override def parseProgram(txt: String): SchemeExp =
-      SchemeBegin(ContractSchemeMutableVarBoxer.transform(List(ContractSchemeParser.parse(txt))), Identity.none)
+        val result = SchemeBegin(ContractSchemeMutableVarBoxer.transform(List(ContractSchemeParser.parse(txt))), Identity.none)
+        println(s"input program ${result.prettyString(0)}")
+        result
 
-    def benchmarks = SchemeBenchmarkPrograms.fromFolder("test/scv/manual/safe")(".DS_Store")
+    //def benchmarks = SchemeBenchmarkPrograms.scvNguyenBenchmarks
+    def benchmarks = SchemeBenchmarkPrograms.scvNguyenBenchmarks
 
     def analyses: List[(SchemeExp => Analysis, String)] =
-      List((wrap(AAMAnalyses.scvAAMbase), "scvAAMbase"), (wrap(AAMAnalyses.scvAAMFnCallBoundaries), "scvAAMFfn"))
+      List(
+        //(wrap(AAMAnalyses.scvAAMFnCallBoundaries), "scvAAMFfn"),
+        (wrapModF(SchemeAnalyses.scvModAnalysisWithRacketFeatures), "scvModf")
+      )
 
     def main(args: Array[String]): Unit =
       run(timeoutFast = false)
@@ -87,4 +99,5 @@ object ModFSingleBenchmark extends AAMPerformanceComparison with ParallelPerform
       List((wrapModF(SchemeAnalyses.kCFAAnalysis(_, 0)), "0cfaModf"))
 
     def main(args: Array[String]): Unit =
-      run(timeoutFast = false)
+        Thread.sleep(20000)
+        run(timeoutFast = false)

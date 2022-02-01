@@ -60,7 +60,7 @@ trait BigStepModFSemanticsT extends BaseSchemeModFSemantics:
           getEnv.flatMap(env => inject(lookup(id, env)))
         private def evalClosure(lam: SchemeLambdaExp): EvalM[Value] =
           for env <- getEnv yield newClosure(lam, env)
-        private def evalSequence(exps: List[SchemeExp]): EvalM[Value] =
+        protected def evalSequence(exps: List[SchemeExp]): EvalM[Value] =
           exps.foldLeftM(lattice.void)((_, exp) => eval(exp))
         private def evalSet(id: Identifier, exp: SchemeExp): EvalM[Value] =
           for
@@ -167,4 +167,6 @@ trait BigStepModFSemantics extends BigStepModFSemanticsT {
     def analyzeWithTimeout(timeout: Timeout.T): Unit = // Timeout is just ignored here.
       eval(fnBody).run(fnEnv).foreach(res => writeResult(res))
   }
+
+  override def configString(): String = super.configString() + "\n  applying big-step ModF Scheme semantics"
 }

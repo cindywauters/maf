@@ -73,9 +73,9 @@ class SchemeInterpreter(
       res
     }
 
-    def stackedException[R](msg: String): R =
+    override def signalException[R](msg: String): R =
         val m = if stack then callStack.mkString(s"$msg\n Callstack:\n * ", "\n * ", "\n **********") else msg
-        throw new Exception(m)
+        super.signalException(m)
 
     def evalSequence(
         exps: List[SchemeExp],
@@ -153,9 +153,6 @@ class SchemeInterpreter(
         case Value.Undefined(_) =>
           //println(s"Undefined behavior arising from identity $idn seen at ${e.idn.pos}")
           false
-        case Value.Unbound(_) =>
-          //println(s"Seen unbound identifier $idn")
-          false
         case _ =>
           true
 
@@ -181,6 +178,56 @@ class SchemeInterpreter(
                 argsv <- tailcall(evalArgs(args, env, timeout, version))
             yield argv :: argsv
 
+    protected def isProcedure(v: Value): Boolean = v match
+        case _: Value.Primitive | _: Value.Clo => true
+        case _                                 => false
+
+    protected def applyFun(
+        f: Value,
+        call: SchemeFuncall,
+        argsv: List[Value],
+        args: List[SchemeExp],
+        idn: Identity,
+        timeout: Timeout.T,
+        version: Version
+      ): TailRec[Value] = f match
+        // A regular closure with a fixed amount of parameters
+        case Value.Clo(lambda @ SchemeLambda(name, argsNames, body, ann, pos2), env2) =>
+          if argsNames.length != argsv.length then
+              signalException(
+                s"Invalid function call at position ${idn}: ${argsv.length} arguments given to function lambda (${lambda.idn.pos}), while exactly ${argsNames.length} are expected."
+              )
+          val envExt = argsNames.zip(argsv).foldLeft(env2) { (env3, arg) =>
+              val addr = newAddr(AddrInfo.VarAddr(arg._1))
+              extendStore(addr, arg._2)
+              (env3 + (arg._1.name -> addr))
+          }
+          stackedCall(name, pos2, tailcall(eval(SchemeBody(body), envExt, timeout, version)))
+
+        // A closure with a variable amount of parameters
+        case Value.Clo(lambda @ SchemeVarArgLambda(name, argsNames, vararg, body, ann, pos2), env2) =>
+          val arity = argsNames.length
+          if argsv.length < arity then
+              signalException(
+                s"Invalid function call at position $idn: ${args.length} arguments given, while at least ${argsNames.length} are expected."
+              )
+          val envExt = argsNames.zip(argsv).foldLeft(env2) { (env3, arg) =>
+              val addr = newAddr(AddrInfo.VarAddr(arg._1))
+              extendStore(addr, arg._2)
+              (env3 + (arg._1.name -> addr))
+          }
+          val varArgAddr = newAddr(AddrInfo.VarAddr(vararg))
+          extendStore(varArgAddr, makeList(args.drop(arity).zip(argsv.drop(arity))))
+          val envExt2 = envExt + (vararg.name -> varArgAddr)
+          stackedCall(name, pos2, eval(SchemeBody(body), envExt2, timeout, version))
+
+        case Value.Primitive(p) =>
+          tailcall(
+            stackedCall(Some(p), Identity.none, done(Primitives.allPrimitives(p).call(call, args.zip(argsv))))
+          )
+        case v =>
+          signalException(s"Invalid function call at position ${idn}: ${v} is not a closure or a primitive.")
+
     def eval(
         e: SchemeExp,
         env: Env,
@@ -193,49 +240,8 @@ class SchemeInterpreter(
             case call @ SchemeFuncall(f, args, idn) =>
               for
                   fv <- tailcall(eval(f, env, timeout, version))
-                  res <- fv match
-                      case Value.Clo(lambda @ SchemeLambda(name, argsNames, body, pos2), env2) =>
-                        if argsNames.length != args.length then
-                            stackedException(
-                              s"Invalid function call at position ${idn}: ${args.length} arguments given to function lambda (${lambda.idn.pos}), while exactly ${argsNames.length} are expected."
-                            )
-                        for
-                            argsv <- evalArgs(args, env, timeout, version)
-                            envExt = argsNames.zip(argsv).foldLeft(env2) { (env3, arg) =>
-                                val addr = newAddr(AddrInfo.VarAddr(arg._1))
-                                extendStore(addr, arg._2)
-                                (env3 + (arg._1.name -> addr))
-                            }
-                            res <- stackedCall(name, pos2, tailcall(eval(SchemeBody(body), envExt, timeout, version)))
-                        yield res
-                      case Value.Clo(lambda @ SchemeVarArgLambda(name, argsNames, vararg, body, pos2), env2) =>
-                        val arity = argsNames.length
-                        if args.length < arity then
-                            stackedException(
-                              s"Invalid function call at position $idn: ${args.length} arguments given, while at least ${argsNames.length} are expected."
-                            )
-                        for
-                            argsv <- evalArgs(args, env, timeout, version)
-                            envExt = argsNames.zip(argsv).foldLeft(env2) { (env3, arg) =>
-                                val addr = newAddr(AddrInfo.VarAddr(arg._1))
-                                extendStore(addr, arg._2)
-                                (env3 + (arg._1.name -> addr))
-                            }
-                            varArgAddr = newAddr(AddrInfo.VarAddr(vararg))
-                            _ = extendStore(varArgAddr, makeList(args.drop(arity).zip(argsv.drop(arity))))
-                            envExt2 = envExt + (vararg.name -> varArgAddr)
-                            res <- stackedCall(name, pos2, eval(SchemeBody(body), envExt2, timeout, version))
-                        yield res
-                      case Value.Primitive(p) =>
-                        tailcall(
-                          stackedCall(Some(p),
-                                      Identity.none,
-                                      for argsv <- tailcall(evalArgs(args, env, timeout, version))
-                                      yield Primitives.allPrimitives(p).call(call, args.zip(argsv))
-                          )
-                        )
-                      case v =>
-                        stackedException(s"Invalid function call at position ${idn}: ${v} is not a closure or a primitive.")
+                  argsv <- evalArgs(args, env, timeout, version)
+                  res <- applyFun(fv, call, argsv, args, idn, timeout, version)
               yield res
             case SchemeIf(cond, cons, alt, _) =>
               for
@@ -252,9 +258,7 @@ class SchemeInterpreter(
               /* First extend the environment with all bindings set to unbound */
               val envExt = bindings.foldLeft(env) { (env2, binding) =>
                   val addr = newAddr(AddrInfo.VarAddr(binding._1))
-                  extendStore(addr, Value.Unbound(binding._1))
-                  val env3 = env2 + (binding._1.name -> addr)
-                  env3
+                  env2 + (binding._1.name -> addr)
               }
               /* Then evaluate all bindings in the extended environment */
               tailcall(evalLetrec(bindings, body, pos, envExt, env, timeout, version))
@@ -262,7 +266,7 @@ class SchemeInterpreter(
               /* TODO: primitives can be reassigned with set! without being redefined */
               val addr = env.get(id.name) match
                   case Some(addr) => addr
-                  case None       => stackedException(s"Unbound variable $id accessed at position $pos")
+                  case None       => signalException(s"Undefined variable $id accessed at position $pos")
               for
                   v <- eval(v, env, timeout, version)
                   _ = extendStore(addr, v)
@@ -274,11 +278,11 @@ class SchemeInterpreter(
             case SchemeDefineVariable(_, _, _) => ???
             case SchemeVar(id) =>
               env.get(id.name) match
+                  case None => signalException(s"Undefined variable $id at position ${id.idn}.")
                   case Some(addr) =>
                     lookupStoreOption(addr) match
+                        case None    => signalException(s"Uninitialised variable $id at position ${id.idn}.")
                         case Some(v) => done(v)
-                        case None    => stackedException(s"Unbound variable $id at position ${id.idn}.")
-                  case None => stackedException(s"Undefined variable $id at position ${id.idn}.")
             case SchemeValue(v, _) =>
               done(evalLiteral(v, e))
             case CSchemeFork(body, _) =>
@@ -290,7 +294,7 @@ class SchemeInterpreter(
                   res <- threadv match
                       case Value.Thread(fut) =>
                         done(Await.result(fut, timeout.timeLeft.map(Duration(_, TimeUnit.NANOSECONDS)).getOrElse(Duration.Inf)))
-                      case v => stackedException(s"Join expected thread, but got $v")
+                      case v => signalException(s"Join expected thread, but got $v")
               yield res
             case SchemeCodeChange(old, nw, _) =>
               if version == Old then tailcall(eval(old, env, timeout, version)) else tailcall(eval(nw, env, timeout, version))

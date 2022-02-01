@@ -4,14 +4,9 @@ import maf.core._
 import maf.language.scheme._
 import maf.language.CScheme._
 
-object SchemePrelude:
+class BaseSchemePrelude:
 
-    val primDefs = Map(
-      "@sensitivity:1CS" -> "(define @sensitivity:1CS #f)",
-      "@sensitivity:FA" -> "(define @sensitivity:FA #f)",
-      "@sensitivity:1A" -> "(define @sensitivity:1A #f)",
-      "@sensitivity:2A" -> "(define @sensitivity:2A #f)",
-      "@sensitivity:No" -> "(define @sensitivity:No #f)",
+    def primDefs = Map(
       "<=" -> "(define (<= x y) @sensitivity:FA (assert (number? x)) (or (< x y) (= x y)))",
       ">" -> "(define (> x y) @sensitivity:FA (assert (number? x)) (not (<= x y)))",
       ">=" -> "(define (>= x y) @sensitivity:FA (assert (number? x)) (or (> x y) (= x y)))",
@@ -260,14 +255,14 @@ object SchemePrelude:
         """(define (string->list string)
         |  @sensitivity:FA
         |  (assert (string? string))
-        |  (define len (string-length string))
+        |  (let ((len (string-length string)))
                         |  (let convert ((n (- len 1))
                         |                (r '()))
                         |    @sensitivity:FA
                         |    (if (< n 0)
                         |        r
                         |        (convert (- n 1)
-                        |                 (cons (string-ref string n) r)))))""".stripMargin,
+                        |                 (cons (string-ref string n) r))))))""".stripMargin,
       "string=?" -> """(define (string=? s1 s2)
                     |  @sensitivity:FA
                     |  (assert (string? s1))
@@ -354,8 +349,11 @@ object SchemePrelude:
        */
     )
 
-    val primDefsParsed: Map[String, SchemeExp] = primDefs.map { case (nam, str) =>
-      val exp = SchemeBody(SchemeParser.parse(str, Position.newTag(nam)))
+    def parseDef(dff: String, nam: String): List[SchemeExp] =
+      SchemeParser.parse(dff, Position.newTag(nam))
+
+    lazy val primDefsParsed: Map[String, SchemeExp] = primDefs.map { case (nam, str) =>
+      val exp = SchemeBody(parseDef(str, nam))
       (nam, exp)
     }
 
@@ -366,6 +364,7 @@ object SchemePrelude:
         var prelude: List[SchemeExp] = List()
         var work: Set[String] = SchemeBody.fv(prg) ++ incl
         var added: Set[String] = Set.empty
+        val primDefs = this.primDefs
         while work.nonEmpty do
             val free = work.filter(primDefs.contains).filterNot(added)
             val defs = free.map(primDefsParsed)
@@ -373,3 +372,5 @@ object SchemePrelude:
             work = defs.flatMap(_.fv)
             added ++= free
         prelude ::: prg
+
+object SchemePrelude extends BaseSchemePrelude
