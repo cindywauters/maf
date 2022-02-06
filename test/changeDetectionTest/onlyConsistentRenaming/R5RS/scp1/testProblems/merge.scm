@@ -1,23 +1,23 @@
 ;; renamed lambdas/lets: 4
- 
+
 (define first-el (<change>
       (lambda (best)
          (if (not (null? best)) (caar best) #f))
       (lambda (_best0)
          (if (not (null? _best0)) (caar _best0) #f))))
- 
+
 (define smaller? (<change>
       (lambda (el1 el2)
          (string<? (symbol->string el1) (symbol->string el2)))
       (lambda (_el10 _el20)
          (string<? (symbol->string _el10) (symbol->string _el20)))))
- 
+
 (define same? (<change>
       (lambda (el1 el2)
          (equal? el1 el2))
       (lambda (_el10 _el20)
          (equal? _el10 _el20))))
- 
+
 (define merge (<change>
       (lambda (best1 best2)
          (define merge-in (lambda (curr1 curr2 prev)
@@ -67,96 +67,14 @@
                 (_curr21 (if (eq? _result0 _best20) (cdr _best20) _best20)))
             (merge-in _curr11 _curr21 _result0)
             _result0))))
- 
-(define best1 (__toplevel_cons
-      (__toplevel_cons
-         'ann
-         (__toplevel_cons
-            (__toplevel_cons
-               'meiboomstraat
-               (__toplevel_cons 12 (__toplevel_cons 1820 (__toplevel_cons 'Eppegem ()))))
-            ()))
-      (__toplevel_cons
-         (__toplevel_cons
-            'bert
-            (__toplevel_cons
-               (__toplevel_cons
-                  'populierendreef
-                  (__toplevel_cons 7 (__toplevel_cons 1050 (__toplevel_cons 'Brussel ()))))
-               ()))
-         (__toplevel_cons
-            (__toplevel_cons
-               'kurt
-               (__toplevel_cons
-                  (__toplevel_cons
-                     'Mechelsesteenweg
-                     (__toplevel_cons 50 (__toplevel_cons 1800 (__toplevel_cons 'Vilvoorde ()))))
-                  ()))
-            ()))))
- 
-(define best2 (__toplevel_cons
-      (__toplevel_cons
-         'bert
-         (__toplevel_cons
-            (__toplevel_cons
-               'populierendreef
-               (__toplevel_cons 7 (__toplevel_cons 1050 (__toplevel_cons 'Brussel ()))))
-            ()))
-      (__toplevel_cons
-         (__toplevel_cons
-            'jan
-            (__toplevel_cons
-               (__toplevel_cons 'eikestraat (__toplevel_cons 1 (__toplevel_cons 9000 (__toplevel_cons 'Gent ()))))
-               ()))
-         (__toplevel_cons
-            (__toplevel_cons
-               'sofie
-               (__toplevel_cons
-                  (__toplevel_cons
-                     'boerendreef
-                     (__toplevel_cons 5 (__toplevel_cons 2800 (__toplevel_cons 'Mechelen ()))))
-                  ()))
-            ()))))
- 
-(equal?
-   (merge best1 best2)
-   (__toplevel_cons
-      (__toplevel_cons
-         'ann
-         (__toplevel_cons
-            (__toplevel_cons
-               'meiboomstraat
-               (__toplevel_cons 12 (__toplevel_cons 1820 (__toplevel_cons 'Eppegem ()))))
-            ()))
-      (__toplevel_cons
-         (__toplevel_cons
-            'bert
-            (__toplevel_cons
-               (__toplevel_cons
-                  'populierendreef
-                  (__toplevel_cons 7 (__toplevel_cons 1050 (__toplevel_cons 'Brussel ()))))
-               ()))
-         (__toplevel_cons
-            (__toplevel_cons
-               'jan
-               (__toplevel_cons
-                  (__toplevel_cons 'eikestraat (__toplevel_cons 1 (__toplevel_cons 9000 (__toplevel_cons 'Gent ()))))
-                  ()))
-            (__toplevel_cons
-               (__toplevel_cons
-                  'kurt
-                  (__toplevel_cons
-                     (__toplevel_cons
-                        'Mechelsesteenweg
-                        (__toplevel_cons 50 (__toplevel_cons 1800 (__toplevel_cons 'Vilvoorde ()))))
-                     ()))
-               (__toplevel_cons
-                  (__toplevel_cons
-                     'sofie
-                     (__toplevel_cons
-                        (__toplevel_cons
-                           'boerendreef
-                           (__toplevel_cons 5 (__toplevel_cons 2800 (__toplevel_cons 'Mechelen ()))))
-                        ()))
-                  ()))))))
- 
+
+(define best1 '((ann (meiboomstraat 12 1820 Eppegem))
+                (bert (populierendreef 7 1050 Brussel))
+                (kurt (Mechelsesteenweg 50 1800 Vilvoorde))))
+
+(define best2 '((bert (populierendreef 7 1050 Brussel))
+                (jan (eikestraat 1 9000 Gent))
+                (sofie (boerendreef 5  2800 Mechelen))))
+
+(equal? (merge best1 best2)
+        '((ann (meiboomstraat 12 1820 Eppegem)) (bert (populierendreef 7 1050 Brussel)) (jan (eikestraat 1 9000 Gent)) (kurt (Mechelsesteenweg 50 1800 Vilvoorde)) (sofie (boerendreef 5 2800 Mechelen))))

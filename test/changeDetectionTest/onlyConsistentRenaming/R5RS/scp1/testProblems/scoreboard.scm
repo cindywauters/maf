@@ -146,35 +146,35 @@
  
 (equal?
    result
-   (__toplevel_cons
+   (cons
       'linebreak
-      (__toplevel_cons
+      (cons
          0
-         (__toplevel_cons
+         (cons
             "-"
-            (__toplevel_cons
+            (cons
                0
-               (__toplevel_cons
+               (cons
                   'linebreak
-                  (__toplevel_cons
+                  (cons
                      0
-                     (__toplevel_cons
+                     (cons
                         "-"
-                        (__toplevel_cons
+                        (cons
                            2
-                           (__toplevel_cons
+                           (cons
                               'linebreak
-                              (__toplevel_cons
+                              (cons
                                  "De score kan slechts 1, 2 of 3 zijn!"
-                                 (__toplevel_cons
+                                 (cons
                                     'linebreak
-                                    (__toplevel_cons
+                                    (cons
                                        'linebreak
-                                       (__toplevel_cons
+                                       (cons
                                           0
-                                          (__toplevel_cons
+                                          (cons
                                              "-"
-                                             (__toplevel_cons
+                                             (cons
                                                 2
-                                                (__toplevel_cons 'linebreak (__toplevel_cons 0 (__toplevel_cons "-" (__toplevel_cons 0 ()))))))))))))))))))))
+                                                (cons 'linebreak (cons 0 (cons "-" (cons 0 ()))))))))))))))))))))
  

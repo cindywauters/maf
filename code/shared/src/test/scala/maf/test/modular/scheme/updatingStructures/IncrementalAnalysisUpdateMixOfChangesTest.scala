@@ -108,9 +108,10 @@ class IncrementalAnalysisUpdateMixOfChangesTest extends AnyPropSpec:
                                 cmp: Component
                               ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis
 
-  def checkSubsumption(a: IncrementalModAnalysis[SchemeExp], u: IncrementalModAnalysisWithUpdate[SchemeExp]): Unit =
+  def checkSubsumption(a: IncrementalModAnalysis[SchemeExp], u: IncrementalModAnalysisWithUpdate[SchemeExp], full: IncrementalModAnalysis[SchemeExp]): Unit =
     // Check components.
     assert(a.visited.size <= u.visited.size, "The visited set of the incremental analysis update has less components than the analysis of new only.")
+    assert(u.visited.size <= full.visited.size, "The visited set of the full incremental analysis update has less components than the incremental analysis with updating.")
     assert(a.visited.diff(u.visited.map(_.asInstanceOf[a.Component])).isEmpty, "The visited set of the incremental update does not subsume the visited set of the incremental analysis with updates.") // If the size is equal, this checks also the converse assertion.
 
     // Check dependencies.
@@ -120,12 +121,15 @@ class IncrementalAnalysisUpdateMixOfChangesTest extends AnyPropSpec:
     assert(depsA.diff(depsU.map(e => (e._1, e._2.asInstanceOf[a.Component]))).isEmpty, "The dependencies of the incremental update does not subsume the dependencies of the incremental analysis with updates.")
 
     // Check store.
-    (a, u) match
-      case (a: IncrementalGlobalStore[SchemeExp], u: IncrementalGlobalStoreWithUpdate[SchemeExp]) =>
+    (a, u, full) match
+      case (a: IncrementalGlobalStore[SchemeExp], u: IncrementalGlobalStoreWithUpdate[SchemeExp], full: IncrementalGlobalStore[SchemeExp]) =>
         assert(a.store.size <= u.store.size, "The incrementally updated store is smaller than the store of the incremental reanalysis with updates.")
         a.store.foreach { case (addr, av) =>
           val uv = u.store.getOrElse(addr, u.lattice.bottom)
-          assert(a.lattice.subsumes(uv.asInstanceOf[a.Value],av), s"Store mismatch at $addr: $uv is not subsumed by $av.")
+          val fullv = full.store.getOrElse(addr, full.lattice.bottom)
+          val aSubsumesU = a.lattice.subsumes(uv.asInstanceOf[a.Value],av)
+          val fullSubsumesU = u.lattice.subsumes(fullv.asInstanceOf[u.Value], uv)
+          assert(aSubsumesU || fullSubsumesU, s"Store mismatch at $addr: $uv is not subsumed by $av.")
      }
 
 
@@ -136,16 +140,16 @@ class IncrementalAnalysisUpdateMixOfChangesTest extends AnyPropSpec:
   modFbenchmarks.foreach(benchmark =>
     val program = CSchemeParser.parseProgram(Reader.loadFile(benchmark))
       property(s"No sensitivity: Check if datastructures are the same in the analysis of new version and update for" + benchmark) {
-      callAnalysisOnBenchmark(NoSensitivityAnalysis(program), NoSensitivityAnalysisUpdate(program), program)
+      callAnalysisOnBenchmark(NoSensitivityAnalysis(program), NoSensitivityAnalysisUpdate(program), NoSensitivityAnalysis(program), program)
     }
       property(s"Full Arg sensitivity: Check if datastructures are the same in the analysis of new version and update for" + benchmark) {
-      callAnalysisOnBenchmark(FullArgSensitivityAnalysis(program), FullArgSensitivityAnalysisUpdate(program), program)
+      callAnalysisOnBenchmark(FullArgSensitivityAnalysis(program), FullArgSensitivityAnalysisUpdate(program), FullArgSensitivityAnalysis(program), program)
     }
       property(s"Call sensitivity: Check if datastructures are the same in the analysis of new version and update for" + benchmark) {
-      callAnalysisOnBenchmark(CallSensitivityAnalysis(program), CallSensitivityAnalysisUpdate(program), program)
+      callAnalysisOnBenchmark(CallSensitivityAnalysis(program), CallSensitivityAnalysisUpdate(program), CallSensitivityAnalysis(program), program)
     }
       property(s"Full Arg Call sensitivity: Check if datastructures are the same in the analysis of new version and update for" + benchmark) {
-      callAnalysisOnBenchmark(FullArgCallSensitivityAnalysis(program), FullArgCallSensitivityAnalysisUpdate(program), program)
+      callAnalysisOnBenchmark(FullArgCallSensitivityAnalysis(program), FullArgCallSensitivityAnalysisUpdate(program), FullArgCallSensitivityAnalysis(program), program)
     }
   )
 
@@ -157,19 +161,24 @@ class IncrementalAnalysisUpdateMixOfChangesTest extends AnyPropSpec:
   onlyCallSensitivity.foreach(benchmark =>
     val program = CSchemeParser.parseProgram(Reader.loadFile(benchmark))
       property(s"No sensitivity: Check if datastructures are the same in the analysis of new version and update for" + benchmark) {
-      callAnalysisOnBenchmark(NoSensitivityAnalysis(program), NoSensitivityAnalysisUpdate(program), program)
+      callAnalysisOnBenchmark(NoSensitivityAnalysis(program), NoSensitivityAnalysisUpdate(program), NoSensitivityAnalysis(program), program)
     }
       property(s"Call sensitivity: Check if datastructures are the same in the analysis of new version and update for" + benchmark) {
-      callAnalysisOnBenchmark(CallSensitivityAnalysis(program), CallSensitivityAnalysisUpdate(program), program)
+      callAnalysisOnBenchmark(CallSensitivityAnalysis(program), CallSensitivityAnalysisUpdate(program), CallSensitivityAnalysis(program), program)
     }
 
   )
 
-  def callAnalysisOnBenchmark(a: IncrementalModAnalysis[SchemeExp], u: IncrementalModAnalysisWithUpdate[SchemeExp], program: SchemeExp): Unit =
+  def callAnalysisOnBenchmark(a: IncrementalModAnalysis[SchemeExp], u: IncrementalModAnalysisWithUpdate[SchemeExp], full:  IncrementalModAnalysis[SchemeExp], program: SchemeExp): Unit =
     u.analyzeWithTimeout(Timeout.start(Duration(2, MINUTES)))
     u.updateAnalysis(Timeout.start(Duration(2, MINUTES)))
 
     a.version = New
     a.analyzeWithTimeout(Timeout.start(Duration(2, MINUTES)))
 
-    checkSubsumption(a, u)
+    //a.updateAnalysis(Timeout.start(Duration(2, MINUTES)))
+
+    full.analyzeWithTimeout(Timeout.start(Duration(2, MINUTES)))
+    full.updateAnalysis(Timeout.start(Duration(2, MINUTES)))
+
+    checkSubsumption(a, u, full)

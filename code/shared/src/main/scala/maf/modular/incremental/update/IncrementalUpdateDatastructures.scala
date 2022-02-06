@@ -33,7 +33,7 @@ class IncrementalUpdateDatastructures {
   // Call this function when you want to update all the datastructures of an analysis
   // Arguments are an analysis and the expression that is being analysed
   def changeDataStructures(a: IncrementalModAnalysis[Expression], exp: Expression, changed: Set[((maf.core.Expression, maf.core.Expression), Map[maf.core.Identifier, maf.core.Identifier])]): Boolean =
-    
+
     val changedVarsSwapped = changed.flatMap(e => e._2).toMap
     changedVars = changedVarsSwapped.map(_.swap).toMap // Get all renamed vars
     changedExpressions = changed.map(e => e._1).toMap // Get all expressions that have been changed
@@ -43,7 +43,6 @@ class IncrementalUpdateDatastructures {
     val allNewExps = changedExpressions.flatMap(e => findAllSubExps(e._2))
     allExpressionsInChange = allOldExps.zip(allNewExps).toMap
 
-    println(changedExpressions.size)
 
     a match
       case analysis: IncrementalGlobalStore[Expression] => // Update the store
@@ -133,11 +132,6 @@ class IncrementalUpdateDatastructures {
     a.visited.foreach(comp =>
       getNewComponent(a, comp) match
       case newComp: a.Component =>
-    /*    print(comp)
-        print(" ")
-        print(newComp)
-        print(" ")
-        println(newComp.equals(comp))*/
         if !newComp.equals(comp) then
           a.visited = a.visited - comp
           a.visited = a.visited + newComp
@@ -250,7 +244,7 @@ class IncrementalUpdateDatastructures {
      // case element: Value =>
       //  getNewValue(a, element).asInstanceOf[a.Value]
       case _ =>
-        println(value.getClass)
+      //  println(value.getClass)
         value.asInstanceOf[a.Value]
 
   // If the value is a set of closures, we want to update both the lambda and enviroment within each closure (if necessary).
@@ -291,7 +285,6 @@ class IncrementalUpdateDatastructures {
         val newcdr = getNewValues(a, cons.cdr).asInstanceOf[cons.cdr.type]
         IncrementalSchemeTypeDomain.modularLattice.Cons(newcar, newcdr)
       case _ =>
-       // println(value.getClass)
         value
 
   // To create an new enviroment, loop over the old enviroment
@@ -340,14 +333,14 @@ class IncrementalUpdateDatastructures {
           case None =>
             ctx
           case _ =>
-            println(ctx.getClass)
+            //(ctx.getClass)
             ctx
 
   // Update the ArgContext: ArgContext has a set of values so for each of them we want to update them
   // These values are (Annotated)Elements so we can reuse getNewValues
   def updateArgCtx(a: IncrementalGlobalStore[Expression], ctx: maf.modular.scheme.modf.ArgContext): maf.modular.scheme.modf.ArgContext =
     val newValues = ctx.values.map(elements => elements match
-      case elements: Serializable=>
+      case elements: Serializable =>
         getNewValues(a, elements)
         )
     maf.modular.scheme.modf.ArgContext(newValues)
@@ -369,7 +362,7 @@ class IncrementalUpdateDatastructures {
     )
     var newCall = findNewPosition(ctx.call)
     var newFn = findNewPosition(ctx.fn)
-    new maf.modular.scheme.modf.ArgCallSiteContext(newFn, newCall, newArgs)
+    maf.modular.scheme.modf.ArgCallSiteContext(newFn, newCall, newArgs)
 
   def findNewPosition(oldPosition: Position.Position): Position.Position =
     allExpressionsInChange.find((k, v) => k.idn.pos.equals(oldPosition)) match

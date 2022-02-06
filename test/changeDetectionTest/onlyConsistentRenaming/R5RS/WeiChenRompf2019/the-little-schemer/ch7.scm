@@ -13,12 +13,12 @@
             #f
             (set? (cdr lat))))))
  
-(define makeset (lambda (lat)
-      (if (null? lat)
-         ()
-         (if (member? (car lat) (cdr lat))
-            (makeset (cdr lat))
-            (cons (car lat) (makeset (cdr lat)))))))
+;(define makeset (lambda (lat)
+;      (if (null? lat)
+;         ()
+;         (if (member? (car lat) (cdr lat))
+;            (makeset (cdr lat))
+;            (cons (car lat) (makeset (cdr lat)))))))
  
 (define multirember (<change>
       (lambda (a lat)
@@ -53,13 +53,13 @@
                (subset? (cdr _set10) _set20)
                #f)))))
  
-(define subset? (lambda (set1 set2)
-      (if (null? set1)
-         #t
-         (let ((__cond-empty-body (if (member? (car set1) set2)
-                                    (subset? (cdr set1) set2)
-                                    #f)))
-            (if __cond-empty-body __cond-empty-body #f)))))
+;(define subset? (lambda (set1 set2)
+;      (if (null? set1)
+;         #t
+;         (let ((__cond-empty-body (if (member? (car set1) set2)
+;                                    (subset? (cdr set1) set2)
+;                                    #f)))
+;            (if __cond-empty-body __cond-empty-body #f)))))
  
 (define eqset? (lambda (set1 set2)
       (if (subset? set1 set2) (subset? set2 set1) #f)))
@@ -78,21 +78,21 @@
                #t
                (intersect? (cdr _set10) _set20))))))
  
-(define intersect? (<change>
-      (lambda (set1 set2)
-         (if (null? set1)
-            #f
-            (let ((__or_res (member? (car set1) set2)))
-               (if __or_res
-                  __or_res
-                  (intersect? (cdr set1) set2)))))
-      (lambda (_set10 _set20)
-         (if (null? _set10)
-            #f
-            (let ((___or_res0 (member? (car _set10) _set20)))
-               (if ___or_res0
-                  ___or_res0
-                  (intersect? (cdr _set10) _set20)))))))
+;(define intersect? (<change>
+;      (lambda (set1 set2)
+;         (if (null? set1)
+;            #f
+;            (let ((__or_res (member? (car set1) set2)))
+;               (if __or_res
+;                  __or_res
+;                  (intersect? (cdr set1) set2)))))
+;      (lambda (_set10 _set20)
+;         (if (null? _set10)
+;            #f
+;            (let ((___or_res0 (member? (car _set10) _set20)))
+;               (if ___or_res0
+;                  ___or_res0
+;                  (intersect? (cdr _set10) _set20)))))))
  
 (define intersect (lambda (set1 set2)
       (if (null? set1)
@@ -173,10 +173,10 @@
 (define revpair (lambda (pair)
       (build (second pair) (first pair))))
  
-(define revrel (lambda (rel)
-      (if (null? rel)
-         ()
-         (cons (revpair (car rel)) (revrel (cdr rel))))))
+;(define revrel (lambda (rel)
+;      (if (null? rel)
+;         ()
+;         (cons (revpair (car rel)) (revrel (cdr rel))))))
  
 (define fullfun? (<change>
       (lambda (fun)

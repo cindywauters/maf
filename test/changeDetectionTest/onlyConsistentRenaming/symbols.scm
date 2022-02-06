@@ -1,14 +1,18 @@
 ;; renamed lambdas/lets: 3
 
-(define (find-last lijst)
-  (if (null? lijst)
-      (error "find-last -- lijst heeft geen laatste element")
-      (let ((next (cdr lijst)))
-        (if (null? next)
-            lijst
-            (find-last next)))))
+(define find-last (<change>
+      (lambda (lijst)
+         (if (null? lijst)
+            (error "find-last -- lijst heeft geen laatste element")
+            (let ((next (cdr lijst)))
+               (if (null? next) lijst (find-last next)))))
+      (lambda (_lijst0)
+         (if (null? _lijst0)
+            (error "find-last -- lijst heeft geen laatste element")
+            (let ((_next0 (cdr _lijst0)))
+               (if (null? _next0) _lijst0 (find-last _next0)))))))
 
-(define flatten! (<change>
+(define flatten! ;(<change>
       (lambda (lijst)
          (if (null? lijst)
             ()
@@ -18,17 +22,17 @@
                   restlist
                   (let ((last (find-last sublist)))
                      (set-cdr! last restlist)
-                     sublist)))))
-      (lambda (_lijst0)
-         (if (null? _lijst0)
-            ()
-            (let* ((_sublist0 (car _lijst0))
-                   (_restlist0 (flatten! (cdr _lijst0))))
-              (if (null? _sublist0)
-                  _restlist0
-                  (let ((_last0 (find-last _sublist0)))
-                     (set-cdr! _last0 _restlist0)
-                     _sublist0)))))))
+                     sublist))))))
+   ;   (lambda (_lijst0)
+    ;     (if (null? _lijst0)
+     ;       ()
+      ;      (let* ((_sublist0 (car _lijst0))
+       ;            (_restlist0 (flatten! (cdr _lijst0))))
+        ;       (if (null? _sublist0)
+         ;         _restlist0
+          ;        (let ((_last0 (find-last _sublist0)))
+           ;          (set-cdr! _last0 _restlist0)
+            ;         _sublist0)))))))
 
 (define atom? (lambda (x)
       (not (pair? x))))
@@ -79,11 +83,26 @@
           ;  (flatten-aux! _hulpcel0 _lijst0)
            ; (cdr _hulpcel0))))
 
-(define res (and  (equal? (flatten! '((1 2) (3 4 5) (6) (7 8))) '(1 2 3 4 5 6 7 8))
-                  (equal? (flatten! '(() (1 2) (3 4 5) () (6) (7 8))) '(1 2 3 4 5 6 7 8))
-                  (equal? (flatten2! '((1 (2 3) 4) 5 6 (7 8))) '(1 2 3 4 5 6 7 8))
-                  (equal? (flatten2! '((1 2) (3 4 5) (6) (7 8))) '(1 2 3 4 5 6 7 8))
-                  (equal? (flatten2! '(() (1 2) (3 4 5) () (6) (7 8))) '(1 2 3 4 5 6 7 8))
-                  (equal? (flatten2! '(1 2 (3 (4 5) 6 (7 8) 9) 10)) '(1 2 3 4 5 6 7 8 9 10))))
+(define res ;(if (equal? (flatten! (cons (cons 1 (cons 2 ())) (cons (cons 3 (cons 4 (cons 5 ()))) (cons (cons 6 ()) (cons (cons 7 (cons 8 ())) ()))))) (cons 1 (cons 2 (cons 3 (cons 4 (cons 5 (cons 6 (cons 7 (cons 8 ())))))))))
+     ; (if (equal? (flatten! (cons () (cons (cons 1 (cons 2 ())) (cons (cons 3 (cons 4 (cons 5 ()))) (cons () (cons (cons 6 ()) (cons (cons 7 (cons 8 ())) ()))))))) (cons 1 (cons 2 (cons 3 (cons 4 (cons 5 (cons 6 (cons 7 (cons 8 ())))))))))
+      ;   (if (equal? (flatten2! (cons (cons 1 (cons (cons 2 (cons 3 ())) (cons 4 ()))) (cons 5 (cons 6 (cons (cons 7 (cons 8 ())) ()))))) (cons 1 (cons 2 (cons 3 (cons 4 (cons 5 (cons 6 (cons 7 (cons 8 ())))))))))
+       ;     (if (equal? (flatten2! (cons (cons 1 (cons 2 ())) (cons (cons 3 (cons 4 (cons 5 ()))) (cons (cons 6 ()) (cons (cons 7 (cons 8 ())) ()))))) (cons 1 (cons 2 (cons 3 (cons 4 (cons 5 (cons 6 (cons 7 (cons 8 ())))))))))
+               (if (equal? (flatten2! (cons () (cons (cons 1 (cons 2 ())) (cons (cons 3 ()) ()))))(cons 4 (cons 5 ())))
+                  (equal?
+                     (flatten2!
+                        (cons
+                           6
+                           (cons
+                              7  ())))
+                     (cons
+                        8
+                        (cons
+                           9 ())))
+                 #f))
+      ;         #f)
+       ;     #f)
+        ; #f)
+      ;#f))
+
 res
- 
+

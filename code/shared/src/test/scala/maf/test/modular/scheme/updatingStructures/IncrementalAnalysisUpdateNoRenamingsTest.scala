@@ -125,7 +125,8 @@ class IncrementalAnalysisUpdateNoRenamingsTest extends AnyPropSpec:
     "test\\changes\\scheme\\peval.scm",
     "test\\changes\\scheme\\machine-simulator.scm",
     "test\\changes\\scheme\\nboyer.scm",
-    "test\\changes\\scheme\\scheme.scm"
+    "test\\changes\\scheme\\scheme.scm",
+    "test\\changes\\scheme\\mceval-dynamic.scm"
   )
   val modFbenchmarks: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changes/scheme")().filter(file => !skips.contains(file))
 
@@ -153,3 +154,4 @@ class IncrementalAnalysisUpdateNoRenamingsTest extends AnyPropSpec:
     analysisIncremental.updateAnalysis(Timeout.start(Duration(2, MINUTES)))
 
     checkEqual(analysisToUpdate, analysisIncremental)
+

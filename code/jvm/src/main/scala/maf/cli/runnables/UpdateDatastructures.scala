@@ -29,7 +29,7 @@ import scala.concurrent.duration.*
 
 object UpdateDatastructures extends App:
 
-  val w = Writer.open("benchOutput/incremental/errors.txt")
+ // val w = Writer.open("benchOutput/incremental/errors.txt")
 
   // Runs the program with a concrete interpreter, just to check whether it makes sense (i.e., if the concrete interpreter does not error).
   // Useful when reducing a program when debugging the analysis.
@@ -268,18 +268,18 @@ object UpdateDatastructures extends App:
           println("missing in update: " + e.toString()))
 
 
-    //  visitedWithUpdate.foreach(e =>
-      //  if !visitedWithReanalysis.contains(e) then
-        //  println("missing in reanalysis: " + e.toString()))
+      visitedWithUpdate.foreach(e =>
+        if !visitedWithReanalysis.contains(e) then
+          println("missing in reanalysis: " + e.toString()))
 
       println()
 
     } catch {
       case e: Exception =>
-        e.printStackTrace(System.out)
+    /*    e.printStackTrace(System.out)
         Writer.writeln(w, bench)
         Writer.writeln(w, e.getStackTrace().toString)
-        Writer.writeln(w, "")
+        Writer.writeln(w, "")*/
     }
   end modfAnalysis
 
