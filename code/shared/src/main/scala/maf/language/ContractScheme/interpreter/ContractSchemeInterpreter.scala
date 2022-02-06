@@ -14,7 +14,12 @@ import maf.language.ContractScheme.ContractValues.StructSetterGetter
 import maf.language.ContractScheme.ContractValues.StructConstructor
 import maf.language.ContractScheme.ContractValues.Arr
 
-class ContractSchemeInterpreter extends SchemeInterpreter:
+trait RandomInputGenerator:
+    /** Generate a random input, possibly under the constraint of the given set of primitive contracts */
+    def generateInput(contract: Set[String] = Set()): ConcreteValues.Value
+
+class ContractSchemeInterpreter(cb: (Identity, ConcreteValues.Value) => Unit = (_, _) => (), signalBlame: (Identity, Identity) => Unit = (_, _) => ())
+    extends SchemeInterpreter(cb):
     import ConcreteValues.*
     import ContractSchemeErrors.*
     import TailrecUtil.*
@@ -70,7 +75,40 @@ class ContractSchemeInterpreter extends SchemeInterpreter:
             case MakeStructSetter(tag, idx, idn) =>
               done(ContractValue(ContractValues.StructSetterGetter(tag, idx, true)))
 
+            case call @ SchemeFuncall(f, args, idn) =>
+              for
+                  fv <- tailcall(eval(f, env, timeout, version))
+                  argsv <- evalArgs(args, env, timeout, version)
+                  res <- applyFun(fv, call, argsv, args, idn, timeout, version)
+              yield res
+
+            // match expression
+            case MatchExpr(value, clauses, _) =>
+              for
+                  evaluatedValue <- eval(value, env, timeout, version)
+                  // create a matcher for trying the clauses
+                  matcher = Matcher(evaluatedValue, (exp) => eval(exp, env, timeout, version).result)
+                  // try the clauses in order, if one matches then the expression is evaluated
+                  ret <- tryClauses(env, timeout, version, clauses, matcher)
+              yield ret
+
             case _ => super.eval(e, env, timeout, version)
+
+    private def tryClauses(env: Env, timeout: Timeout.T, version: Version, clauses: List[MatchExprClause], matcher: Matcher): TailRec[Value] =
+      clauses match
+          case List() => throw ContractSchemeNoMatchClauseMatched()
+          case clause :: rest =>
+            if matcher.matches(clause.pat) then
+                val newBindings = matcher.resolveBindings
+                // if it matches we need to extend the environment and sotre with the given bindings
+                val newEnv = newBindings.foldLeft(env)((env, binding) =>
+                    val addr = newAddr(AddrInfo.VarAddr(binding._1))
+                    extendStore(addr, binding._2)
+                    env + (binding._1.name -> addr)
+                )
+                // then evaluate the value of the clause
+                evalSequence(clause.expr, newEnv, timeout, version)
+            else tryClauses(env, timeout, version, rest, matcher)
 
     private def checkArity[T](argsv: List[T], expected: Int): Unit =
       if expected != argsv.size then throw ContractSchemeInvalidArity(argsv.size, expected)
@@ -147,7 +185,7 @@ class ContractSchemeInterpreter extends SchemeInterpreter:
         isCheck: Boolean = false,
       ): TailRec[Value] =
       // first try to see what type the contract value is
-      contract match
+      contractv match
           case ContractValue(ContractValues.Flat(flatv, _, _, _)) =>
             // it is a flat contract, so we must apply the inner function value, if return value is true the monitored value is returned, otherwise an error is thrown
             for
