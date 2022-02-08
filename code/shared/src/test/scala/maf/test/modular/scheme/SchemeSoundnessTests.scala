@@ -27,6 +27,30 @@ trait SchemeSoundnessTests extends SchemeBenchmarkTests:
     def analysisTimeout(b: Benchmark): Timeout.T = Timeout.start(Duration(1, MINUTES))
     def concreteTimeout(b: Benchmark): Timeout.T = Timeout.start(Duration(1, MINUTES))
     def concreteRuns(b: Benchmark): Int = 1 // for highly non-deterministic programs, a higher value is recommended
+
+    /**
+     * Create a concrete interpreter
+     *
+     * @param addResult
+     *   a callback function invoked by the interpreter at a store write
+     * @param io
+     *   a mock IO that is used as input to the programs in the concrete interpreter
+     * @return
+     *   a concrete SchemeInterpreter
+     */
+    def createInterpreter(addResult: (Identity, ConcreteValues.Value) => Unit, io: IO = new EmptyIO()): SchemeInterpreter =
+      new SchemeInterpreter(addResult, io)
+
+    /**
+     * Hook that gets executed when the interpreter throws an exception.
+     *
+     * It rethrows the exception as a default behaviour
+     *
+     * @param addResult
+     *   a callback function that can register values in the result map
+     */
+    def handleInterpreterError(addResult: (Identity, ConcreteValues.Value) => Unit): PartialFunction[Throwable, Any] = { case e => throw e }
+
     // the actual testing code
     protected def runInterpreter(
         i: SchemeInterpreter,
@@ -39,11 +63,11 @@ trait SchemeSoundnessTests extends SchemeBenchmarkTests:
         val timeout = concreteTimeout(benchmark)
         val times = concreteRuns(benchmark)
         try
+            val addResult: (Identity, ConcreteValues.Value) => Unit = (i, v) => idnResults += (i -> (idnResults(i) + v))
             for _ <- 1 to times do
-                val interpreter = new SchemeInterpreter((i, v) => idnResults += (i -> (idnResults(i) + v)),
-                                                        io = new FileIO(Map("input.txt" -> "foo\nbar\nbaz", "output.txt" -> ""))
-                )
-                runInterpreter(interpreter, program, timeout)
+                val interpreter = createInterpreter(addResult, io = new FileIO(Map("input.txt" -> "foo\nbar\nbaz", "output.txt" -> "")))
+                try runInterpreter(interpreter, program, timeout)
+                catch handleInterpreterError(addResult)
         catch
             case _: TimeoutException =>
               alert(s"Concrete evaluation of $benchmark timed out.")
@@ -127,14 +151,14 @@ trait SchemeSoundnessTests extends SchemeBenchmarkTests:
       if isSlow(b) then Seq(SoundnessTest, SlowTest)
       else Seq(SoundnessTest)
 
-    def parseProgram(txt: String): SchemeExp =
-      CSchemeParser.parseProgram(txt)
+    def parseProgram(txt: String, benchmark: String): SchemeExp =
+      CSchemeParser.parseProgram(txt, Position.withSourcePath(benchmark))
 
     def onBenchmark(benchmark: Benchmark): Unit =
       property(s"Analysis of $benchmark using $name is sound.", testTags(benchmark): _*) {
         // load the benchmark program
         val content = Reader.loadFile(benchmark)
-        val program = parseProgram(content)
+        val program = parseProgram(content, benchmark)
         // run the program using a concrete interpreter
         val concreteResults = evalConcrete(program, benchmark)
         // analyze the program using a ModF analysis
