@@ -221,12 +221,6 @@ class IncrementalAnalysisUpdateMixOfChangesTest extends AnyPropSpec:
       case (a: IncrementalGlobalStore[SchemeExp], u: IncrementalGlobalStoreWithUpdate[SchemeExp], full: IncrementalGlobalStore[SchemeExp]) =>
         assert(a.store.size <= u.store.size, "The incrementally updated store is smaller than the store of the incremental reanalysis with updates.")
         assert(checkSubsumptionSetOfStore(a, u), "The store of incremental update does not subsume the store of the analysis of the new version only")
-      /*  a.store.foreach { case (addr, av) =>
-          val uv = u.store.getOrElse(addr, u.lattice.bottom)
-          val fullv = full.store.getOrElse(addr, full.lattice.bottom)
-          val aSubsumesU = a.lattice.subsumes(uv.asInstanceOf[a.Value],av)
-          assert(checkSubsumptionSetOfStore(a, u), s"Store mismatch at $addr: $uv is not subsumed by $av.")
-     }*/
 
 
   val gambitGenerated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/MixOfChanges/R5RS/gambit")()
