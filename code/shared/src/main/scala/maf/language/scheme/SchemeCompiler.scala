@@ -10,7 +10,7 @@ trait BaseSchemeCompiler:
 
     /** Reserved keywords */
     def reserved: List[String] =
-      List("lambda", "if", "let", "let*", "letrec", "cond", "case", "set!", "begin", "define", "do", "when", "unless", "λ", "<change>", "assert")
+      List("lambda", "if", "let", "let*", "letrec", "cond", "case", "set!", "begin", "define", "do", "when", "unless", "λ", "<change>", "assert", "<insert>", "<delete>", "<rename>")
 
     def compile(exp: SExp): SchemeExp = this._compile(exp).result
 
@@ -152,10 +152,27 @@ trait BaseSchemeCompiler:
           yield SchemeCodeChange(oldv, newv, exp.idn)
         case SExpPair(SExpId(Identifier("<change>", _)), _, _) =>
           throw new Exception(s"Invalid code change: $exp (${exp.idn}).")
+        case SExpPair(SExpId(Identifier("<insert>", _)), SExpPair(nw, SExpValue(Value.Nil, _), _), _) =>
+          for
+            newv <- tailcall(this._compile(nw))
+          yield SchemeCodeChange(SchemeValue(Value.Boolean(false), exp.idn), newv, exp.idn)
+        case SExpPair(SExpId(Identifier("<delete>", _)), SExpPair(old, SExpValue(Value.Nil, _), _), _) =>
+          for
+            oldv <- tailcall(this._compile(old))
+          yield SchemeCodeChange(oldv, SchemeValue(Value.Boolean(false), exp.idn), exp.idn)
         case SExpPair(SExpId(Identifier("assert", _)), SExpPair(exp, SExpValue(Value.Nil, _), _), _) =>
           tailcall(this._compile(exp).map(SchemeAssert(_, exp.idn)))
         case SExpPair(SExpId(Identifier("assert", _)), _, _) =>
           throw new SchemeCompilerException(s"Invalid Scheme assert: $exp", exp.idn)
+        case SExpPair(
+              SExpId(Identifier("define", _)),
+              SExpPair(SExpPair(SExpId(Identifier("<rename>", _)), SExpPair(SExpId(old), SExpPair(SExpId(nw), SExpValue(Value.Nil, _), _), _), _),SExpPair(value, SExpValue(Value.Nil, _), _), _),
+              _
+              ) =>
+          println(old)
+          println(exp.idn)
+         // println(tailcall(this._compile(value)).map(SchemeRenameVar(old, nw, _, exp.idn)).)
+          tailcall(this._compile(value)).map(SchemeRenameVar(old, nw, _, exp.idn))
         case SExpPair(
               SExpId(Identifier("define", _)),
               SExpPair(SExpId(name), SExpPair(value, SExpValue(Value.Nil, _), _), _),

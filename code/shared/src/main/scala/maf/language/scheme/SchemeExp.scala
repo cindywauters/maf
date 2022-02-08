@@ -519,6 +519,16 @@ case class SchemeCodeChange(old: SchemeExp, nw: SchemeExp, idn: Identity) extend
     override def prettyString(indent: Int): String =
       s"(<change>\n${" " * nextIndent(indent) ++ old.prettyString(nextIndent(indent))}\n${" " * nextIndent(indent) ++ nw.prettyString(nextIndent(indent))})"
 
+/** A name change in a Scheme program */
+case class SchemeRenameVar(old: Identifier, nw: Identifier, body: SchemeExp, idn: Identity) extends SchemeExp:
+  def fv: Set[String] = Set()
+  val label: Label = DFV
+  def subexpressions: List[Expression] = body.subexpressions
+  override def toString: String = s"(define (<rename> $old $nw) $body)"
+  override def prettyString(indent: Int): String = s"(<rename>\n${" " * nextIndent(indent) ++ old.toString}\n${" " * nextIndent(indent) ++ nw.toString})"
+
+
+
 trait CSchemeExp extends SchemeExp
 
 /** Fork a thread with an expression to evaluate. */
