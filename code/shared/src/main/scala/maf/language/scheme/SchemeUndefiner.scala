@@ -131,6 +131,14 @@ trait UndefinerTester:
               // ignore the old expression while checking (TODO: verify)
               check(nw, allowed)
 
+            // insertion
+            case SchemeInsertion(ins, _) =>
+              check(ins, allowed)
+
+            // deletion
+            case SchemeDeletion(del, _) =>
+              check (del, allowed)
+
             // ContractScheme
             case ContractSchemeDepContract(domains, rangeMaker, _) =>
               domains.foldLeft[Result](false)(_ || check(_, false)) || check(rangeMaker, false)

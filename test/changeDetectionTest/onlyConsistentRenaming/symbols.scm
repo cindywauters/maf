@@ -16,6 +16,6 @@
   (<change> (display "g") #f)
   (+ 1 y))
 
-(define (<rename> oldF newF) (lamdba (x) (+ x 1)))
+;(define (<rename> oldF newF) (lamdba (x) (+ x 1)))
 
-(+ (f 1) (g1 1) (g2 1) (g3 1) (g4 1) (<change> (oldF 1)  (newF 1)))
+(+ (f 1) (g1 1) (g2 1) (g3 1) (g4 1));(<change> (oldF 1)  (newF 1)))

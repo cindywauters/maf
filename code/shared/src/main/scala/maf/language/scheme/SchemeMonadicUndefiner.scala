@@ -258,6 +258,20 @@ trait BaseSchemeMonadicUndefiner:
               result <- mk(SchemeCodeChange(undefineOld, undefineNew, idn))
           yield result
 
+
+        // insertions
+        case SchemeInsertion(ins, idn) =>
+          for
+            undefineIns <- undefineSingle(ins)
+            result <- mk(SchemeInsertion(undefineIns, idn))
+          yield result
+          
+        // Deletion
+        case SchemeDeletion(del, idn) =>
+          for undefineDel <- undefineSingle(del)
+          result <- mk(SchemeDeletion(undefineDel, idn))
+        yield result   
+
         // define's are not allowed in the expressions of the domain and rangeMaker,
         // unless they themselves introduce bodies in which case it has already
         // been handled inside of the recursion

@@ -48,3 +48,7 @@ enum Label:
 
     // Match expressions
     case MEX // match expression
+
+    // Insert and delete
+    case INS
+    case DEL

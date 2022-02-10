@@ -348,6 +348,10 @@ class SchemeInterpreter(
               yield res
             case SchemeCodeChange(old, nw, _) =>
               if version == Old then tailcall(eval(old, env, timeout, version)) else tailcall(eval(nw, env, timeout, version))
+            case SchemeInsertion(ins, _) =>
+              if version == New then tailcall(eval(ins, env, timeout, version)) else done(Value.Void)
+            case SchemeDeletion(del, _) =>
+              if version == Old then tailcall(eval(del, env, timeout, version)) else done(Value.Void)
             case _ => throw new Exception(s"Unsupported Scheme expression: $e")
 
 object SchemeInterpreter:
