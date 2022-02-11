@@ -539,7 +539,7 @@ case class SchemeDeletion(del: SchemeExp, idn: Identity) extends SchemeExp:
 /** A name change in a Scheme program */
 case class SchemeRenameVar(old: Identifier, nw: Identifier, body: SchemeExp, idn: Identity) extends SchemeExp:
   def fv: Set[String] = Set()
-  val label: Label = DFV
+  val label: Label = REN
   def subexpressions: List[Expression] = body.subexpressions
   override def toString: String = s"(define (<rename> $old $nw) $body)"
   override def prettyString(indent: Int): String = s"(<rename>\n${" " * nextIndent(indent) ++ old.toString}\n${" " * nextIndent(indent) ++ nw.toString})"
