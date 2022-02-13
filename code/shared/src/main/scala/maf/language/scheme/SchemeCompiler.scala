@@ -173,10 +173,8 @@ trait BaseSchemeCompiler:
               SExpPair(SExpPair(SExpId(Identifier("<rename>", _)), SExpPair(SExpId(old), SExpPair(SExpId(nw), SExpValue(Value.Nil, _), _), _), _),SExpPair(value, SExpValue(Value.Nil, _), _), _),
               _
               ) =>
-         // println(old)
-         // println(exp.idn)
-         // println(tailcall(this._compile(value)).map(SchemeRenameVar(old, nw, _, exp.idn)).)
-          tailcall(this._compile(value)).map(SchemeRenameVar(old, nw, _, exp.idn))
+         val schemeVar = tailcall(this._compile(value)).map(SchemeDefineVariable(old, _, exp.idn))
+         done(SchemeRenameVar(old, nw, schemeVar.result, exp.idn))
         case SExpPair(
               SExpId(Identifier("define", _)),
               SExpPair(SExpId(name), SExpPair(value, SExpValue(Value.Nil, _), _), _),

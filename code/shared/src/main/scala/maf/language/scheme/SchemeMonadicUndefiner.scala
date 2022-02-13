@@ -268,9 +268,20 @@ trait BaseSchemeMonadicUndefiner:
           
         // Deletion
         case SchemeDeletion(del, idn) =>
-          for undefineDel <- undefineSingle(del)
-          result <- mk(SchemeDeletion(undefineDel, idn))
-        yield result   
+          for
+            undefineDel <- undefineSingle(del)
+            result <- mk(SchemeDeletion(undefineDel, idn))
+          yield result
+
+        // renamer
+        case SchemeRenameVar(old, nw, body, idn) =>
+          for
+            undefinedExp <- undefineSingle(body.value)
+            _ <- bind(old, undefinedExp)
+            // TODO: make sure this works for recursive calls
+            _ <- bind(nw, undefinedExp)
+            result <- mk(SchemeRenameVar(old, nw, body, idn))
+          yield result
 
         // define's are not allowed in the expressions of the domain and rangeMaker,
         // unless they themselves introduce bodies in which case it has already

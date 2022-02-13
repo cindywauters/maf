@@ -11,7 +11,7 @@ import maf.modular.scheme.SchemeAddr
 import maf.core.BasicEnvironment
 import maf.language.CScheme.*
 import maf.language.change.CodeVersion.*
-import maf.language.scheme.{SchemeChangePatterns, SchemeExp, SchemeLambdaExp}
+import maf.language.scheme.{SchemeChangePatterns, SchemeExp, SchemeLambdaExp, SchemeRenameVar}
 import maf.language.scheme.interpreter.SchemeInterpreter
 import maf.language.scheme.primitives.SchemePrelude
 import maf.modular.ModAnalysis
@@ -106,8 +106,6 @@ object UpdateStructuresInAnalysis extends App:
 
       val analysisWithoutUpdates = baseNoUpdates(program)
 
-     // analysisWithoutUpdates.analyzeWithTimeout(timeout())
-     // analysisWithoutUpdates.analyzeWithTimeout(timeout())
       val beforeAnalysis = System.nanoTime
       analysisWithoutUpdates.version = New
       analysisWithoutUpdates.analyzeWithTimeout(timeout())
@@ -137,8 +135,8 @@ object UpdateStructuresInAnalysis extends App:
       println("Time updating:                " + timeUpdateAnalysis)
 
 
-    //  println("Store with updating: " + storeWithUpdate.toString)
-   //   println("Store with regular reanalysis: " + storeWithoutUpdate.toString)
+      println("Store with updating: " + storeWithUpdate.toString)
+      println("Store with regular reanalysis: " + storeWithoutUpdate.toString)
 
 
       println("store reanalysis -> Update: " + storeWithoutUpdate.forall((k, v) =>
@@ -184,8 +182,8 @@ object UpdateStructuresInAnalysis extends App:
 
       println()
 
-    //  println("Dependencies with updating: " + depsWithUpdate.toString)
-    //  println("Dependencies with regular reanalysis: " + depsWithoutUpdate.toString)
+      println("Dependencies with updating: " + depsWithUpdate.toString)
+      println("Dependencies with regular reanalysis: " + depsWithoutUpdate.toString)
 
 
       println("Dependencies reanalysis -> Update: " + depsWithoutUpdate.forall((k, v) =>
@@ -217,8 +215,8 @@ object UpdateStructuresInAnalysis extends App:
 
       println()
 
-     // println("Mapping with updating: " + mappingWithUpdate.toString)
-    //  println("Mapping with regular reanalysis: " + mappingWithoutUpdate.toString)
+      println("Mapping with updating: " + mappingWithUpdate.toString)
+      println("Mapping with regular reanalysis: " + mappingWithoutUpdate.toString)
 
 
       println("Mapping reanalysis -> Update: " + mappingWithoutUpdate.forall((k, v) =>
@@ -346,8 +344,8 @@ object UpdateStructuresInAnalysis extends App:
 
       println()
 
-   //   println("Visited with updating: " + visitedWithUpdate.toString)
-   //   println("Visited with regular reanalysis: " + visitedWithoutUpdate.toString)
+      println("Visited with updating: " + visitedWithUpdate.toString)
+      println("Visited with regular reanalysis: " + visitedWithoutUpdate.toString)
 
 
       println("Visited reanalysis -> Update: " + visitedWithoutUpdate.forall(e => visitedWithUpdate.contains(e)).toString)
@@ -403,9 +401,9 @@ object UpdateStructuresInAnalysis extends App:
   end modfAnalysis
 
   val modConcbenchmarks: List[String] = List()
-  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm", "test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm", "test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm")
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/symbols.scm")
+ // val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/symbols.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/scp1/testProblems/merge.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/array1.scm")
   val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))

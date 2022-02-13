@@ -137,7 +137,11 @@ trait UndefinerTester:
 
             // deletion
             case SchemeDeletion(del, _) =>
-              check (del, allowed)
+              check(del, allowed)
+
+            // renamer
+            case SchemeRenameVar(_, _, body, _) =>
+              check(body, allowed)
 
             // ContractScheme
             case ContractSchemeDepContract(domains, rangeMaker, _) =>

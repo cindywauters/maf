@@ -46,8 +46,12 @@ object SchemeChangePatterns:
       List()
 
 
-  def checkRenamingsVariables(oldexp: Expression, newexp: Expression): (Boolean, Map[Identifier, Identifier]) =
+  def checkRenamingsVariables(oldexp: Expression, newexp: Expression, varRenamings: List[SchemeRenameVar] = List()): (Boolean, Map[Identifier, Identifier]) =
     (oldexp, newexp) match
+      case (oe: SchemeFuncall, ne: SchemeFuncall) =>
+        val possibleRenaming = varRenamings.filter(e => e.old.toString == oe.f.toString && e.nw.toString == ne.f.toString)
+        if possibleRenaming.nonEmpty && oe.args.toString() == ne.args.toString() then
+          return (true, possibleRenaming.map(e => (e.nw, e.old)).toMap)
       case (oe: SchemeExp, ne: SchemeExp) =>
         var renamedOld = SchemeRenamer.rename(oe)
         var renamedNew = SchemeRenamer.rename(ne)
@@ -64,9 +68,9 @@ object SchemeChangePatterns:
           return (true, mappedIdentifiers)
     return (false, Map())
 
-  def checkForRenamingParameter(exp: SchemeExp): Set[((maf.core.Expression, maf.core.Expression), (Boolean, Map[Identifier, Identifier]))] =
+  def checkForRenamingParameter(exp: SchemeExp, varRenamings: List[SchemeRenameVar] = List()): Set[((maf.core.Expression, maf.core.Expression), (Boolean, Map[Identifier, Identifier]))] =
     var changedExpr = findAllChangedExpressions(exp)
     var changedExprAsPairs = changedExpr.map(e => (e.old, e.nw))
     // toList necessary because sets cannot contain duplicate items
-    val renamings: List[(Boolean, Map[Identifier, Identifier])] = changedExprAsPairs.toList.map(e => checkRenamingsVariables(e._1, e._2))
+    val renamings: List[(Boolean, Map[Identifier, Identifier])] = changedExprAsPairs.toList.map(e => checkRenamingsVariables(e._1, e._2, varRenamings))
     changedExprAsPairs.zip(renamings)
