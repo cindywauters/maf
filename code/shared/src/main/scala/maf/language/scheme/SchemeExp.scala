@@ -524,7 +524,7 @@ case class SchemeInsertion(ins: SchemeExp, idn: Identity) extends SchemeExp:
   val label: Label = INS
   def subexpressions: List[Expression] = ins.subexpressions
   override def toString: String = s"(<insert> $ins)"
-  override def prettyString(indent: Int): String = s"(<insert>\n${ins.prettyString(indent)})"
+  override def prettyString(indent: Int): String = s"(<insert>${ins.prettyString(indent)})"
 
 
 case class SchemeDeletion(del: SchemeExp, idn: Identity) extends SchemeExp:
@@ -532,7 +532,7 @@ case class SchemeDeletion(del: SchemeExp, idn: Identity) extends SchemeExp:
   val label: Label = DEL
   def subexpressions: List[Expression] = del.subexpressions
   override def toString: String = s"(<delete> $del)"
-  override def prettyString(indent: Int): String = s"(<delete>\n${del.prettyString(indent)})"  
+  override def prettyString(indent: Int): String = s"(<delete>${del.prettyString(indent)})"
 
 
 

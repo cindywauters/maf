@@ -72,7 +72,7 @@ object RenamingTester extends App:
         case e                  =>  e.subexpressions.flatMap(findAllRenamedVars).toSet
 
       println(findAllRenamedVars(program))
-      println(program)
+      println(program.prettyString())
 
       val analysisWithUpdates = baseUpdates(program)
       analysisWithUpdates.analyzeWithTimeout(timeout())

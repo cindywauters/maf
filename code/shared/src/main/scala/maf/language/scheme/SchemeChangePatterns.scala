@@ -48,6 +48,10 @@ object SchemeChangePatterns:
 
   def checkRenamingsVariables(oldexp: Expression, newexp: Expression, varRenamings: List[SchemeRenameVar] = List()): (Boolean, Map[Identifier, Identifier]) =
     (oldexp, newexp) match
+      case (oe: SchemeVar, ne: SchemeVar) =>
+        val possibleRenaming = varRenamings.filter(e => e.old.toString == oe.toString && e.nw.toString == ne.toString)
+        if possibleRenaming.nonEmpty then
+          return (true, possibleRenaming.map(e => (e.nw, e.old)).toMap)
       case (oe: SchemeFuncall, ne: SchemeFuncall) =>
         val possibleRenaming = varRenamings.filter(e => e.old.toString == oe.f.toString && e.nw.toString == ne.f.toString)
         if possibleRenaming.nonEmpty && oe.args.toString() == ne.args.toString() then
