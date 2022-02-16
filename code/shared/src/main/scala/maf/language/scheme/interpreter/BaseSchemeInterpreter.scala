@@ -5,8 +5,10 @@ import maf.language.scheme._
 import maf.language.sexp
 import maf.language.sexp.{SExp, SExpId, SExpPair, SExpValue}
 import maf.util.benchmarks.Timeout
+import maf.core.Error
 
-case class ProgramError(msg: String) extends Exception
+case class ProgramError(msg: Error) extends Exception:
+    override def toString: String = msg.toString
 
 /** Common functionality for different Scheme interpreters, and interface methods needed for the primitives. */
 trait BaseSchemeInterpreter[V]:
@@ -32,7 +34,7 @@ trait BaseSchemeInterpreter[V]:
     // Both access to 'lastAddr' and 'store' should be synchronized on 'this'!
     var lastAddr = 0
 
-    def newAddr(meta: AddrInfo): (Int, AddrInfo) = 
+    def newAddr(meta: AddrInfo): (Int, AddrInfo) =
       synchronized {
         lastAddr += 1
         (lastAddr, meta)
@@ -40,7 +42,7 @@ trait BaseSchemeInterpreter[V]:
 
     var store = Map[Addr, Value]()
 
-    def extendStore(a: Addr, v: Value): Unit = 
+    def extendStore(a: Addr, v: Value): Unit =
       synchronized {
         store = store + (a -> v)
       }
@@ -50,12 +52,12 @@ trait BaseSchemeInterpreter[V]:
         store(a)
       }
 
-    def lookupStoreOption(a: Addr): Option[Value] = 
+    def lookupStoreOption(a: Addr): Option[Value] =
       synchronized {
         store.get(a)
       }
 
-    def setStore(s: Map[Addr, Value]): Unit = 
+    def setStore(s: Map[Addr, Value]): Unit =
       synchronized {
         store = s
       }
@@ -64,6 +66,14 @@ trait BaseSchemeInterpreter[V]:
         val addr = newAddr(AddrInfo.PtrAddr(exp))
         extendStore(addr, value)
         Value.Pointer(addr)
+
+    /** Allocate the given pair recursively in the store. */
+    def allocateAll(exp: SchemeExp, value: Value): ConcreteValues.Value = value match
+        case ConcreteValues.Value.Cons(car, cdr) =>
+          val carAlloc = allocateAll(exp, car)
+          val cdrAlloc = allocateAll(exp, cdr)
+          allocateVal(exp, ConcreteValues.Value.Cons(carAlloc, cdrAlloc))
+        case _ => value
 
     def allocateCons(
         exp: SchemeExp,
@@ -83,10 +93,8 @@ trait BaseSchemeInterpreter[V]:
         case Nil                  => Value.Nil
         case (exp, value) :: rest => allocateCons(exp, value, makeList(rest))
 
-    val stack: Boolean
-
     /** Signals an error in the program to the user. */
-    def signalException[R](msg: String): R = throw ProgramError(msg)
+    def signalException[R](msg: Error): R = throw ProgramError(msg)
 
     val io: IO
 
