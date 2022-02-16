@@ -126,7 +126,8 @@ class IncrementalAnalysisUpdateNoRenamingsTest extends AnyPropSpec:
     "test\\changes\\scheme\\machine-simulator.scm",
     "test\\changes\\scheme\\nboyer.scm",
     "test\\changes\\scheme\\scheme.scm",
-    "test\\changes\\scheme\\mceval-dynamic.scm"
+    "test\\changes\\scheme\\mceval-dynamic.scm",
+    "test\\changes\\scheme\\mountainvale.scm"
   )
   val modFbenchmarks: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changes/scheme")().filter(file => !skips.contains(file))
 

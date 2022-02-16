@@ -519,33 +519,6 @@ case class SchemeCodeChange(old: SchemeExp, nw: SchemeExp, idn: Identity) extend
     override def prettyString(indent: Int): String =
       s"(<change>\n${" " * nextIndent(indent) ++ old.prettyString(nextIndent(indent))}\n${" " * nextIndent(indent) ++ nw.prettyString(nextIndent(indent))})"
 
-case class SchemeInsertion(ins: SchemeExp, idn: Identity) extends SchemeExp:
-  def fv: Set[String] = ins.fv
-  val label: Label = INS
-  def subexpressions: List[Expression] = ins.subexpressions
-  override def toString: String = s"(<insert> $ins)"
-  override def prettyString(indent: Int): String = s"(<insert>${ins.prettyString(indent)})"
-
-
-case class SchemeDeletion(del: SchemeExp, idn: Identity) extends SchemeExp:
-  def fv: Set[String] = del.fv
-  val label: Label = DEL
-  def subexpressions: List[Expression] = del.subexpressions
-  override def toString: String = s"(<delete> $del)"
-  override def prettyString(indent: Int): String = s"(<delete>${del.prettyString(indent)})"
-
-
-
-/** A name change in a Scheme program */
-case class SchemeRenameVar(old: Identifier, nw: Identifier, body: SchemeDefineVariable, idn: Identity) extends SchemeExp:
-  def fv: Set[String] = Set()
-  val label: Label = DFV
-  def subexpressions: List[Expression] = body.subexpressions
-  override def toString: String = s"(define (<rename> $old $nw) $body)"
-  override def prettyString(indent: Int): String = s"(<rename>\n${" " * nextIndent(indent) ++ old.toString}\n${" " * nextIndent(indent) ++ nw.toString})"
-
-
-
 trait CSchemeExp extends SchemeExp
 
 /** Fork a thread with an expression to evaluate. */

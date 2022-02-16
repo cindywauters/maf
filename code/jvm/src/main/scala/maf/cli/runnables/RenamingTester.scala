@@ -10,7 +10,7 @@ import maf.modular.scheme.SchemeAddr
 import maf.core.BasicEnvironment
 import maf.language.CScheme.*
 import maf.language.change.CodeVersion.*
-import maf.language.scheme.{SchemeChangePatterns, SchemeExp, SchemeLambdaExp, SchemeRenameVar}
+import maf.language.scheme.{SchemeChangePatterns, SchemeExp, SchemeLambdaExp}
 import maf.language.scheme.interpreter.SchemeInterpreter
 import maf.language.scheme.primitives.SchemePrelude
 import maf.modular.ModAnalysis
@@ -67,11 +67,6 @@ object RenamingTester extends App:
       println(s"***** $bench *****")
       val program = CSchemeParser.parseProgram(Reader.loadFile(bench))
 
-      def findAllRenamedVars(expr: Expression): Set[SchemeRenameVar] = expr match
-        case e: SchemeRenameVar => Set(e) // Assumption: change expressions are not nested.
-        case e                  =>  e.subexpressions.flatMap(findAllRenamedVars).toSet
-
-      println(findAllRenamedVars(program))
       println(program.prettyString())
 
       val analysisWithUpdates = baseUpdates(program)

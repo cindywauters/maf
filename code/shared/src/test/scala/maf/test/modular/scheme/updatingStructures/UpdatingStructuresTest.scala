@@ -20,6 +20,8 @@ import maf.util.benchmarks.Timeout
 import org.scalatest.Tag
 import org.scalatest.propspec.AnyPropSpec
 
+import scala.concurrent.duration.{Duration, MINUTES}
+
 class UpdatingStructuresTest extends AnyPropSpec:
 
   type Analysis <: IncrementalModAnalysis[SchemeExp]
@@ -138,8 +140,9 @@ class UpdatingStructuresTest extends AnyPropSpec:
   )
 
   def callAnalysisOnBenchmark(a: IncrementalModAnalysis[SchemeExp], program: SchemeExp): Unit =
+    val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
     val analysisToUpdate = a.deepCopy()
-    analysisToUpdate.analyzeWithTimeoutInSeconds(60)
+    analysisToUpdate.analyzeWithTimeout(standardTimeout())
     var update = new IncrementalUpdateDatastructures
     analysisToUpdate match
       case analysis: IncrementalModAnalysis[Expression] =>
@@ -148,6 +151,6 @@ class UpdatingStructuresTest extends AnyPropSpec:
 
     val analysisNew = a.deepCopy()
     analysisNew.version = New
-    analysisNew.analyzeWithTimeoutInSeconds(60)
+    analysisNew.analyzeWithTimeout(standardTimeout())
 
     checkEqual(analysisToUpdate, analysisNew)

@@ -11,7 +11,7 @@ import maf.modular.scheme.SchemeAddr
 import maf.core.BasicEnvironment
 import maf.language.CScheme.*
 import maf.language.change.CodeVersion.*
-import maf.language.scheme.{SchemeChangePatterns, SchemeExp, SchemeLambdaExp, SchemeRenameVar}
+import maf.language.scheme.{SchemeChangePatterns, SchemeExp, SchemeLambdaExp}
 import maf.language.scheme.interpreter.SchemeInterpreter
 import maf.language.scheme.primitives.SchemePrelude
 import maf.modular.ModAnalysis
@@ -38,7 +38,6 @@ object UpdateStructuresInAnalysis extends App:
   // Useful when reducing a program when debugging the analysis.
   def interpretProgram(file: String): Unit =
     val prog = CSchemeParser.parseProgram(Reader.loadFile(file))
-    println(prog)
     val i = new SchemeInterpreter((_, _) => (), stack = true)
     print("*")
     i.run(prog, Timeout.start(Duration(3, MINUTES)), Old)
@@ -65,8 +64,8 @@ object UpdateStructuresInAnalysis extends App:
     def baseNoUpdates(program: SchemeExp) = new ModAnalysis[SchemeExp](program)
       with StandardSchemeModFComponents
       //with SchemeModFFullArgumentSensitivity
-      //with SchemeModFCallSiteSensitivity
-      with SchemeModFFullArgumentCallSiteSensitivity
+      with SchemeModFCallSiteSensitivity
+      //with SchemeModFFullArgumentCallSiteSensitivity
       //with SchemeModFNoSensitivity
       with SchemeModFSemanticsM
       with LIFOWorklistAlgorithm[SchemeExp]
@@ -82,10 +81,10 @@ object UpdateStructuresInAnalysis extends App:
 
     def baseUpdates(program: SchemeExp) = new ModAnalysis[SchemeExp](program)
       with StandardSchemeModFComponents
-     // with SchemeModFFullArgumentSensitivity
-      //with SchemeModFCallSiteSensitivity
-      with SchemeModFFullArgumentCallSiteSensitivity
-     // with SchemeModFNoSensitivity
+      // with SchemeModFFullArgumentSensitivity
+      with SchemeModFCallSiteSensitivity
+    //  with SchemeModFFullArgumentCallSiteSensitivity
+      // with SchemeModFNoSensitivity
       with SchemeModFSemanticsM
       with LIFOWorklistAlgorithm[SchemeExp]
       with IncrementalSchemeModFBigStepSemantics
@@ -106,6 +105,8 @@ object UpdateStructuresInAnalysis extends App:
 
       val analysisWithoutUpdates = baseNoUpdates(program)
 
+      // analysisWithoutUpdates.analyzeWithTimeout(timeout())
+      // analysisWithoutUpdates.analyzeWithTimeout(timeout())
       val beforeAnalysis = System.nanoTime
       analysisWithoutUpdates.version = New
       analysisWithoutUpdates.analyzeWithTimeout(timeout())
@@ -135,8 +136,8 @@ object UpdateStructuresInAnalysis extends App:
       println("Time updating:                " + timeUpdateAnalysis)
 
 
-      println("Store with updating: " + storeWithUpdate.toString)
-      println("Store with regular reanalysis: " + storeWithoutUpdate.toString)
+      //  println("Store with updating: " + storeWithUpdate.toString)
+      //   println("Store with regular reanalysis: " + storeWithoutUpdate.toString)
 
 
       println("store reanalysis -> Update: " + storeWithoutUpdate.forall((k, v) =>
@@ -182,8 +183,8 @@ object UpdateStructuresInAnalysis extends App:
 
       println()
 
-      println("Dependencies with updating: " + depsWithUpdate.toString)
-      println("Dependencies with regular reanalysis: " + depsWithoutUpdate.toString)
+      //  println("Dependencies with updating: " + depsWithUpdate.toString)
+      //  println("Dependencies with regular reanalysis: " + depsWithoutUpdate.toString)
 
 
       println("Dependencies reanalysis -> Update: " + depsWithoutUpdate.forall((k, v) =>
@@ -215,8 +216,8 @@ object UpdateStructuresInAnalysis extends App:
 
       println()
 
-      println("Mapping with updating: " + mappingWithUpdate.toString)
-      println("Mapping with regular reanalysis: " + mappingWithoutUpdate.toString)
+      // println("Mapping with updating: " + mappingWithUpdate.toString)
+      //  println("Mapping with regular reanalysis: " + mappingWithoutUpdate.toString)
 
 
       println("Mapping reanalysis -> Update: " + mappingWithoutUpdate.forall((k, v) =>
@@ -243,7 +244,7 @@ object UpdateStructuresInAnalysis extends App:
               case (Some(ac: maf.modular.scheme.modf.ArgCallSiteContext), Some(uc: maf.modular.scheme.modf.ArgCallSiteContext)) =>
                 ac.args.forall(v =>
                   uc.args.exists(w =>
-                      a.lattice.subsumes(w.asInstanceOf[a.Value], v.asInstanceOf[a.Value])))
+                    a.lattice.subsumes(w.asInstanceOf[a.Value], v.asInstanceOf[a.Value])))
               case (Some(ac: maf.modular.scheme.modf.ArgContext), Some(uc: maf.modular.scheme.modf.ArgContext))  =>
                 ac.values.forall(v =>
                   uc.values.exists(w => a.lattice.subsumes(w.asInstanceOf[a.Value], v.asInstanceOf[a.Value])))
@@ -290,8 +291,8 @@ object UpdateStructuresInAnalysis extends App:
                           true
                         else
                           addr1.idn.equals(addr2.idn) && checkSubsumptionOneComponent(addr1.cmp.asInstanceOf[analysisWithoutUpdates.Component], addr2.cmp.asInstanceOf[analysisWithUpdates.Component]) && checkSubsumptionSetOfComponents(av._2, uv._2)
-                          //println("stuck later")
-                          //true
+                      //println("stuck later")
+                      //true
                       case (addr1: maf.modular.scheme.PtrAddr[_], addr2: maf.modular.scheme.PtrAddr[_]) =>
                         if addr1.equals(addr2) then
                           true
@@ -314,16 +315,16 @@ object UpdateStructuresInAnalysis extends App:
                     else
                       addr1.idn.equals(addr2.idn) && addr1.id.equals(addr2.id) && checkSubsumptionContexts(addr1.ctx, addr2.ctx) && analysisWithoutUpdates.lattice.subsumes(uv._2, av._2)
                   case (addr1: maf.modular.ReturnAddr[_], addr2: maf.modular.ReturnAddr[_]) =>
-                      if addr1.equals(addr2) then
-                        true
-                      else
-                        addr1.idn.equals(addr2.idn) && checkSubsumptionOneComponent(addr1.cmp.asInstanceOf[analysisWithoutUpdates.Component], addr2.cmp.asInstanceOf[analysisWithUpdates.Component]) && analysisWithoutUpdates.lattice.subsumes(uv._2, av._2)
+                    if addr1.equals(addr2) then
+                      true
+                    else
+                      addr1.idn.equals(addr2.idn) && checkSubsumptionOneComponent(addr1.cmp.asInstanceOf[analysisWithoutUpdates.Component], addr2.cmp.asInstanceOf[analysisWithUpdates.Component]) && analysisWithoutUpdates.lattice.subsumes(uv._2, av._2)
                   case (addr1: maf.modular.scheme.PtrAddr[_], addr2: maf.modular.scheme.PtrAddr[_]) =>
-                      if addr1.equals(addr2) then
-                        true
-                      else addr1.idn.equals(addr2.idn) && checkSubsumptionContexts(addr1.ctx, addr2.ctx) && analysisWithoutUpdates.lattice.subsumes(uv._2, av._2)
+                    if addr1.equals(addr2) then
+                      true
+                    else addr1.idn.equals(addr2.idn) && checkSubsumptionContexts(addr1.ctx, addr2.ctx) && analysisWithoutUpdates.lattice.subsumes(uv._2, av._2)
                   case (addr1: _, addr2: _) =>
-                      addr1.equals(addr2) &&  analysisWithoutUpdates.lattice.subsumes(uv._2, av._2)
+                    addr1.equals(addr2) &&  analysisWithoutUpdates.lattice.subsumes(uv._2, av._2)
                   case _ => false))
 
       mappingWithoutUpdate.foreach((k, v) =>
@@ -331,7 +332,7 @@ object UpdateStructuresInAnalysis extends App:
           case Some(updatedValue) =>
             if updatedValue.!=(v) then
               println("key reanalysis: " + k.toString() + " " + k.idn.toString() + "\n value reanalysis: "+ v.toString + "\n value updated: " + updatedValue.toString)
-              println("diff: " + checkSubsumptionSetOfComponents(v, updatedValue)))
+                println("diff: " + checkSubsumptionSetOfComponents(v, updatedValue)))
 
 
       mappingWithUpdate.foreach((k, v) =>
@@ -344,8 +345,8 @@ object UpdateStructuresInAnalysis extends App:
 
       println()
 
-      println("Visited with updating: " + visitedWithUpdate.toString)
-      println("Visited with regular reanalysis: " + visitedWithoutUpdate.toString)
+      //   println("Visited with updating: " + visitedWithUpdate.toString)
+      //   println("Visited with regular reanalysis: " + visitedWithoutUpdate.toString)
 
 
       println("Visited reanalysis -> Update: " + visitedWithoutUpdate.forall(e => visitedWithUpdate.contains(e)).toString)
@@ -393,18 +394,18 @@ object UpdateStructuresInAnalysis extends App:
 
     } catch {
       case e: Exception =>
-    /*    e.printStackTrace(System.out)
-        Writer.writeln(w, bench)
-        Writer.writeln(w, e.getStackTrace().toString)
-        Writer.writeln(w, "")*/
+      /*    e.printStackTrace(System.out)
+          Writer.writeln(w, bench)
+          Writer.writeln(w, e.getStackTrace().toString)
+          Writer.writeln(w, "")*/
     }
   end modfAnalysis
 
   val modConcbenchmarks: List[String] = List()
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm", "test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
+  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm", "test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm")
- // val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/symbols.scm")
-  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/scp1/testProblems/merge.scm")
+  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/symbols.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/various/NoSensitivity/SICP-compiler.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/array1.scm")
   val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 
