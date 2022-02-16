@@ -3,7 +3,6 @@ package maf.modular.incremental.scheme.modf
 import maf.core.IdentityMonad
 import maf.language.change.CodeVersion.*
 import maf.core.*
-import maf.language.sexp._
 import maf.language.scheme.*
 import maf.modular.incremental.IncrementalGlobalStore
 import maf.modular.incremental.scheme.IncrementalSchemeSemantics
@@ -23,28 +22,6 @@ trait IncrementalSchemeModFBigStepSemantics extends BigStepModFSemantics with In
             case SchemeCodeChange(_, e, _) if version == New =>
               registerComponent(e, component)
               eval(e) // Same than above.
-            // insertion
-            case SchemeInsertion(e, _) if version == Old =>
-              registerComponent(SchemeValue(Value.Boolean(false), e.idn), component)
-              eval(SchemeValue(Value.Boolean(false), e.idn))
-            case SchemeInsertion(e, _) if version == New =>
-              registerComponent(e, component)
-              eval(e)
-            // deletion
-            case SchemeDeletion(e, _) if version == Old =>
-              registerComponent(e, component)
-              eval(e)
-            case SchemeDeletion(e, _) if version == New =>
-              registerComponent(SchemeValue(Value.Boolean(false), e.idn), component)
-              eval(SchemeValue(Value.Boolean(false), e.idn))
-            // renamer
-            case SchemeRenameVar(old, nw, body, idn) if version == Old =>
-              registerComponent(body.value, component)
-              eval(body.value)
-            // TODO: change names in case of recursive calls
-            case SchemeRenameVar(old, nw, body, idn) if version == New =>
-              registerComponent(body.value, component)
-              eval(body.value)
             case _ =>
               registerComponent(exp, component)
               super.eval(exp)

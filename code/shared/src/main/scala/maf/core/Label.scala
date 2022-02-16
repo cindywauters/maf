@@ -52,6 +52,3 @@ enum Label:
     // Insert and delete
     case INS
     case DEL
-    
-    // Renamings
-    case REN 
