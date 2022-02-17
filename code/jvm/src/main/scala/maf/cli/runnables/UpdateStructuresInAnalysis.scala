@@ -38,7 +38,7 @@ object UpdateStructuresInAnalysis extends App:
   // Useful when reducing a program when debugging the analysis.
   def interpretProgram(file: String): Unit =
     val prog = CSchemeParser.parseProgram(Reader.loadFile(file))
-    val i = new SchemeInterpreter((_, _) => (), stack = true)
+    val i = new SchemeInterpreter((_, _) => ())
     print("*")
     i.run(prog, Timeout.start(Duration(3, MINUTES)), Old)
     print("*")

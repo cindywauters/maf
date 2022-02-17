@@ -75,7 +75,7 @@ object GenerateConsistentRenamings extends App:
         if filename != null then
           println(benchfile)
           val text = Reader.loadFile(benchfile)
-          val interpreter = new SchemeInterpreter((_, _) => (), stack = true)
+          val interpreter = new SchemeInterpreter((_, _) => ())
           val parsed = SchemeParser.parse(text)
           val renamableSubexpr = parsed.flatMap(findSomeRenamableExps(_, chance))
           val renamedSubexpr = renamableSubexpr.map(SchemeParser.rename(_))

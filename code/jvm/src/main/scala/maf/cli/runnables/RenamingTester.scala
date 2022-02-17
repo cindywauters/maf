@@ -65,11 +65,12 @@ object RenamingTester extends App:
 
     try {
       println(s"***** $bench *****")
-      val program = CSchemeParser.parseProgram(Reader.loadFile(bench))
+      val program = CSchemeParserWithSplitter.parseProgram(Reader.loadFile(bench))//CSchemeParser.parseProgram(Reader.loadFile(bench))
 
-      println(program.prettyString())
+      println(program._1.prettyString())
+      println(program._2.prettyString())
 
-      val analysisWithUpdates = baseUpdates(program)
+      val analysisWithUpdates = baseUpdates(program._1)
       analysisWithUpdates.analyzeWithTimeout(timeout())
 
       val storeBefore = analysisWithUpdates.store
