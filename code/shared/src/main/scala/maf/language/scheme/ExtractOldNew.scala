@@ -8,32 +8,31 @@ import scala.util.control.TailCalls.{done, tailcall}
 object ExtractOldNew:
 
   def getAllOfVersion(program: SExp, oldversion: Boolean): SExp = program match
-    case SExpPair(SExpId(Identifier("<update>", idn)), SExpPair(SExpId(Identifier(oldId, _)), SExpPair(SExpId(Identifier(newId, _)), _, _), _), _) if oldversion =>
-      SExpId(Identifier(oldId, idn))
-    case SExpPair(SExpId(Identifier("<update>", idn)), SExpPair(SExpId(Identifier(oldId, _)), SExpPair(SExpId(Identifier(newId, _)), _, _), _), _) if !oldversion =>
-      SExpId(Identifier(newId, idn))
-    case SExpPair(SExpId(Identifier("<update>", idn)), SExpPair(SExpValue(firstVal, _), SExpPair(SExpValue(secondVal, _), _, _), _), _) if oldversion =>
-      SExpValue(firstVal, idn)
-    case SExpPair(SExpId(Identifier("<update>", idn)), SExpPair(SExpValue(firstVal, _), SExpPair(SExpValue(secondVal, _), _, _), _), _) if !oldversion =>
-      SExpValue(secondVal, idn)
-    // Change expression and we want the old version: take the first expression
-    case SExpPair(SExpId(Identifier("<update>", _)), SExpPair(old, SExpPair(nw, _, _), _), _) if oldversion =>
-      old
-    // Change expression and we want the new version: take the second expression
-    case SExpPair(SExpId(Identifier("<update>", _)), SExpPair(old, SExpPair(nw, _, _), _), _) if !oldversion =>
-      nw
-    // If there is an insert and we are looking for the new version: take the SExp
-    case SExpPair(SExpId(Identifier("<insert>", _)), SExpPair(toInsert, _, _), _) if !oldversion =>
-      toInsert
-    // Otherwise, put a "to remove sexp" placeholder (filtered out later)
-    case SExpPair(SExpId(Identifier("<insert>", _)), SExpPair(toInsert, _, idn), _) if oldversion =>
-      SExpPair(SExpId(Identifier("to remove sexp", idn)), SExpValue(Value.Nil, idn), idn)
-    // If there is an deletion and we are looking for the old version: take the SExp
-    case SExpPair(SExpId(Identifier("<delete>", _)), SExpPair(toDelete, _, _), _) if oldversion =>
-      toDelete
-    // Otherwise, put a "to remove sexp" placeholder (filtered out later)
-    case SExpPair(SExpId(Identifier("<delete>", _)), SExpPair(toDelete, _, idn), _) if !oldversion =>
-      SExpPair(SExpId(Identifier("to remove sexp", idn)), SExpValue(Value.Nil, idn), idn)
+    // Update when it is of the form (<update> oldId newId). Both get the same idn
+    case SExpPair(SExpId(Identifier("<update>", idn)), SExpPair(SExpId(Identifier(oldId, _)), SExpPair(SExpId(Identifier(newId, _)), _, _), _), _) =>
+      if oldversion then
+        SExpId(Identifier(oldId, idn))
+      else SExpId(Identifier(newId, idn))
+    // Update when it is of the form (<update> oldVal newVal) such as (<update> 1 2). Both get the same idn
+    case SExpPair(SExpId(Identifier("<update>", idn)), SExpPair(SExpValue(firstVal, _), SExpPair(SExpValue(secondVal, _), _, _), _), _) =>
+      if oldversion then
+        SExpValue(firstVal, idn)
+      else SExpValue(secondVal, idn)
+    // update when there are two different expressions such as (<update> (lambda (x) (+ x 1)) (lambda (x) (- x 1))) both keep their own idn
+    case SExpPair(SExpId(Identifier("<update>", _)), SExpPair(old, SExpPair(nw, _, _), _), _) =>
+      if oldversion then
+        old
+      else nw
+    // If there is an insert and we are looking for the new version: take the SExp otherwise insert placeholder that will be removed later
+    case SExpPair(SExpId(Identifier("<insert>", _)), SExpPair(toInsert, _, _), idn) =>
+      if oldversion then
+        SExpPair(SExpId(Identifier("to remove sexp", idn)), SExpValue(Value.Nil, idn), idn)
+      else toInsert
+    // If there is an deletion and we are looking for the old version: take the SExp otherwise insert placeholder that will be removed later
+    case SExpPair(SExpId(Identifier("<delete>", _)), SExpPair(toDelete, _, _), idn)=>
+      if oldversion then
+        toDelete
+      else SExpPair(SExpId(Identifier("to remove sexp", idn)), SExpValue(Value.Nil, idn), idn)
     // Pair of other expressions
     case SExpPair(exp1, exp2, idn1) =>
       // first get all old/new expressions of the first expression
