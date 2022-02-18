@@ -3,7 +3,7 @@
 (define (g1 y)
   (<insert> (display "g"))
   (+ 1 y)
-  (<change> 1 2))
+  (<update> 1 2))
 
 (<insert> (define (insertiontest x)
  (display x)
@@ -19,9 +19,15 @@
 
 (define (<update> oldVar newVar) 5)
 
+(define test
+ (<update>
+  (lambda (x) (- x 1))
+  (lambda (x) (+ x 1))))
+
+
 (define ((<update> oldRec newRec) a)
  (if (> a 1)
-     (display a)
+     (display (<update> "end oldRec" "end newRec"))
      (begin
       (display a)
       ((<update> oldRec newRec) (- a 1)))))

@@ -12,6 +12,16 @@ object ExtractOldNew:
       SExpId(Identifier(oldId, idn))
     case SExpPair(SExpId(Identifier("<update>", idn)), SExpPair(SExpId(Identifier(oldId, _)), SExpPair(SExpId(Identifier(newId, _)), _, _), _), _) if !oldversion =>
       SExpId(Identifier(newId, idn))
+    case SExpPair(SExpId(Identifier("<update>", idn)), SExpPair(SExpValue(firstVal, _), SExpPair(SExpValue(secondVal, _), _, _), _), _) if oldversion =>
+      SExpValue(firstVal, idn)
+    case SExpPair(SExpId(Identifier("<update>", idn)), SExpPair(SExpValue(firstVal, _), SExpPair(SExpValue(secondVal, _), _, _), _), _) if !oldversion =>
+      SExpValue(secondVal, idn)
+    // Change expression and we want the old version: take the first expression
+    case SExpPair(SExpId(Identifier("<update>", _)), SExpPair(old, SExpPair(nw, _, _), _), _) if oldversion =>
+      old
+    // Change expression and we want the new version: take the second expression
+    case SExpPair(SExpId(Identifier("<update>", _)), SExpPair(old, SExpPair(nw, _, _), _), _) if !oldversion =>
+      nw
     // If there is an insert and we are looking for the new version: take the SExp
     case SExpPair(SExpId(Identifier("<insert>", _)), SExpPair(toInsert, _, _), _) if !oldversion =>
       toInsert
@@ -24,12 +34,6 @@ object ExtractOldNew:
     // Otherwise, put a "to remove sexp" placeholder (filtered out later)
     case SExpPair(SExpId(Identifier("<delete>", _)), SExpPair(toDelete, _, idn), _) if !oldversion =>
       SExpPair(SExpId(Identifier("to remove sexp", idn)), SExpValue(Value.Nil, idn), idn)
-    // Change expression and we want the old version: take the first expression
-    case SExpPair(SExpId(Identifier("<change>", _)), SExpPair(old, SExpPair(nw, _, _), _), _) if oldversion =>
-      old
-    // Change expression and we want the new version: take the second expression
-    case SExpPair(SExpId(Identifier("<change>", _)), SExpPair(old, SExpPair(nw, _, _), _), _) if !oldversion =>
-      nw
     // Pair of other expressions
     case SExpPair(exp1, exp2, idn1) =>
       // first get all old/new expressions of the first expression
@@ -68,14 +72,3 @@ object ExtractOldNew:
     println(nw)
     (old, nw)
 
-
- //   case SExpPair(SExpId(Identifier("<insert>", _)), SExpPair(expr, SExpValue(Value.Nil, _), _), _) =>
-/*  tailcall(this._compile(expr)).map(CSchemeFork(_, exp.idn))
-  case SExpPair(SExpId(Identifier("fork", _)), _, _) =>
-  throw new Exception(s"Invalid CScheme fork: $exp (${exp.idn}).")
-  case SExpPair(SExpId(Identifier("join", _)), SExpPair(expr, SExpValue(Value.Nil, _), _), _) =>
-  tailcall(this._compile(expr)).map(CSchemeJoin(_, exp.idn))
-  case SExpPair(SExpId(Identifier("join", _)), _, _) =>
-  throw new Exception(s"Invalid CScheme join: $exp (${exp.idn}).")
-    println(program)
-    (program, program)*/
