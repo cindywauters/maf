@@ -70,3 +70,38 @@ object SchemeChangePatterns:
     // toList necessary because sets cannot contain duplicate items
     val renamings: List[(Boolean, Map[Identifier, Identifier])] = changedExprAsPairs.toList.map(e => checkRenamingsVariables(e._1, e._2))
     changedExprAsPairs.zip(renamings)
+
+  def compareRenamingsBindings(oldname: Identifier, newname: Identifier, oldexp: SchemeExp, nwexp: SchemeExp): Boolean =
+    val mappedVars = Map(newname.name -> oldname.name)
+    println(oldexp)
+    println(nwexp)
+    println(SchemeChangeRenamerForPatterns.rename(nwexp, mappedVars, Map[String, Int]())._1)
+    oldexp.eql(SchemeChangeRenamerForPatterns.rename(nwexp, mappedVars, Map[String, Int]())._1)
+
+  // Returns a list of expressions that needs to be reanalysed, and a list of tuples of expressions that are just renamings together with their mappings
+  def comparePrograms(old: SchemeExp, nw: SchemeExp): Unit = // (List[maf.core.Expression], List[((maf.core.Expression, maf.core.Expression), (Boolean, Map[Identifier, Identifier]))]) =
+    var reanalyse: List[maf.core.Expression] = List()
+    var rename: List[((maf.core.Expression, maf.core.Expression), (Boolean, Map[Identifier, Identifier]))] = List()
+    (old, nw) match
+      case (oldlet: SchemeLettishExp, newlet: SchemeLettishExp) =>
+        val deletedBindings = oldlet.bindings.filterNot(oe => newlet.bindings.exists(ne => oe._1.idn == ne._1.idn))
+        val insertedBindings = newlet.bindings.filterNot(ne => oldlet.bindings.exists(oe => oe._1.idn == ne._1.idn))
+        val changedBindings = oldlet.bindings.filter(oe =>
+          newlet.bindings.exists(ne => (oe != ne) && (oe._1.idn == ne._1.idn) && (oe._2.subexpressions.size == ne._2.subexpressions.size)))
+        val changedBindingsOldNew = changedBindings.map(oe =>
+          newlet.bindings.find(ne => (oe != ne) && (oe._1.idn == ne._1.idn) && (oe._2.subexpressions.size == ne._2.subexpressions.size)) match
+            case Some(x) => (oe, x)
+          )
+        println(deletedBindings)
+        println(insertedBindings)
+        val renamedBindings = changedBindingsOldNew.filter(e => compareRenamingsBindings(e._1._1, e._2._1, e._1._2, e._2._2))
+        println(renamedBindings)
+        //println(changedBindings.map(e => SchemeRenamer.rename(SchemeDefineVariable(e._1, e._2, e._1.idn))))
+        //println(changedBindings.map(e => e._2.fv))
+ /*   println(old)
+    println(old.subexpressions)
+    println(old.subexpressions.map(_.idn))
+    println(old.subexpressions.filter(oe =>
+      !nw.subexpressions.exists(ne => ne.idn == oe.idn)
+    ))*/
+

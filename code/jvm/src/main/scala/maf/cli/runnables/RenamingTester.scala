@@ -103,6 +103,8 @@ object RenamingTester extends App:
       println("Visited before: " + visitedBefore.toString)
       println("Visited with updating: " + visitedWithUpdate.toString)
 
+      analysisWithUpdates.updateAnalysis(timeout(), program._2)
+
     } catch {
       case e: Exception =>
         println(e)

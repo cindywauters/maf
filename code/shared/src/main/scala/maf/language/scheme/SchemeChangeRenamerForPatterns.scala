@@ -130,8 +130,8 @@ object SchemeChangeRenamerForPatterns:
     val c: Int = count.get(variable.name) match
       case Some(x) => x + 1
       case None    => 0
-    val n = names.getOrElse(variable.name, s"_$variable$c")
-    (Identifier(n, variable.idn), names + (variable.name -> n), count + (variable.name -> c))
+    val n = names.getOrElse(variable.name, variable.name)//s"_$variable$c")
+    (Identifier(n, variable.idn), names, count + (variable.name -> c))// + (variable.name -> n), count + (variable.name -> c))
 
   /** Same as count1 but for a list of variables */
   def countl(
