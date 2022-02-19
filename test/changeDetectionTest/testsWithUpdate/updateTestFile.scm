@@ -19,10 +19,12 @@
 
 (define (<update> oldVar newVar) 5)
 
-(define lambdareplacement
- (<update>
-  (lambda (x) (+ x 1))
-  (lambda (y) (+ y 1))))
+(define (lambdareplacement a)
+ (begin
+  (display (<update> a (+ a 1)))
+  ((<update>
+   (lambda (x) (+ x 1))
+   (lambda (y) (+ y 1))) a)))
 
 
 (define ((<update> oldRec newRec) a)

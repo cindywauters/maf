@@ -49,17 +49,17 @@ object SchemeChangePatterns:
   def checkRenamingsVariables(oldexp: Expression, newexp: Expression): (Boolean, Map[Identifier, Identifier]) =
     (oldexp, newexp) match
       case (oe: SchemeExp, ne: SchemeExp) =>
-        var renamedOld = SchemeRenamer.rename(oe)
-        var renamedNew = SchemeRenamer.rename(ne)
-        var variablesOld = findAllVarsInOrder(oe)
-        var variablesNew = findAllVarsInOrder(ne)
-        var variablesRenamedOld = findAllVarsInOrder(renamedOld)
-        var variablesRenamedNew = findAllVarsInOrder(renamedNew)
+        val renamedOld = SchemeRenamer.rename(oe)
+        val renamedNew = SchemeRenamer.rename(ne)
+        val variablesOld = findAllVarsInOrder(oe)
+        val variablesNew = findAllVarsInOrder(ne)
+        val variablesRenamedOld = findAllVarsInOrder(renamedOld)
+        val variablesRenamedNew = findAllVarsInOrder(renamedNew)
         if variablesOld.length != variablesNew.length then
           return (false, Map())
         var mappedVars = variablesNew.map(e => e.name).zip(variablesOld.map(e => e.name)).toMap
-        var mappedRenamedVars = variablesRenamedNew.map(e => e.name).zip(variablesRenamedOld.map(e => e.name)).toMap
-        var mappedIdentifiers = variablesNew.zip(variablesOld).toMap
+        val mappedRenamedVars = variablesRenamedNew.map(e => e.name).zip(variablesRenamedOld.map(e => e.name)).toMap
+        val mappedIdentifiers = variablesNew.zip(variablesOld).toMap
         if renamedOld.eql(SchemeChangeRenamerForPatterns.rename(renamedNew, mappedRenamedVars, Map[String, Int]())._1) then
           return (true, mappedIdentifiers)
     return (false, Map())
@@ -78,6 +78,29 @@ object SchemeChangePatterns:
     println(SchemeChangeRenamerForPatterns.rename(nwexp, mappedVars, Map[String, Int]())._1)
     oldexp.eql(SchemeChangeRenamerForPatterns.rename(nwexp, mappedVars, Map[String, Int]())._1)
 
+  def findLowestChangedSubExpressions(old: Expression, nw: Expression): List[((Expression, Expression), Option[Map[Identifier, Identifier]])] =
+    if old.subexpressions.isEmpty && nw.subexpressions.isEmpty then
+      if old.eql(nw) then
+        return List()
+      else
+        return List(((old, nw), None))
+    if old.eql(nw) then
+      return List()
+    val differentOlds = old.subexpressions.filterNot(oe => nw.subexpressions.exists(ne => oe.idn == ne.idn))
+    val differentNews = nw.subexpressions.filterNot(ne => old.subexpressions.exists(oe => oe.idn == ne.idn))
+    if differentOlds.nonEmpty then
+      // Insert extra step: match all missing in old and new with each other to look for renamings such as (lambda (x) x) to (lambda (y) y)
+      return List(((old, nw), None))
+    if differentNews.nonEmpty then
+      return List(((old, nw), None))
+    old.subexpressions.flatMap(oe =>
+      nw.subexpressions.find(ne => oe.idn == ne.idn) match
+        case Some(x) => findLowestChangedSubExpressions(oe, x))//.flatMap(e => findHighestChangedSubExpressions(e., e._2))
+    //  List(((old, nw), None))
+   // else List()
+
+
+
   // Returns a list of expressions that needs to be reanalysed, and a list of tuples of expressions that are just renamings together with their mappings
   def comparePrograms(old: SchemeExp, nw: SchemeExp): Unit = // (List[maf.core.Expression], List[((maf.core.Expression, maf.core.Expression), (Boolean, Map[Identifier, Identifier]))]) =
     var reanalyse: List[maf.core.Expression] = List()
@@ -92,10 +115,24 @@ object SchemeChangePatterns:
           newlet.bindings.find(ne => (oe != ne) && (oe._1.idn == ne._1.idn) && (oe._2.subexpressions.size == ne._2.subexpressions.size)) match
             case Some(x) => (oe, x)
           )
+        println("deleted: ")
         println(deletedBindings)
+        println("inserted: ")
         println(insertedBindings)
         val renamedBindings = changedBindingsOldNew.filter(e => compareRenamingsBindings(e._1._1, e._2._1, e._1._2, e._2._2))
+        println("renamed: ")
         println(renamedBindings)
+        println("changed:")
+        println(changedBindingsOldNew.filterNot(e => renamedBindings.contains(e)))
+        println("highest changed subexpression: ")
+        val changedBindingsTest = oldlet.bindings.filter(oe =>
+          newlet.bindings.exists(ne => (oe._1.idn == ne._1.idn) && (oe._2.subexpressions.size == ne._2.subexpressions.size))).map(oe =>
+          newlet.bindings.find(ne => (oe._1.idn == ne._1.idn) && (oe._2.subexpressions.size == ne._2.subexpressions.size)) match
+            case Some(x) => (oe, x)
+        )
+        changedBindingsTest.filterNot(e => renamedBindings.contains(e)).foreach(e =>
+          println("Expressions: " + e._1._2.toString + " " + e._2._2.toString)
+          println("highest changed subexpression: " + findLowestChangedSubExpressions(e._1._2, e._2._2)))
         //println(changedBindings.map(e => SchemeRenamer.rename(SchemeDefineVariable(e._1, e._2, e._1.idn))))
         //println(changedBindings.map(e => e._2.fv))
  /*   println(old)

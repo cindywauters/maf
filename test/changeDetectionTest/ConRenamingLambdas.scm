@@ -2,8 +2,6 @@
   (<change> (lambda (a b) (+ a b))
             (lambda (a d) (+ a d))))
 
-(first-test 5 10)
-
 (define second-test
   (<change>
    (lambda (a)
@@ -14,8 +12,6 @@
      (let ((d 2)
            (e 3))
        (+ a d e)))))
-
-(second-test 2)
 
 (define (fifth-test a)
   (<change>
@@ -67,7 +63,6 @@ eighth-test
        (let ((b (lambda (a) (+ a 1 ((lambda () (+ 1 7)))))))
          ((lambda () (b d))))))))
 
-((test-more-lambdas 5) 10)
 
 (define (change-in-lambda a)
   (lambda (b)
@@ -105,5 +100,11 @@ eighth-test
            (display testString)
            (test-with-strings (- a 1)))))))
 
-(test-with-strings 5)
+(begin
+ (first-test 5 10)
+ (test-with-strings 5)
+ (second-test 2)
+ ((test-more-lambdas 5) 10)
+ (combine-many))
+
 

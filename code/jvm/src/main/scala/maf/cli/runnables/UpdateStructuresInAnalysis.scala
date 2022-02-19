@@ -121,6 +121,7 @@ object UpdateStructuresInAnalysis extends App:
 
       val analysisWithUpdates = baseUpdates(program)
       analysisWithUpdates.analyzeWithTimeout(timeout())
+      println(analysisWithUpdates.mapping)
       val beforeUpdateAnalysis = System.nanoTime
       analysisWithUpdates.updateAnalysis(timeout())
       val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
@@ -402,10 +403,10 @@ object UpdateStructuresInAnalysis extends App:
   end modfAnalysis
 
   val modConcbenchmarks: List[String] = List()
-  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm", "test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm", "test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/symbols.scm")
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/various/NoSensitivity/SICP-compiler.scm")
+  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/various/NoSensitivity/SICP-compiler.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/array1.scm")
   val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 
