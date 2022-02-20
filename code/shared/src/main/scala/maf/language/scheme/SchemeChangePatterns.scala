@@ -78,26 +78,31 @@ object SchemeChangePatterns:
     println(SchemeChangeRenamerForPatterns.rename(nwexp, mappedVars, Map[String, Int]())._1)
     oldexp.eql(SchemeChangeRenamerForPatterns.rename(nwexp, mappedVars, Map[String, Int]())._1)
 
-  def findLowestChangedSubExpressions(old: Expression, nw: Expression): List[((Expression, Expression), Option[Map[Identifier, Identifier]])] =
-    if old.subexpressions.isEmpty && nw.subexpressions.isEmpty then
-      if old.eql(nw) then
-        return List()
-      else
-        return List(((old, nw), None))
+  def findLowestChangedSubExpressions(old: Expression, nw: Expression): List[((Option[Expression], Option[Expression]), Option[Map[Identifier, Identifier]])] =
     if old.eql(nw) then
       return List()
-    val differentOlds = old.subexpressions.filterNot(oe => nw.subexpressions.exists(ne => oe.idn == ne.idn))
-    val differentNews = nw.subexpressions.filterNot(ne => old.subexpressions.exists(oe => oe.idn == ne.idn))
-    if differentOlds.nonEmpty then
-      // Insert extra step: match all missing in old and new with each other to look for renamings such as (lambda (x) x) to (lambda (y) y)
-      return List(((old, nw), None))
-    if differentNews.nonEmpty then
-      return List(((old, nw), None))
+    if old.subexpressions.isEmpty && nw.subexpressions.isEmpty then
+      return List(((Some(old), Some(nw)), None))
+
+    val differentOlds = old.subexpressions.partition(oe => nw.subexpressions.exists(ne => oe.idn == ne.idn))
+    val differentNews = nw.subexpressions.partition(ne => old.subexpressions.exists(oe => oe.idn == ne.idn))
+    val updated: List[((Option[Expression], Option[Expression]), Option[Map[Identifier, Identifier]])] =
+      old.subexpressions.filter(oe => nw.subexpressions.exists(ne => oe.idn == ne.idn && !oe.eql(ne)))
+        .map(oe => nw.subexpressions.find(ne => oe.idn == ne.idn) match
+          case Some(ne) =>
+            val renamings = checkRenamingsVariables(oe, ne)
+            if renamings._1 then
+              ((Some(oe), Some(ne)), Some(renamings._2))
+            else ((Some(oe), Some(ne)), None))
+    val notRenamedOld = differentOlds._2.map(e => ((Some(e), None), None))
+    val notRenamedNew = differentNews._2.map(e => ((None, Some(e)), None))
+    if ( differentOlds._2.nonEmpty || differentNews._2.nonEmpty) || (!old.subexpressions.exists(oe => nw.subexpressions.exists(ne => oe.idn == ne.idn && oe.eql(ne))) || !nw.subexpressions.exists(ne => old.subexpressions.exists(oe => oe.idn == ne.idn && oe.eql(ne)))) then
+      return updated.appendedAll(notRenamedOld).appendedAll(notRenamedNew)
     old.subexpressions.flatMap(oe =>
       nw.subexpressions.find(ne => oe.idn == ne.idn) match
-        case Some(x) => findLowestChangedSubExpressions(oe, x))//.flatMap(e => findHighestChangedSubExpressions(e., e._2))
-    //  List(((old, nw), None))
-   // else List()
+        case Some(x) => findLowestChangedSubExpressions(oe, x)
+        case None => List())
+
 
 
 
@@ -107,12 +112,12 @@ object SchemeChangePatterns:
     var rename: List[((maf.core.Expression, maf.core.Expression), (Boolean, Map[Identifier, Identifier]))] = List()
     (old, nw) match
       case (oldlet: SchemeLettishExp, newlet: SchemeLettishExp) =>
-        val deletedBindings = oldlet.bindings.filterNot(oe => newlet.bindings.exists(ne => oe._1.idn == ne._1.idn))
+        val deletedBindings  = oldlet.bindings.filterNot(oe => newlet.bindings.exists(ne => oe._1.idn == ne._1.idn))
         val insertedBindings = newlet.bindings.filterNot(ne => oldlet.bindings.exists(oe => oe._1.idn == ne._1.idn))
-        val changedBindings = oldlet.bindings.filter(oe =>
-          newlet.bindings.exists(ne => (oe != ne) && (oe._1.idn == ne._1.idn) && (oe._2.subexpressions.size == ne._2.subexpressions.size)))
+        val changedBindings  = oldlet.bindings.filter(oe =>
+          newlet.bindings.exists(ne => (oe != ne) && (oe._1.idn == ne._1.idn)))
         val changedBindingsOldNew = changedBindings.map(oe =>
-          newlet.bindings.find(ne => (oe != ne) && (oe._1.idn == ne._1.idn) && (oe._2.subexpressions.size == ne._2.subexpressions.size)) match
+          newlet.bindings.find(ne => (oe != ne) && (oe._1.idn == ne._1.idn)) match
             case Some(x) => (oe, x)
           )
         println("deleted: ")
@@ -126,8 +131,8 @@ object SchemeChangePatterns:
         println(changedBindingsOldNew.filterNot(e => renamedBindings.contains(e)))
         println("highest changed subexpression: ")
         val changedBindingsTest = oldlet.bindings.filter(oe =>
-          newlet.bindings.exists(ne => (oe._1.idn == ne._1.idn) && (oe._2.subexpressions.size == ne._2.subexpressions.size))).map(oe =>
-          newlet.bindings.find(ne => (oe._1.idn == ne._1.idn) && (oe._2.subexpressions.size == ne._2.subexpressions.size)) match
+          newlet.bindings.exists(ne => oe._1.idn == ne._1.idn)).map(oe =>
+          newlet.bindings.find(ne => oe._1.idn == ne._1.idn) match
             case Some(x) => (oe, x)
         )
         changedBindingsTest.filterNot(e => renamedBindings.contains(e)).foreach(e =>
