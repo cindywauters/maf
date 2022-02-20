@@ -26,6 +26,11 @@
    (lambda (x) (+ x 1))
    (lambda (y) (+ y 1))) a)))
 
+(define nested-renaming
+ (lambda (a)
+  (lambda ((<update> b c))
+   (+ a (<update> b c)))))
+
 
 (define ((<update> oldRec newRec) a)
  (if (> a 1)

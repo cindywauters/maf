@@ -92,7 +92,7 @@ object SchemeChangePatterns:
             else ((Some(oe), Some(ne)), None))
     val deletedExps = differentOlds._2.map(e => ((Some(e), None), None))
     val insertedExps = differentNews._2.map(e => ((None, Some(e)), None))
-    if (deletedExps.nonEmpty || insertedExps.nonEmpty) || (!old.subexpressions.exists(oe => nw.subexpressions.exists(ne => oe.eql(ne))) || !nw.subexpressions.exists(ne => old.subexpressions.exists(oe => oe.eql(ne)))) then
+    if (deletedExps.nonEmpty || insertedExps.nonEmpty) || updated.exists(e => e._2.isDefined) || !old.subexpressions.exists(oe => nw.subexpressions.exists(ne => oe.eql(ne))) || !nw.subexpressions.exists(ne => old.subexpressions.exists(oe => oe.eql(ne))) then
       return updated.appendedAll(deletedExps).appendedAll(insertedExps)
     old.subexpressions.flatMap(oe =>
       nw.subexpressions.find(ne => oe.idn == ne.idn) match
@@ -132,7 +132,7 @@ object SchemeChangePatterns:
         }
         changedBindingsBoth.filterNot(e => renamedBindings.contains(e)).foreach(e =>
           println("Expressions: " + e._1._2.toString + " " + e._2._2.toString)
-          println("lowest changed subexpression: " + findLowestChangedSubExpressions(e._1._2, e._2._2)))
+          println("lowest changed subexpressions: " + findLowestChangedSubExpressions(e._1._2, e._2._2)))
 
 
 
