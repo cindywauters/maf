@@ -15,17 +15,7 @@ object ExtractOldNew:
 
 
   def getAllOfVersion(program: SExp, oldversion: Boolean): SExp = program match
-    // Update when it is of the form (<update> oldId newId). Both get the same idn
-    case SExpPair(SExpId(Identifier("<update>", idn)), SExpPair(SExpId(Identifier(oldId, _)), SExpPair(SExpId(Identifier(newId, _)), _, _), _), _) =>
-      if oldversion then
-        SExpId(Identifier(oldId, idn))
-      else SExpId(Identifier(newId, idn))
-    // Update when it is of the form (<update> oldVal newVal) such as (<update> 1 2). Both get the same idn
-    case SExpPair(SExpId(Identifier("<update>", idn)), SExpPair(SExpValue(firstVal, _), SExpPair(SExpValue(secondVal, _), _, _), _), _) =>
-      if oldversion then
-        SExpValue(firstVal, idn)
-      else SExpValue(secondVal, idn)
-    // update when there are two different expressions such as (<update> (lambda (x) (+ x 1)) (lambda (x) (- x 1))) both keep their own idn
+    // update: if you want the old version, return the old but with a new idn. Otherwise, return the new
     case SExpPair(SExpId(Identifier("<update>", idn)), SExpPair(old, SExpPair(nw, _, _), _), _) =>
       if oldversion then
         buildNew(old, idn)

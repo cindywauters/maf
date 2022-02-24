@@ -75,29 +75,32 @@ object SchemeChangePatterns:
     val mappedVars = Map(newname.name -> oldname.name)
     oldexp.eql(SchemeChangeRenamerForPatterns.rename(nwexp, mappedVars, Map[String, Int]())._1)
 
-  def findLowestChangedSubExpressions(old: Expression, nw: Expression): List[((Option[Expression], Option[Expression]), Option[Map[Identifier, Identifier]])] =
+  def findLowestChangedSubExpressions(old: Expression, nw: Expression): List[(Option[Expression], Option[Expression])] =
     if old.eql(nw) then
       return List()
     if old.subexpressions.isEmpty && nw.subexpressions.isEmpty then
-      return List(((Some(old), Some(nw)), None))
-    val differentOlds = old.subexpressions.partition(oe => nw.subexpressions.exists(ne => oe.idn == ne.idn))
-    val differentNews = nw.subexpressions.partition(ne => old.subexpressions.exists(oe => oe.idn == ne.idn))
-    val updated: List[((Option[Expression], Option[Expression]), Option[Map[Identifier, Identifier]])] =
-      old.subexpressions.filter(oe => nw.subexpressions.exists(ne => oe.idn == ne.idn && !oe.eql(ne)))
-        .map(oe => nw.subexpressions.find(ne => oe.idn == ne.idn) match
-          case Some(ne) =>
-            val renamings = checkRenamingsVariables(oe, ne)
-            if renamings._1 then
-              ((Some(oe), Some(ne)), Some(renamings._2))
-            else ((Some(oe), Some(ne)), None))
-    val deletedExps = differentOlds._2.map(e => ((Some(e), None), None))
-    val insertedExps = differentNews._2.map(e => ((None, Some(e)), None))
-    if (deletedExps.nonEmpty || insertedExps.nonEmpty) || updated.exists(e => e._2.isDefined) || !old.subexpressions.exists(oe => nw.subexpressions.exists(ne => oe.eql(ne))) || !nw.subexpressions.exists(ne => old.subexpressions.exists(oe => oe.eql(ne))) then
-      return updated.appendedAll(deletedExps).appendedAll(insertedExps)
-    old.subexpressions.flatMap(oe =>
-      nw.subexpressions.find(ne => oe.idn == ne.idn) match
-        case Some(x) => findLowestChangedSubExpressions(oe, x)
-        case None => List())
+      return List((Some(old), Some(nw)))
+    val differentOlds = old.subexpressions.filterNot(oe => nw.subexpressions.exists(ne => oe.idn == ne.idn))
+    val differentNews = nw.subexpressions.filterNot(ne => old.subexpressions.exists(oe => oe.idn == ne.idn))
+    val updated = old.subexpressions.filter(oe => nw.subexpressions.exists(ne => oe.idn == ne.idn && !oe.eql(ne)))
+      .flatMap(oe =>
+        nw.subexpressions.find(ne => oe.idn == ne.idn) match
+          case Some(ne) => (oe, ne) match
+            case (ol: SchemeLambda, nl: SchemeLambda) =>
+              if ol.args != nl.args then
+                List((Some(ol), Some(nl)))
+              else
+                findLowestChangedSubExpressions(ol, nl)
+            case (oe: _, ne: _) =>
+              if oe.subexpressions.exists(oe => ne.subexpressions.exists(ne => oe.idn == ne.idn)) then
+                findLowestChangedSubExpressions(oe, ne)
+              else
+                List((Some(oe), Some(ne))))
+    val deletedExps = differentOlds.map(e => (Some(e), None))
+    val insertedExps = differentNews.map(e => (None, Some(e)))
+    if insertedExps.nonEmpty then
+      return updated.appendedAll(deletedExps).::((Some(old), Some(nw)))
+    updated.appendedAll(deletedExps)
 
 
   // Returns a list of expressions that needs to be reanalysed (old and new), and a list of tuples of expressions that are just renamings together with their mappings
