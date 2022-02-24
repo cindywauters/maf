@@ -36,12 +36,13 @@
   (lambda ((<update> b c))
    (+ a (<update> b c)))))
 
-(define ((<update> oldRec newRec) a)
- (if (> a 1)
+(define ((<update> oldRec newRec) (<update> a b))
+ (if (> (<update> a b) 1)
      (display "end")
      (begin
-      (display a)
-      ((<update> oldRec newRec) (- a 1)))))
+      (display (<update> a b))
+      ((<update> oldRec newRec) (- (<update> a b) 1)))))
+
 
 (define nested-lambda
   (lambda (a)
