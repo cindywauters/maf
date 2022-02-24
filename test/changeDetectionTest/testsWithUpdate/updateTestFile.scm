@@ -43,12 +43,16 @@
       (display (<update> a b))
       ((<update> oldRec newRec) (- (<update> a b) 1)))))
 
-
 (define nested-lambda
   (lambda (a)
     (lambda (b)
      (lambda ((<update> c d))
       (+ a b (<update> c d))))))
+
+(define (nested-define (<update> a x))
+  (define (<update> old-nested-define new-nested-define) (+ (<update> a x) 1))
+  (display (<update> old-nested-define new-nested-define)))
+
 
 ((<update> oldRec newRec)
   (+ (f 1)

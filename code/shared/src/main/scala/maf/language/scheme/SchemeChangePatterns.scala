@@ -89,22 +89,22 @@ object SchemeChangePatterns:
       return List()
     if old.subexpressions.isEmpty && nw.subexpressions.isEmpty then
       return List((Some(old), Some(nw)))
+    (old, nw) match
+      case (ol: SchemeLambda, nl: SchemeLambda) =>
+        if checkRenamingsVariables(ol, nl)._1 then
+          if ol.args != nl.args then
+            return List((Some(ol), Some(nl)))
+      case _ =>
     val differentOlds = old.subexpressions.filterNot(oe => nw.subexpressions.exists(ne => oe.idn == ne.idn))
     val differentNews = nw.subexpressions.filterNot(ne => old.subexpressions.exists(oe => oe.idn == ne.idn))
     val updated = old.subexpressions.filter(oe => nw.subexpressions.exists(ne => oe.idn == ne.idn && !oe.eql(ne)))
       .flatMap(oe =>
         nw.subexpressions.find(ne => oe.idn == ne.idn) match
-          case Some(ne) => (oe, ne) match
-            case (ol: SchemeLambda, nl: SchemeLambda) =>
-              if ol.args != nl.args then
-                List((Some(ol), Some(nl)))
-              else
-                findLowestChangedSubExpressions(ol, nl)
-            case (oe: _, ne: _) =>
-              if oe.subexpressions.exists(oe => ne.subexpressions.exists(ne => oe.idn == ne.idn)) then
-                findLowestChangedSubExpressions(oe, ne)
-              else
-                List((Some(oe), Some(ne))))
+          case Some(ne) =>
+            if oe.subexpressions.exists(oe => ne.subexpressions.exists(ne => oe.idn == ne.idn)) then
+              findLowestChangedSubExpressions(oe, ne)
+            else
+              List((Some(oe), Some(ne))))
     val deletedExps = differentOlds.map(e => (Some(e), None))
     val insertedExps = differentNews.map(e => (None, Some(e)))
     if insertedExps.nonEmpty then
