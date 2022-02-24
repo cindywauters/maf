@@ -135,7 +135,15 @@ object SchemeChangePatterns:
         }
         changedBindingsBoth.filterNot(e => renamedBindings.contains(e)).foreach(e =>
           println("Expressions: " + e._1._2.toString + " " + e._2._2.toString)
-          println("lowest changed subexpressions: " + findLowestChangedSubExpressions(e._1._2, e._2._2)))
+          findLowestChangedSubExpressions(e._1._2, e._2._2).foreach(e => e match
+            case (Some(oe), Some(ne)) => (oe, ne) match
+              case (oe: Identifier, _) =>
+              case (_, ne: Identifier) =>
+              case _ => println(oe.toString + "\n" + ne.toString + "\n" + checkRenamingsVariables(oe, ne))
+            case _ =>
+          )
+          println("lowest changed subexpressions: " + findLowestChangedSubExpressions(e._1._2, e._2._2))
+          )
 
 
 
