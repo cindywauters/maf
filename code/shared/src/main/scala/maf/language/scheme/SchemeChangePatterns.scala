@@ -39,7 +39,7 @@ object SchemeChangePatterns:
       exps.flatMap(e => findAllVarsInOrder(exps))
     // In case of a single expression, look at the subexpressions (if there are any)
     case e: Expression =>
-      if !e.subexpressions.isEmpty then
+      if e.subexpressions.nonEmpty then
         e.subexpressions.flatMap(e => findAllVarsInOrder(e))
       else  List()
     case e: _ =>

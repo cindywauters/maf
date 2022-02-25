@@ -4,7 +4,7 @@ import maf.bench.scheme.SchemeBenchmarkPrograms
 import maf.core.Expression
 import maf.modular.{AddrDependency, Dependency}
 import maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain
-import maf.modular.incremental.update.{IncrementalGlobalStoreWithUpdate, IncrementalUpdateDatastructures}
+import maf.modular.incremental.update.{IncrementalModAnalysisWithUpdateTwoVersions, IncrementalGlobalStoreWithUpdate, IncrementalModAnalysisWithUpdate, IncrementalUpdateDatastructures}
 import maf.modular.scheme.SchemeAddr
 //import maf.cli.runnables.IncrementalRun.standardTimeout
 import maf.core.BasicEnvironment
@@ -28,6 +28,7 @@ import maf.util.graph.DotGraph
 import maf.util.graph.DotGraph.*
 import java.time.LocalDateTime
 import scala.concurrent.duration.*
+import maf.modular.incremental.update.SchemeModFSemanticsUpdate
 
 object RenamingTester extends App:
 
@@ -45,16 +46,17 @@ object RenamingTester extends App:
           with IncrementalVisualIntra
       }
 
-    def baseUpdates(program: SchemeExp) = new ModAnalysis[SchemeExp](program)
+    def baseUpdates(oldProgram: SchemeExp, newProgram: SchemeExp) = new ModAnalysis[SchemeExp](oldProgram)
       with StandardSchemeModFComponents
       // with SchemeModFFullArgumentSensitivity
       //with SchemeModFCallSiteSensitivity
       //with SchemeModFFullArgumentCallSiteSensitivity
       with SchemeModFNoSensitivity
-      with SchemeModFSemanticsM
+      with SchemeModFSemanticsUpdate
       with LIFOWorklistAlgorithm[SchemeExp]
       with IncrementalSchemeModFBigStepSemantics
       with IncrementalSchemeTypeDomain
+      with IncrementalModAnalysisWithUpdateTwoVersions(newProgram)
       with IncrementalGlobalStoreWithUpdate[SchemeExp]
     {
       var configuration: IncrementalConfiguration = noOptimisations
@@ -70,15 +72,22 @@ object RenamingTester extends App:
       println(program._1.prettyString())
       println(program._2.prettyString())
 
-      val analysisWithUpdates = baseUpdates(program._1)
-      analysisWithUpdates.analyzeWithTimeout(timeout())
+      val analysisWithUpdates = baseUpdates(program._1, program._2)
+
+      analysisWithUpdates.updateAnalysis(timeout())
 
       val storeBefore = analysisWithUpdates.store
       val depsBefore = analysisWithUpdates.deps
       val mappingBefore = analysisWithUpdates.mapping
       val visitedBefore = analysisWithUpdates.visited
 
+     // analysisWithUpdates.newProgram(program._2)
+     //analysisWithUpdates.mainBody = program._2
+
+
+
       val beforeUpdateAnalysis = System.nanoTime
+      analysisWithUpdates.version = New
       analysisWithUpdates.updateAnalysis(timeout())
       val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
 
@@ -102,8 +111,6 @@ object RenamingTester extends App:
 
       println("Visited before: " + visitedBefore.toString)
       println("Visited with updating: " + visitedWithUpdate.toString)
-
-      analysisWithUpdates.updateAnalysis(timeout(), program._2)
 
     } catch {
       case e: Exception =>
