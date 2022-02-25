@@ -55,7 +55,7 @@ class IncrementalUpdateDatastructures {
 
   // Find all the subexpressions of an expression, and their subexpressions.
   // Something like (lambda (a) (+ a 1)) will become List((lambda (a) (+ a 1)), (+ a 1), +, a, 1)
-  private def findAllSubExps(expr: Expression): List[Expression] =
+  def findAllSubExps(expr: Expression): List[Expression] =
  /*   print(expr.getClass)
     print(" ")
     println(expr)*/
@@ -202,20 +202,21 @@ class IncrementalUpdateDatastructures {
   // Get a new component. First look if it is a Main call or a function call. In case of main, just return the old component
   // In the case of a function call, only change the component if it exists within a changed expression (otherwise return the old component)
   // Also create a new environment making use of createNewEnvironment
-  def getNewComponent(a: IncrementalModAnalysis[Expression], comp: Serializable): SchemeModFComponent =
+  def getNewComponent(a: IncrementalModAnalysis[Expression], comp: Serializable, changedExprs: Map[maf.core.Expression, maf.core.Expression] = allExpressionsInChange): SchemeModFComponent =
     comp match
       case comp: SchemeModFComponent.Main.type =>
         comp
       case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), ctx: _) =>
-        val changeToLambda = allExpressionsInChange.get(lam)
+        val changeToLambda = changedExprs.get(lam)
         val newCtx = updateCtx(a, ctx).asInstanceOf[ctx.type]
         changeToLambda match
           case Some(lambda: SchemeLambdaExp) =>
-            var newEnv = createNewEnvironment(a, env)
+            val newEnv = createNewEnvironment(a, env)
             val newCmp = SchemeModFComponent.Call(clo = (lambda, new BasicEnvironment[Address](newEnv)), ctx = newCtx)
+            println(newEnv)
             newCmp
           case _ =>
-            var newEnv = createNewEnvironment(a, env)
+            val newEnv = createNewEnvironment(a, env)
             val newCmp = SchemeModFComponent.Call(clo = (lam, new BasicEnvironment[Address](newEnv)), ctx = newCtx)
             newCmp
 

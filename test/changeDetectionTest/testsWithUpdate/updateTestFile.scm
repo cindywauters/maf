@@ -50,15 +50,15 @@
       (+ a b (<update> c d))))))
 
 (define (nested-define (<update> a x))
-  (define (<update> old-nested-define new-nested-define) (+ (<update> a x) 1))
-  (display (<update> old-nested-define new-nested-define)))
+  (define ((<update> old-nested-define new-nested-define) b) (+ b 1))
+  (display ((<update> old-nested-define new-nested-define) (<update> a x))))
 
-
+(nested-define 5)
 ((<update> oldRec newRec)
   (+ (f 1)
      (g1 1)
      (<insert> (insertiontest 6))
      (<delete> (deletiontest 6))
-     (lambdareplacement 2)
+     (lambdareplacement-fine 2)
      (g2 (<update> oldVar newVar))))
 

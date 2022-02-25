@@ -2,9 +2,10 @@ package maf.cli.runnables
 
 import maf.bench.scheme.SchemeBenchmarkPrograms
 import maf.core.Expression
+import maf.language.scheme.SchemeCodeChange
 import maf.modular.{AddrDependency, Dependency}
 import maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain
-import maf.modular.incremental.update.{IncrementalModAnalysisWithUpdateTwoVersions, IncrementalGlobalStoreWithUpdate, IncrementalModAnalysisWithUpdate, IncrementalUpdateDatastructures}
+import maf.modular.incremental.update.{IncrementalGlobalStoreWithUpdate, IncrementalModAnalysisWithUpdate, IncrementalModAnalysisWithUpdateTwoVersions, IncrementalUpdateDatastructures}
 import maf.modular.scheme.SchemeAddr
 //import maf.cli.runnables.IncrementalRun.standardTimeout
 import maf.core.BasicEnvironment
@@ -33,18 +34,6 @@ import maf.modular.incremental.update.SchemeModFSemanticsUpdate
 object RenamingTester extends App:
 
   def modfAnalysis(bench: String, timeout: () => Timeout.T): Unit =
-    def newAnalysis(text: SchemeExp, configuration: IncrementalConfiguration) =
-      new IncrementalSchemeModFAnalysisTypeLattice(text, configuration)
-        with IncrementalLogging[SchemeExp]
-        with IncrementalDataFlowVisualisation[SchemeExp] {
-        override def focus(a: Addr): Boolean = a.toString.toLowerCase().nn.contains("ret")
-
-        override def intraAnalysis(cmp: SchemeModFComponent) = new IntraAnalysis(cmp)
-          with IncrementalSchemeModFBigStepIntra
-          with IncrementalGlobalStoreIntraAnalysis
-          with IncrementalLoggingIntra
-          with IncrementalVisualIntra
-      }
 
     def baseUpdates(oldProgram: SchemeExp, newProgram: SchemeExp) = new ModAnalysis[SchemeExp](oldProgram)
       with StandardSchemeModFComponents
@@ -62,7 +51,14 @@ object RenamingTester extends App:
       var configuration: IncrementalConfiguration = noOptimisations
       override def intraAnalysis(
                                   cmp: Component
-                                ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis
+                                ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis {
+        override protected def eval(exp: SchemeExp): EvalM[Value] = exp match
+          case e if version == Old => super.eval(e)
+          case e if version == New =>
+            allChanges.get(e) match
+              case Some(newexp: SchemeExp) => super.eval(newexp)
+              case None => super.eval(e)
+      }
     }
 
     try {
@@ -74,18 +70,7 @@ object RenamingTester extends App:
 
       val analysisWithUpdates = baseUpdates(program._1, program._2)
 
-      analysisWithUpdates.updateAnalysis(timeout())
-
-      val storeBefore = analysisWithUpdates.store
-      val depsBefore = analysisWithUpdates.deps
-      val mappingBefore = analysisWithUpdates.mapping
-      val visitedBefore = analysisWithUpdates.visited
-
-     // analysisWithUpdates.newProgram(program._2)
-     //analysisWithUpdates.mainBody = program._2
-
-
-
+      analysisWithUpdates.analyzeWithTimeout(timeout())
       val beforeUpdateAnalysis = System.nanoTime
       analysisWithUpdates.version = New
       analysisWithUpdates.updateAnalysis(timeout())
@@ -96,21 +81,53 @@ object RenamingTester extends App:
       val mappingWithUpdate = analysisWithUpdates.mapping
       val visitedWithUpdate = analysisWithUpdates.visited
 
+
+      val analysisWithoutUpdates = baseUpdates(program._1, program._2)
+      analysisWithoutUpdates.version = New
+      analysisWithoutUpdates.analyzeWithTimeout(timeout())
+
+      val storeWithoutUpdate = analysisWithoutUpdates.store
+      val depsWithoutUpdate = analysisWithoutUpdates.deps
+      val mappingWithoutUpdate = analysisWithoutUpdates.mapping
+      val visitedWithoutUpdate = analysisWithoutUpdates.visited
+
       println("updating done")
 
       println("Time updating:                " + timeUpdateAnalysis)
 
-      println("Store before: " + storeBefore.toString)
-      println("Store with updating: " + storeWithUpdate.toString)
+      println("Store with update: " + storeWithUpdate.toString)
+      println("Store new only   : " + storeWithoutUpdate.toString)
 
-      println("Dependencies before: " + depsBefore.toString)
-      println("Dependencies with updating: " + depsWithUpdate.toString)
+      println("store reanalysis -> Update (subsumption): " + storeWithoutUpdate.forall((k, v) =>
+        storeWithUpdate.get(k) match
+          case Some(updatedValue) => updatedValue.==(v) || analysisWithUpdates.lattice.subsumes(updatedValue, v)
+          case _ => false).toString)
 
-      println("Mapping before: " + mappingBefore.toString)
-      println("Mapping with updating: " + mappingWithUpdate.toString)
+      println("Dependencies with update: " + depsWithUpdate.toString)
+      println("Dependencies new only   : " + depsWithoutUpdate.toString)
 
-      println("Visited before: " + visitedBefore.toString)
-      println("Visited with updating: " + visitedWithUpdate.toString)
+      println("Dependencies reanalysis -> Update (subsumption): " + depsWithoutUpdate.forall((k, v) =>
+        depsWithUpdate.get(k) match
+          case Some(updatedValue) =>
+            updatedValue.==(v) || v.forall(elv => updatedValue.contains(elv))
+          case _ => false).toString)
+
+      println("Mapping with update : " + mappingWithUpdate.toString)
+      println("Mapping new only    : " + mappingWithoutUpdate.toString)
+
+      println("Mapping reanalysis -> Update (subsumption): " + mappingWithoutUpdate.forall((k, v) =>
+        mappingWithUpdate.get(k) match
+          case Some(updatedValue) => updatedValue.==(v) || v.forall(elv => updatedValue.contains(elv))
+          case _ => false).toString)
+
+      println("Visited with update : " + visitedWithUpdate.toString)
+      println("Visited new only    : " + visitedWithoutUpdate.toString)
+      println("Visited reanalysis -> Update (subsumption): " + visitedWithoutUpdate.forall(e => visitedWithUpdate.contains(e)).toString)
+
+      println(storeWithUpdate.size)
+      println(depsWithUpdate.size)
+      println(mappingWithUpdate.size)
+      println(visitedWithUpdate.size)
 
     } catch {
       case e: Exception =>
