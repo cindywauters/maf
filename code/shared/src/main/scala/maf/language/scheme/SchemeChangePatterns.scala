@@ -105,11 +105,12 @@ object SchemeChangePatterns:
               findLowestChangedSubExpressions(oe, ne)
             else
               List((Some(oe), Some(ne))))
-    val deletedExps = differentOlds.map(e => (Some(e), None))
-    val insertedExps = differentNews.map(e => (None, Some(e)))
-    if insertedExps.nonEmpty then
-      return updated.appendedAll(deletedExps).::((Some(old), Some(nw)))
-    updated.appendedAll(deletedExps)
+    //val deletedExps = differentOlds.map(e => (Some(e), None))
+    //val insertedExps = differentNews.map(e => (None, Some(e)))
+    if differentOlds.nonEmpty || differentNews.nonEmpty then
+      updated.::((Some(old), Some(nw))) // Something is inserted or deleted so we want to return the encapsulating expression
+    else
+      updated
 
 
   // Returns a list of expressions that needs to be reanalysed (old and new), and a list of tuples of expressions that are just renamings together with their mappings

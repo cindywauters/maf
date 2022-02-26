@@ -31,11 +31,11 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
               println(changes._1)
               update.changeDataStructures(a, program, renamed)
         val affected = changes._1.flatMap(e => e match
-          case (Some(old: Expr), _) =>
+          case (Some(old: Expr), Some(_)) =>
             mapping.get(old) match
               case Some(comp) => comp
               case _ => Set()
-          case _ => Set()
+          case _ => Set(initialComponent)
         )
     //   affected.foreach(addToWorkList)
         println("41")
