@@ -100,16 +100,17 @@ object RenamingTester extends App:
 
       println("store reanalysis -> Update (subsumption): " + storeWithoutUpdate.forall((k, v) =>
         storeWithUpdate.get(k) match
-          case Some(updatedValue) => updatedValue.==(v) || analysisWithUpdates.lattice.subsumes(updatedValue, v)
-          case _ => false).toString)
+          case Some(updatedValue) => analysisWithUpdates.lattice.subsumes(updatedValue, v)
+          case _ =>
+            println("old: " + v.toString + " " + k.toString())
+            false).toString)
 
       println("Dependencies with update: " + depsWithUpdate.toString)
       println("Dependencies new only   : " + depsWithoutUpdate.toString)
 
       println("Dependencies reanalysis -> Update (subsumption): " + depsWithoutUpdate.forall((k, v) =>
         depsWithUpdate.get(k) match
-          case Some(updatedValue) =>
-            updatedValue.==(v) || v.forall(elv => updatedValue.contains(elv))
+          case Some(updatedValue) => updatedValue.==(v) || v.forall(elv => updatedValue.contains(elv))
           case _ => false).toString)
 
       println("Mapping with update : " + mappingWithUpdate.toString)
@@ -128,6 +129,7 @@ object RenamingTester extends App:
       println(depsWithUpdate.size)
       println(mappingWithUpdate.size)
       println(visitedWithUpdate.size)
+
 
     } catch {
       case e: Exception =>

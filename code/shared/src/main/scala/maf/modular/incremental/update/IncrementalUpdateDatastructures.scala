@@ -213,7 +213,6 @@ class IncrementalUpdateDatastructures {
           case Some(lambda: SchemeLambdaExp) =>
             val newEnv = createNewEnvironment(a, env)
             val newCmp = SchemeModFComponent.Call(clo = (lambda, new BasicEnvironment[Address](newEnv)), ctx = newCtx)
-            println(newEnv)
             newCmp
           case _ =>
             val newEnv = createNewEnvironment(a, env)
@@ -261,7 +260,6 @@ class IncrementalUpdateDatastructures {
                 case env : maf.core.BasicEnvironment[_] =>
                   var newEnv = createNewEnvironment(a, env)
                   (lambda, new BasicEnvironment[Address](newEnv))
-               // case env: _ => (lambda, env)
             case _ =>
               closure._2 match // update the environment of the lambda if it needs changing
                 case env : maf.core.BasicEnvironment[_] =>

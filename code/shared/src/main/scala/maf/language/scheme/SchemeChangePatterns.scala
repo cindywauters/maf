@@ -92,8 +92,8 @@ object SchemeChangePatterns:
     (old, nw) match
       case (ol: SchemeLambda, nl: SchemeLambda) =>
         if checkRenamingsVariables(ol, nl)._1 then
-          if ol.args != nl.args then
-            return List((Some(ol), Some(nl)))
+          //if ol.args != nl.args then
+          return List((Some(ol), Some(nl)))
       case _ =>
     val differentOlds = old.subexpressions.filterNot(oe => nw.subexpressions.exists(ne => oe.idn == ne.idn))
     val differentNews = nw.subexpressions.filterNot(ne => old.subexpressions.exists(oe => oe.idn == ne.idn))
@@ -119,23 +119,25 @@ object SchemeChangePatterns:
     (old, nw) match
       case (oldlet: SchemeLettishExp, newlet: SchemeLettishExp) =>
         oldlet.bindings.foreach(oe =>
-          if !newlet.bindings.exists(ne => oe._1.idn == ne._1.idn) then
+          if !newlet.bindings.exists(ne => oe._2.idn == ne._2.idn) then
             reanalyse = reanalyse.::((Some(oe._2), None)))
         newlet.bindings.foreach(ne =>
-          if !oldlet.bindings.exists(oe => oe._1.idn == ne._1.idn) then
+          if !oldlet.bindings.exists(oe => oe._2.idn == ne._2.idn) then
             reanalyse = reanalyse.::((None, Some(ne._2))))
         val changedBindings  = oldlet.bindings.filter(oe =>
-          newlet.bindings.exists(ne => (oe != ne) && (oe._1.idn == ne._1.idn)))
+          newlet.bindings.exists(ne => (oe != ne) && (oe._2.idn == ne._2.idn)))
         val changedBindingsOldNew = changedBindings.map(oe =>
-          newlet.bindings.find(ne => (oe != ne) && (oe._1.idn == ne._1.idn)) match
+          newlet.bindings.find(ne => (oe != ne) && (oe._2.idn == ne._2.idn)) match
             case Some(x) => (oe, x))
         val renamedBindings = changedBindingsOldNew.filter(e => compareRenamingsBindings(e._1._1, e._2._1, e._1._2, e._2._2)._1)
         rename = rename.appendedAll(renamedBindings.map(e => ((e._1._2, e._2._2), (true, compareRenamingsBindings(e._1._1, e._2._1, e._1._2, e._2._2)._2))))
         val changedBindingsBoth = oldlet.bindings.collect {
-          case oe if newlet.bindings.exists(ne => oe._1.idn == ne._1.idn) =>
-            newlet.bindings.find(ne => oe._1.idn == ne._1.idn) match
+          case oe if newlet.bindings.exists(ne => oe._2.idn == ne._2.idn) =>
+            newlet.bindings.find(ne => oe._2.idn == ne._2.idn) match
               case Some(x) => (oe, x)
         }
+        println("139")
+        changedBindingsBoth.foreach(e => println(e._1.toString + " " + e._2.toString))
         changedBindingsBoth.filterNot(e => renamedBindings.contains(e)).foreach(e =>
           println("Expressions: " + e._1._2.toString + " " + e._2._2.toString)
           findLowestChangedSubExpressions(e._1._2, e._2._2).foreach(e => e match
@@ -159,6 +161,7 @@ object SchemeChangePatterns:
         println("to rename: ")
         rename.foreach(println)
         (reanalyse, rename)
+      case _ => (List(), List())
 
 
 
