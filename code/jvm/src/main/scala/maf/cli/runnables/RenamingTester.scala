@@ -5,7 +5,7 @@ import maf.core.Expression
 import maf.language.scheme.SchemeCodeChange
 import maf.modular.{AddrDependency, Dependency}
 import maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain
-import maf.modular.incremental.update.{IncrementalGlobalStoreWithUpdate, IncrementalModAnalysisWithUpdate, IncrementalModAnalysisWithUpdateTwoVersions, IncrementalUpdateDatastructures}
+import maf.modular.incremental.update.{UpdateIncrementalSchemeModFBigStepSemantics, IncrementalGlobalStoreWithUpdate, IncrementalModAnalysisWithUpdate, IncrementalModAnalysisWithUpdateTwoVersions, IncrementalUpdateDatastructures}
 import maf.modular.scheme.SchemeAddr
 //import maf.cli.runnables.IncrementalRun.standardTimeout
 import maf.core.BasicEnvironment
@@ -43,7 +43,7 @@ object RenamingTester extends App:
       with SchemeModFNoSensitivity
       with SchemeModFSemanticsUpdate
       with LIFOWorklistAlgorithm[SchemeExp]
-      with IncrementalSchemeModFBigStepSemantics
+      with UpdateIncrementalSchemeModFBigStepSemantics
       with IncrementalSchemeTypeDomain
       with IncrementalModAnalysisWithUpdateTwoVersions(newProgram)
       with IncrementalGlobalStoreWithUpdate[SchemeExp]
@@ -51,15 +51,7 @@ object RenamingTester extends App:
       var configuration: IncrementalConfiguration = noOptimisations
       override def intraAnalysis(
                                   cmp: Component
-                                ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis {
-        override protected def eval(exp: SchemeExp): EvalM[Value] = exp match
-          case e if version == Old => super.eval(e)
-          case e if version == New =>
-            allChanges.get(e) match
-              case Some(newexp: SchemeExp) => super.eval(newexp)
-              case None => super.eval(e)
-      }
-    }
+                                ) = new IntraAnalysis(cmp) with UpdateIncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis    }
 
     try {
       println(s"***** $bench *****")

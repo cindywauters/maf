@@ -26,9 +26,6 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
           case a: IncrementalModAnalysis[Expression] =>
             if changes._2.nonEmpty then
               val renamed = changes._2.map(e => (e._1, e._2._2)).toSet
-              println("renamed: ")
-              println(renamed.size)
-              println(changes._1)
               update.changeDataStructures(a, program, renamed)
         val affected = changes._1.flatMap(e => e match
           case (Some(old: Expr), Some(_)) =>
@@ -37,8 +34,5 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
               case _ => Set()
           case _ => Set(initialComponent)
         )
-    //   affected.foreach(addToWorkList)
-        println("41")
-        println(affected)
         affected.foreach(addToWorkList)
     analyzeWithTimeout(timeout)

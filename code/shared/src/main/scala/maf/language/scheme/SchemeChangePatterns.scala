@@ -143,6 +143,9 @@ object SchemeChangePatterns:
           println("Expressions: " + e._1._2.toString + " " + e._2._2.toString)
           findLowestChangedSubExpressions(e._1._2, e._2._2).foreach(e => e match
             case (Some(oe), Some(ne)) => (oe, ne) match
+              case (oe: Identifier, ne: Identifier) =>
+                if renamedBindings.exists(e => e._1._1.name == oe.name && e._2._1.name == ne.name) then
+                  rename = rename.::((oe, ne), (true, Map(ne -> oe)))
               case (oe: Identifier, _) => reanalyse = reanalyse.::((Some(oe), Some(ne)))
               case (_, ne: Identifier) => reanalyse = reanalyse.::((Some(oe), Some(ne)))
               case _ =>
