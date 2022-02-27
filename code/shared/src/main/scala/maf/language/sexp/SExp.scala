@@ -88,6 +88,10 @@ case class SExpValue(value: Value, idn: Identity) extends SExp:
     def subexpressions: List[Expression] = List()
     override lazy val hash: Int = (label, value).hashCode()
 
+case class SExpTombstone(idn: Identity) extends SExp:
+  val label: Label = Label.TOM
+  def subexpressions: List[Expression] = List()
+
 /** A quoted element, such as 'foo, '(foo (bar)), etc. */
 object SExpQuoted:
     def apply(content: SExp, idn: Identity): SExp =

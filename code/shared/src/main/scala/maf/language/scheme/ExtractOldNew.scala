@@ -1,7 +1,7 @@
 package maf.language.scheme
 
 import maf.core.{Identifier, Identity}
-import maf.language.sexp.{SExp, SExpId, SExpPair, SExpValue, Value}
+import maf.language.sexp.{SExp, SExpId, SExpPair, SExpValue, Value, SExpTombstone}
 
 import scala.util.control.TailCalls.{done, tailcall}
 
@@ -23,28 +23,29 @@ object ExtractOldNew:
     case SExpPair(SExpId(Identifier("<change>", idn)), SExpPair(old, SExpPair(nw, _, _), _), _) =>
       if oldversion then
         buildNew(old, idn)
-      else buildNew(nw, idn)  
+      else buildNew(nw, idn)
     // If there is an insert and we are looking for the new version: take the SExp otherwise insert placeholder that will be removed later
     case SExpPair(SExpId(Identifier("<insert>", _)), SExpPair(toInsert, _, _), idn) =>
       if oldversion then
-        SExpPair(SExpId(Identifier("to remove sexp", idn)), SExpValue(Value.Nil, idn), idn)
+        SExpTombstone(idn)
       else toInsert
     // If there is an deletion and we are looking for the old version: take the SExp otherwise insert placeholder that will be removed later
     case SExpPair(SExpId(Identifier("<delete>", _)), SExpPair(toDelete, _, _), idn)=>
       if oldversion then
         toDelete
-      else SExpPair(SExpId(Identifier("to remove sexp", idn)), SExpValue(Value.Nil, idn), idn)
+      else
+        SExpTombstone(idn)
     // Pair of other expressions
     case SExpPair(exp1, exp2, idn1) =>
       // first get all old/new expressions of the first expression
       getAllOfVersion(exp1, oldversion) match
         // If it is an expression to remove (like <deletion> when we're looking for the new version)
-        case SExpPair(SExpId(Identifier("to remove sexp", _)), SExpValue(Value.Nil, _), _) =>
+        case SExpTombstone(_) =>
           // Check the second expression
           getAllOfVersion(exp2, oldversion) match
             // if that is also to be removed, insert a place holder to remove this entire expression (filtered out later)
-            case SExpPair(SExpId(Identifier("to remove sexp", _)), SExpValue(Value.Nil, _), _) =>
-              SExpPair(SExpId(Identifier("to remove sexp", idn1)), SExpValue(Value.Nil, idn1), idn1)
+            case SExpTombstone(_) =>
+              SExpTombstone(idn1)
             // Otherwise, the second expression exists (with the right version filtered out) and we return that
             case partial: _ =>
               partial
@@ -53,7 +54,7 @@ object ExtractOldNew:
           // Check the second version
           getAllOfVersion(exp2, oldversion) match
             // if that is to be removed: only return the first expression
-            case SExpPair(SExpId(Identifier("to remove sexp", _)), SExpValue(Value.Nil, _), _) =>
+            case SExpTombstone(_) =>
               partial1
             // otherwise both shouldn't be removed and they're put back into a pair
             case partial2: _ =>

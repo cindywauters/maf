@@ -14,10 +14,10 @@ object CSchemeParserWithSplitter:
   def parse(s: String, tag: PTag = noTag): (List[SchemeExp], List[SchemeExp]) =
     val bothVersions = SExpParser.parse(s, tag).map(ExtractOldNew.getOldNewVersions)
     val oldVersion = bothVersions.map(_._1).filter(e => e match
-      case SExpPair(SExpId(Identifier("to remove sexp", _)), SExpValue(Value.Nil, _), _) => false
+      case SExpTombstone(_) => false
       case _ => true).map(CSchemeParser.compile)
     val newVersion = bothVersions.map(_._2).filter(e => e match
-      case SExpPair(SExpId(Identifier("to remove sexp", _)), SExpValue(Value.Nil, _), _) => false
+      case SExpTombstone(_) => false
       case _ => true).map(CSchemeParser.compile)
     (oldVersion, newVersion)
 

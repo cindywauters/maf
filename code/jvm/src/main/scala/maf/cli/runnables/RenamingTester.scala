@@ -134,8 +134,8 @@ object RenamingTester extends App:
   end modfAnalysis
 
   val modConcbenchmarks: List[String] = List()
- // val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/updateTestFile.scm")
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/gambit/NoSensitivity/paraffins.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/updateTestFile.scm")
+  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/gambit/NoSensitivity/paraffins.scm")
 
   val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 

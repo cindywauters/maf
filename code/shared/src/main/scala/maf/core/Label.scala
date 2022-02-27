@@ -49,3 +49,6 @@ enum Label:
 
     // Match expressions
     case MEX // match expression
+
+    // Tombstone
+    case TOM
