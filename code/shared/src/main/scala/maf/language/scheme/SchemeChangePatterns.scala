@@ -76,8 +76,10 @@ object SchemeChangePatterns:
     var mappedIds = Map(newname -> oldname)
     (oldexp, nwexp) match
       case (ol: SchemeLambda, nl: SchemeLambda) =>
-        mappedVars = mappedVars ++ nl.args.map(_.name).zip(ol.args.map(_.name)).toMap
-        mappedIds = mappedIds ++ nl.args.zip(ol.args).toMap
+        val varsOld = findAllVarsInOrder(ol)
+        val varsNew = findAllVarsInOrder(nl)
+        mappedVars = mappedVars ++ varsNew.map(_.name).zip(varsOld.map(_.name)).toMap
+        mappedIds = mappedIds ++ varsNew.zip(varsOld).toMap
       case _ =>
     if oldexp.eql(SchemeChangeRenamerForPatterns.rename(nwexp, mappedVars, Map[String, Int]())._1) then
       (true, mappedIds)

@@ -86,6 +86,9 @@ object RenamingTester extends App:
 
 
       val analysisWithoutUpdates = baseUpdates(program._1, program._2)
+      println(analysisWithoutUpdates.store)
+      println(analysisWithoutUpdates.mainBody)
+      println(analysisWithoutUpdates.secondMainBody)
       val beforeNewAnalysis = System.nanoTime
       analysisWithoutUpdates.version = New
       analysisWithoutUpdates.analyzeWithTimeout(timeout())
@@ -129,6 +132,12 @@ object RenamingTester extends App:
             if !v.forall(elv => updatedValue.contains(elv)) then
               println(v)
               println(updatedValue)
+              v.foreach(e => e match
+                case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+                  println(lam.toString + " " + env.toString + " " + oldCtx.toString))
+              updatedValue.foreach(e => e match
+                    case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+                      println(lam.toString + " " + env.toString + " " + oldCtx.toString)  )
             v.forall(elv => updatedValue.contains(elv))
           case _ =>
             println(k)
