@@ -1,7 +1,7 @@
 package maf.test.modular.scheme.updatingStructures
 import maf.bench.scheme.SchemeBenchmarkPrograms
 import maf.core.{BasicEnvironment, Expression}
-import maf.language.CScheme.CSchemeParser
+import maf.language.CScheme.{CSchemeParser, CSchemeParserWithSplitter}
 import maf.language.change.CodeVersion.*
 import maf.language.scheme.*
 import maf.modular.*
@@ -10,7 +10,7 @@ import maf.modular.incremental.{IncrementalModAnalysis, *}
 import maf.modular.incremental.scheme.lattice.{IncrementalSchemeConstantPropagationDomain, IncrementalSchemeTypeDomain}
 import maf.modular.incremental.scheme.modconc.IncrementalSchemeModConcSmallStepSemantics
 import maf.modular.incremental.scheme.modf.IncrementalSchemeModFBigStepSemantics
-import maf.modular.incremental.update.{IncrementalGlobalStoreWithUpdate, IncrementalModAnalysisWithUpdate, IncrementalUpdateDatastructures}
+import maf.modular.incremental.update.{IncrementalGlobalStoreWithUpdate, IncrementalModAnalysisWithUpdate, IncrementalModAnalysisWithUpdateTwoVersions, IncrementalUpdateDatastructures, SchemeModFSemanticsUpdate, UpdateIncrementalSchemeModFBigStepSemantics}
 import maf.modular.scheme.modf
 import maf.modular.scheme.modf.*
 import maf.modular.scheme.ssmodconc.*
@@ -108,6 +108,24 @@ class IncrementalAnalysisUpdateMixOfChangesTest extends AnyPropSpec:
     override def intraAnalysis(
                                 cmp: Component
                               ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis
+
+  def baseAnalysisUpdateInsertDelete(oldProgram: SchemeExp, newProgram: SchemeExp) = new ModAnalysis[SchemeExp](oldProgram)
+      with StandardSchemeModFComponents
+      // with SchemeModFFullArgumentSensitivity
+      //with SchemeModFCallSiteSensitivity
+      //with SchemeModFFullArgumentCallSiteSensitivity
+      with SchemeModFNoSensitivity
+      with SchemeModFSemanticsUpdate
+      with LIFOWorklistAlgorithm[SchemeExp]
+      with UpdateIncrementalSchemeModFBigStepSemantics
+      with IncrementalSchemeTypeDomain
+      with IncrementalModAnalysisWithUpdateTwoVersions(newProgram)
+      with IncrementalGlobalStoreWithUpdate[SchemeExp]
+    {
+      var configuration: IncrementalConfiguration = noOptimisations
+      override def intraAnalysis(
+                                  cmp: Component
+                                ) = new IntraAnalysis(cmp) with UpdateIncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis    }
 
   def checkSubsumptionContexts(a: IncrementalModAnalysis[SchemeExp], u: IncrementalModAnalysisWithUpdate[SchemeExp], ac: Any, uc: Any): Boolean =
     a match
@@ -223,23 +241,44 @@ class IncrementalAnalysisUpdateMixOfChangesTest extends AnyPropSpec:
         assert(checkSubsumptionSetOfStore(a, u), "The store of incremental update does not subsume the store of the analysis of the new version only")
 
 
+  def checkSubsumptionForUpdate(nwOnly: IncrementalModAnalysisWithUpdate[SchemeExp], updates: IncrementalModAnalysisWithUpdate[SchemeExp]): Unit =
+    // Check components.
+    assert(nwOnly.visited.size <= updates.visited.size, "The visited set of the incremental analysis update has less components than the analysis of new only.")
+    // Remove all visited that are exactly the same
+    val nwDiffupdatesVisited = nwOnly.visited.diff(updates.visited.map(_.asInstanceOf[nwOnly.Component]))
+    assert(checkSubsumptionSetOfComponents(nwOnly, updates, nwDiffupdatesVisited, updates.visited), "The visited set of the incremental update does not subsume the visited set of the incremental analysis with updates.") // If the size is equal, this checks also the converse assertion.
+
+    // Check dependencies.
+    val depsNw = nwOnly.deps.toSet[(Dependency, Set[nwOnly.Component])].flatMap({ case (d, cmps) => cmps.map(c => (d, c)) })
+    val depsU = updates.deps.toSet[(Dependency, Set[updates.Component])].flatMap({ case (d, cmps) => cmps.map(c => (d, c)) })
+    assert(depsNw.size <= depsU.size, "The incremental analysis update has more dependencies than the regular incremental analysis.")
+    assert(checkSubsumptionSetOfDependencies(nwOnly, updates), "The dependencies of the incremental update does not subsume the dependencies of the incremental analysis with updates.")
+
+    // Check store.
+    (nwOnly, updates) match
+      case (a: IncrementalGlobalStore[SchemeExp], u: IncrementalGlobalStoreWithUpdate[SchemeExp]) =>
+        assert(a.store.size <= u.store.size, "The incrementally updated store is smaller than the store of the incremental reanalysis with updates.")
+        assert(checkSubsumptionSetOfStore(a, u), "The store of incremental update does not subsume the store of the analysis of the new version only")
+
+
   val gambitGenerated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/MixOfChanges/R5RS/gambit")()
 
   val modFbenchmarks: Set[String] = gambitGenerated
 
   modFbenchmarks.foreach(benchmark =>
     val program = CSchemeParser.parseProgram(Reader.loadFile(benchmark))
+    val twoPrograms = CSchemeParserWithSplitter.parseProgram(Reader.loadFile(benchmark))
       property(s"No sensitivity: Check if datastructures are the same in the analysis of new version and update for" + benchmark) {
-      callAnalysisOnBenchmark(NoSensitivityAnalysis(program), NoSensitivityAnalysisUpdate(program), NoSensitivityAnalysis(program), program)
+      callAnalysisOnBenchmark(NoSensitivityAnalysis(program), NoSensitivityAnalysisUpdate(program), NoSensitivityAnalysis(program), baseAnalysisUpdateInsertDelete(twoPrograms._1, twoPrograms._2), program)
     }
       property(s"Full Arg sensitivity: Check if datastructures are the same in the analysis of new version and update for" + benchmark) {
-      callAnalysisOnBenchmark(FullArgSensitivityAnalysis(program), FullArgSensitivityAnalysisUpdate(program), FullArgSensitivityAnalysis(program), program)
+      callAnalysisOnBenchmark(FullArgSensitivityAnalysis(program), FullArgSensitivityAnalysisUpdate(program), FullArgSensitivityAnalysis(program), baseAnalysisUpdateInsertDelete(twoPrograms._1, twoPrograms._2), program)
     }
       property(s"Call sensitivity: Check if datastructures are the same in the analysis of new version and update for" + benchmark) {
-      callAnalysisOnBenchmark(CallSensitivityAnalysis(program), CallSensitivityAnalysisUpdate(program), CallSensitivityAnalysis(program), program)
+      callAnalysisOnBenchmark(CallSensitivityAnalysis(program), CallSensitivityAnalysisUpdate(program), CallSensitivityAnalysis(program), baseAnalysisUpdateInsertDelete(twoPrograms._1, twoPrograms._2), program)
     }
       property(s"Full Arg Call sensitivity: Check if datastructures are the same in the analysis of new version and update for" + benchmark) {
-      callAnalysisOnBenchmark(FullArgCallSensitivityAnalysis(program), FullArgCallSensitivityAnalysisUpdate(program), FullArgCallSensitivityAnalysis(program), program)
+      callAnalysisOnBenchmark(FullArgCallSensitivityAnalysis(program), FullArgCallSensitivityAnalysisUpdate(program), FullArgCallSensitivityAnalysis(program), baseAnalysisUpdateInsertDelete(twoPrograms._1, twoPrograms._2), program)
     }
   )
 
@@ -250,25 +289,32 @@ class IncrementalAnalysisUpdateMixOfChangesTest extends AnyPropSpec:
 
   onlyCallSensitivity.foreach(benchmark =>
     val program = CSchemeParser.parseProgram(Reader.loadFile(benchmark))
+    val twoPrograms = CSchemeParserWithSplitter.parseProgram(Reader.loadFile(benchmark))
       property(s"No sensitivity: Check if datastructures are the same in the analysis of new version and update for" + benchmark) {
-      callAnalysisOnBenchmark(NoSensitivityAnalysis(program), NoSensitivityAnalysisUpdate(program), NoSensitivityAnalysis(program), program)
+      callAnalysisOnBenchmark(NoSensitivityAnalysis(program), NoSensitivityAnalysisUpdate(program), NoSensitivityAnalysis(program), baseAnalysisUpdateInsertDelete(twoPrograms._1, twoPrograms._2), program)
     }
       property(s"Call sensitivity: Check if datastructures are the same in the analysis of new version and update for" + benchmark) {
-      callAnalysisOnBenchmark(CallSensitivityAnalysis(program), CallSensitivityAnalysisUpdate(program), CallSensitivityAnalysis(program), program)
+      callAnalysisOnBenchmark(CallSensitivityAnalysis(program), CallSensitivityAnalysisUpdate(program), CallSensitivityAnalysis(program), baseAnalysisUpdateInsertDelete(twoPrograms._1, twoPrograms._2), program)
     }
 
   )
 
-  def callAnalysisOnBenchmark(a: IncrementalModAnalysis[SchemeExp], u: IncrementalModAnalysisWithUpdate[SchemeExp], full:  IncrementalModAnalysis[SchemeExp], program: SchemeExp): Unit =
-    u.analyzeWithTimeout(Timeout.start(Duration(2, MINUTES)))
-    u.updateAnalysis(Timeout.start(Duration(2, MINUTES)))
+  def callAnalysisOnBenchmark(a: IncrementalModAnalysis[SchemeExp], u: IncrementalModAnalysisWithUpdate[SchemeExp], full:  IncrementalModAnalysis[SchemeExp], twoVersions: IncrementalModAnalysisWithUpdateTwoVersions[SchemeExp], program: SchemeExp): Unit =
+    val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
+    u.analyzeWithTimeout(standardTimeout())
+    u.updateAnalysis(standardTimeout())
 
     a.version = New
-    a.analyzeWithTimeout(Timeout.start(Duration(2, MINUTES)))
+    a.analyzeWithTimeout(standardTimeout())
 
-    //a.updateAnalysis(Timeout.start(Duration(2, MINUTES)))
+    full.analyzeWithTimeout(standardTimeout())
+    full.updateAnalysis(standardTimeout())
 
-    full.analyzeWithTimeout(Timeout.start(Duration(2, MINUTES)))
-    full.updateAnalysis(Timeout.start(Duration(2, MINUTES)))
+    val twoVersionsNewOnly = twoVersions.deepCopy()
+    twoVersionsNewOnly.version = New
+    twoVersionsNewOnly.analyzeWithTimeout(standardTimeout())
+
+    twoVersions.updateAnalysis(standardTimeout())
 
     checkSubsumption(a, u, full)
+    checkSubsumptionForUpdate(twoVersionsNewOnly, twoVersions)

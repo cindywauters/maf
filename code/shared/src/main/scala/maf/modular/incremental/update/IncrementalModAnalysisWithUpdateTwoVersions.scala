@@ -13,7 +13,7 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
   var allChanges: Map[Expression, Expression] = Map()
   var allDeletes: List[Expression] = List()
 
-  override def updateAnalysis(timeout: Timeout.T): Unit =
+  def updateAnalysis(timeout: Timeout.T, rename: Boolean): Unit =
     (program, secondProgram) match
       case (old: SchemeExp, nw: SchemeExp) =>
         val changes = SchemeChangePatterns.comparePrograms(old, nw)
@@ -22,12 +22,15 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
           case (Some(oe), None)     => allDeletes = allDeletes.::(oe)
           case _ =>
         )
-        this match
-          case a: IncrementalModAnalysis[Expression] =>
-            if changes._2.nonEmpty then
-              val renamed = changes._2.map(e => (e._1, e._2._2)).toSet
-              update.changeDataStructures(a, program, renamed)
-        val affected = changes._1.flatMap(e => e match
+        var affectedAll = changes._1.appendedAll(changes._2.map(_._1))
+        if rename then
+          this match
+            case a: IncrementalModAnalysis[Expression] =>
+              if changes._2.nonEmpty then
+                val renamed = changes._2.map(e => (e._1, e._2._2)).toSet
+                update.changeDataStructures(a, program, renamed)
+          affectedAll = changes._1
+        val affected = affectedAll.flatMap(e => e match
           case (Some(old: Expr), Some(_)) =>
             mapping.get(old) match
               case Some(comp) => comp

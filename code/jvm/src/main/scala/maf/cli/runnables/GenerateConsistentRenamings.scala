@@ -5,7 +5,7 @@ import maf.core.{Expression, Identifier, Identity}
 import maf.language.CScheme.CSchemeParser
 import maf.language.change.CodeVersion.New
 import maf.language.scheme.interpreter.SchemeInterpreter
-import maf.language.scheme.{SchemeChangePatterns, SchemeCodeChange, SchemeDefineVariable, SchemeExp, SchemeIf, SchemeLambda, SchemeLambdaExp, SchemeLet, SchemeLetStar, SchemeLetrec, SchemeLettishExp, SchemeParser, SchemeRenamer, SchemeVarArgLambda, SchemeFuncall}
+import maf.language.scheme.{SchemeVar, SchemeChangePatterns, SchemeCodeChange, SchemeDefineVariable, SchemeExp, SchemeIf, SchemeLambda, SchemeLambdaExp, SchemeLet, SchemeLetStar, SchemeLetrec, SchemeLettishExp, SchemeParser, SchemeRenamer, SchemeVarArgLambda, SchemeFuncall}
 import maf.util.Reader
 import maf.util.benchmarks.Timeout
 import smtlib.extensions.tip.Terms.Lambda
@@ -88,16 +88,17 @@ object GenerateConsistentRenamings extends App:
           bw.close()
       )
 
+  private def shouldChange(chance: Int): Boolean =
+    rand.nextInt(100) < chance
+
   private def findSomeRenamableExps(expr: Expression, chance: Int): List[SchemeExp] = expr match
     case lam: SchemeLambdaExp  =>
-      val random = rand.nextInt(100)
-      if random < chance then
+      if shouldChange(chance) then
         List(lam)
       else
         List().appendedAll(lam.subexpressions.flatMap(e => findSomeRenamableExps(e, chance)))
     case let: SchemeLettishExp =>
-      val random = rand.nextInt(100)
-      if random < chance then
+      if shouldChange(chance) then
         List(let)
       else
         List().appendedAll(let.subexpressions.flatMap(e => findSomeRenamableExps(e, chance)))
@@ -143,6 +144,53 @@ object GenerateConsistentRenamings extends App:
     case fun: SchemeFuncall =>
       SchemeFuncall(replaceInParsed(fun.f, renamableSubexpr, renamableToRenamer), fun.args.map(a => replaceInParsed(a, renamableSubexpr, renamableToRenamer)), fun.idn)
     case _ =>
-    //  println(parsed.getClass)
       parsed
   }
+
+  private def createUpdateStrings(old: String, nw: String): SchemeFuncall =
+    SchemeFuncall(SchemeVar(Identifier("<update> " + old + " " + nw, Identity.none)), List(), Identity.none)
+
+  private def updateRenaming(exp: SchemeExp): SchemeExp = exp
+ //   case define: SchemeDefineVariable =>
+ //     SchemeDefineVariable(Identifier("(<update> " + define.name.name + " " + define.name.name + "1)", Identity.none), define.value, Identity.none)
+
+  private def insertUpdateRenaming(parsed: SchemeExp): SchemeExp = parsed match
+    case define: SchemeDefineVariable =>
+      if shouldChange(100) then
+        SchemeDefineVariable(Identifier("(<update> " + define.name.name + " " + define.name.name + "1)", Identity.none), insertUpdateRenaming(define.value), Identity.none)
+      else
+        SchemeDefineVariable(define.name, insertUpdateRenaming(define.value), define.idn)
+    case lambda: SchemeLambda =>
+      if shouldChange(10) then
+        updateRenaming(lambda)
+      else
+        SchemeLambda(lambda.name, lambda.args, lambda.body.map(insertUpdateRenaming), lambda.annotation, lambda.idn)
+    case lambda: SchemeVarArgLambda =>
+      if shouldChange(10) then
+        updateRenaming(lambda)
+      else
+        SchemeVarArgLambda(lambda.name, lambda.args, lambda.vararg, lambda.body.map(insertUpdateRenaming), lambda.annotation, lambda.idn)
+    case let: SchemeLet =>
+      if shouldChange(10) then
+        updateRenaming(let)
+      else
+        SchemeLet(let.bindings.map(b => (b._1, insertUpdateRenaming(b._2))), let.body.map(insertUpdateRenaming), let.idn)
+    case let: SchemeLetStar =>
+      if shouldChange(10) then
+        updateRenaming(let)
+      else
+        SchemeLetStar(let.bindings.map(b => (b._1, insertUpdateRenaming(b._2))), let.body.map(insertUpdateRenaming), let.idn)
+    case let: SchemeLetrec =>
+      if shouldChange(10) then
+        updateRenaming(let)
+      else
+        SchemeLetrec(let.bindings.map(b => (b._1, insertUpdateRenaming(b._2))), let.body.map(insertUpdateRenaming), let.idn)
+    case ifExp: SchemeIf =>
+      SchemeIf(insertUpdateRenaming(ifExp.cond), insertUpdateRenaming(ifExp.cons), insertUpdateRenaming(ifExp.alt), ifExp.idn)
+    case fun: SchemeFuncall =>
+      SchemeFuncall(insertUpdateRenaming(fun.f), fun.args.map(a => insertUpdateRenaming(a)), fun.idn)
+    case _ =>
+      parsed
+
+  val text = Reader.loadFile("test/changeDetectionTest/testsWithUpdate/testfile.scm")
+  println(insertUpdateRenaming(SchemeParser.parse(text).head).prettyString())

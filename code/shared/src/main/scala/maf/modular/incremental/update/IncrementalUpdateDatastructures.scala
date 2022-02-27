@@ -56,9 +56,6 @@ class IncrementalUpdateDatastructures {
   // Find all the subexpressions of an expression, and their subexpressions.
   // Something like (lambda (a) (+ a 1)) will become List((lambda (a) (+ a 1)), (+ a 1), +, a, 1)
   def findAllSubExps(expr: Expression): List[Expression] =
- /*   print(expr.getClass)
-    print(" ")
-    println(expr)*/
     if expr.subexpressions.isEmpty && expr.height == 1 then
       List(expr)
     else if  expr.subexpressions.isEmpty then
@@ -106,7 +103,49 @@ class IncrementalUpdateDatastructures {
               insertInDeps(a, addrDep, addrDep, oldValue, newValue)
       )
 
- // def updateDatastructure(f: IncrementalModAnalysis[SchemeExp] => Unit, a: IncrementalModAnalysis[SchemeExp], )
+  def buildNewExpr(expr: SchemeExp): SchemeExp = expr match
+  case lambda: SchemeLambda =>
+    allExpressionsInChange.get(lambda) match
+      case Some(newLam) => newLam.asInstanceOf[SchemeExp]
+      case _ => SchemeLambda(lambda.name, lambda.args, lambda.body.map(buildNewExpr), lambda.annotation, lambda.idn)
+  case lambda: SchemeVarArgLambda =>
+    allExpressionsInChange.get(lambda) match
+      case Some(newLam) => newLam.asInstanceOf[SchemeExp]
+      case _ => SchemeVarArgLambda(lambda.name, lambda.args, lambda.vararg, lambda.body.map(buildNewExpr), lambda.annotation, lambda.idn)
+  case let: SchemeLet =>
+    allExpressionsInChange.get(let) match
+      case Some(newLet) => newLet.asInstanceOf[SchemeExp]
+      case None => SchemeLet(let.bindings.map(b => (b._1, buildNewExpr(b._2))), let.body.map(buildNewExpr), let.idn)
+  case let: SchemeLetStar =>
+    allExpressionsInChange.get(let) match
+      case Some(newLet) => newLet.asInstanceOf[SchemeExp]
+      case None => SchemeLetStar(let.bindings.map(b => (b._1, buildNewExpr(b._2))), let.body.map(buildNewExpr), let.idn)
+  case let: SchemeLetrec =>
+    allExpressionsInChange.get(let) match
+      case Some(newLet) => newLet.asInstanceOf[SchemeExp]
+      case None => SchemeLetrec(let.bindings.map(b => (b._1, buildNewExpr(b._2))), let.body.map(buildNewExpr), let.idn)
+  case ifExp: SchemeIf =>
+    allExpressionsInChange.get(ifExp) match
+      case Some(newif) => newif.asInstanceOf[SchemeExp]
+      case None => SchemeIf(buildNewExpr(ifExp.cond), buildNewExpr(ifExp.cons), buildNewExpr(ifExp.alt), ifExp.idn)
+  case fun: SchemeFuncall =>
+    allExpressionsInChange.get(fun) match
+      case Some(newfun) => newfun.asInstanceOf[SchemeExp]
+      case None => SchemeFuncall(buildNewExpr(fun.f), fun.args.map(buildNewExpr), fun.idn)
+  case set: SchemeSet =>
+    allExpressionsInChange.get(set) match
+      case Some(newSet) => newSet.asInstanceOf[SchemeExp]
+      case None => SchemeSet(set.variable, buildNewExpr(set.value), set.idn)
+  case begin: SchemeBegin =>
+    allExpressionsInChange.get(begin) match
+      case Some(newBegin) => newBegin.asInstanceOf[SchemeExp]
+      case None => SchemeBegin(begin.exps.map(buildNewExpr), begin.idn)
+  case scmVar: SchemeVar =>
+    allExpressionsInChange.get(scmVar) match
+      case Some(newVar) => newVar.asInstanceOf[SchemeExp]
+      case None => scmVar
+  case _ => expr
+
 
   // In the mapping, the key is a (Scheme) expression and the value is a set of components
   // So we once again want to update all the components, and update the key
@@ -114,7 +153,18 @@ class IncrementalUpdateDatastructures {
   def updateMapping(a: IncrementalModAnalysis[Expression]): Unit =
     a.mapping.foreach((oldKey, oldValue) =>
       val newValue = oldValue.map(e => getNewComponent(a, e))
-      (oldKey, allExpressionsInChange.getOrElse(oldKey, oldKey), newValue) match
+      var newKey = oldKey
+      allExpressionsInChange.get(oldKey) match
+        case Some(nw) => newKey = nw
+        case _ =>
+          if findAllSubExps(oldKey).exists(e => allExpressionsInChange.contains(e)) then
+            oldKey match
+              case oldKey: SchemeExp =>
+                println("rebuilding")
+                println(oldKey)
+                println(buildNewExpr(oldKey))
+                newKey = buildNewExpr(oldKey)
+      (oldKey, newKey, newValue) match
         case (oldKey: SchemeExp, newKey: SchemeExp, newValue: Set[a.Component]) =>
           if newKey.equals(oldKey) then
             if !newValue.equals(oldValue) then

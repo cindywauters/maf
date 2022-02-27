@@ -137,10 +137,7 @@ object SchemeChangePatterns:
             newlet.bindings.find(ne => oe._2.idn == ne._2.idn) match
               case Some(x) => (oe, x)
         }
-        println("139")
-        changedBindingsBoth.foreach(e => println(e._1.toString + " " + e._2.toString))
         changedBindingsBoth.filterNot(e => renamedBindings.contains(e)).foreach(e =>
-          println("Expressions: " + e._1._2.toString + " " + e._2._2.toString)
           findLowestChangedSubExpressions(e._1._2, e._2._2).foreach(e => e match
             case (Some(oe), Some(ne)) => (oe, ne) match
               case (oe: Identifier, ne: Identifier) =>
@@ -154,16 +151,9 @@ object SchemeChangePatterns:
                   rename = rename.::((oe, ne), checkRenamingsVariables(oe, ne))
                 else
                   reanalyse = reanalyse.::((Some(oe), Some(ne)))
-                println(oe.toString + "\n" + ne.toString + "\n" + checkRenamingsVariables(oe, ne))
             case (Some(oe), None) => reanalyse = reanalyse.::((Some(oe), None))
           )
-          println("lowest changed subexpressions: " + findLowestChangedSubExpressions(e._1._2, e._2._2))
           )
-        println("to reanalyze: ")
-        reanalyse.foreach(println)
-        println()
-        println("to rename: ")
-        rename.foreach(println)
         (reanalyse, rename)
       case _ => (List(), List())
 

@@ -20,6 +20,10 @@ object ExtractOldNew:
       if oldversion then
         buildNew(old, idn)
       else buildNew(nw, idn)
+    case SExpPair(SExpId(Identifier("<change>", idn)), SExpPair(old, SExpPair(nw, _, _), _), _) =>
+      if oldversion then
+        buildNew(old, idn)
+      else buildNew(nw, idn)  
     // If there is an insert and we are looking for the new version: take the SExp otherwise insert placeholder that will be removed later
     case SExpPair(SExpId(Identifier("<insert>", _)), SExpPair(toInsert, _, _), idn) =>
       if oldversion then
@@ -62,9 +66,5 @@ object ExtractOldNew:
   def getOldNewVersions(program: SExp): (SExp, SExp) =
     val old = getAllOfVersion(program, true)
     val nw = getAllOfVersion(program, false)
-    println("all old:")
-    println(old)
-    println("all new:")
-    println(nw)
     (old, nw)
 

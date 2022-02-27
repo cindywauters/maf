@@ -65,7 +65,7 @@ object RenamingTester extends App:
       analysisWithUpdates.analyzeWithTimeout(timeout())
       val beforeUpdateAnalysis = System.nanoTime
       analysisWithUpdates.version = New
-      analysisWithUpdates.updateAnalysis(timeout())
+      analysisWithUpdates.updateAnalysis(timeout(), true)
       val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
 
       val storeWithUpdate = analysisWithUpdates.store
@@ -73,10 +73,14 @@ object RenamingTester extends App:
       val mappingWithUpdate = analysisWithUpdates.mapping
       val visitedWithUpdate = analysisWithUpdates.visited
 
+      println("next")
+
 
       val analysisWithoutUpdates = baseUpdates(program._1, program._2)
+      val beforeNewAnalysis = System.nanoTime
       analysisWithoutUpdates.version = New
       analysisWithoutUpdates.analyzeWithTimeout(timeout())
+      val timeNewAnalysis = System.nanoTime - beforeNewAnalysis
 
       val storeWithoutUpdate = analysisWithoutUpdates.store
       val depsWithoutUpdate = analysisWithoutUpdates.deps
@@ -84,8 +88,8 @@ object RenamingTester extends App:
       val visitedWithoutUpdate = analysisWithoutUpdates.visited
 
       println("updating done")
-
-      println("Time updating:                " + timeUpdateAnalysis)
+      println("Time updating:                    " + timeUpdateAnalysis)
+      println("Time analysis new:                " + timeNewAnalysis)
 
       println("Store with update: " + storeWithUpdate.toString)
       println("Store new only   : " + storeWithoutUpdate.toString)
@@ -110,7 +114,7 @@ object RenamingTester extends App:
 
       println("Mapping reanalysis -> Update (subsumption): " + mappingWithoutUpdate.forall((k, v) =>
         mappingWithUpdate.get(k) match
-          case Some(updatedValue) => updatedValue.==(v) || v.forall(elv => updatedValue.contains(elv))
+          case Some(updatedValue) => v.forall(elv => updatedValue.contains(elv))
           case _ => false).toString)
 
       println("Visited with update : " + visitedWithUpdate.toString)
@@ -130,7 +134,9 @@ object RenamingTester extends App:
   end modfAnalysis
 
   val modConcbenchmarks: List[String] = List()
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/updateTestFile.scm")
+ // val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/updateTestFile.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/gambit/NoSensitivity/paraffins.scm")
+
   val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 
   modFbenchmarks.foreach(modfAnalysis(_, standardTimeout))

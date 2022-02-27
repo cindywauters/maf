@@ -102,11 +102,10 @@ object UpdateStructuresInAnalysis extends App:
       interpretProgram(bench)
       val program = CSchemeParser.parseProgram(Reader.loadFile(bench))
 
+      // analysisWithoutUpdates.analyzeWithTimeout(timeout())
+      // analysisWithoutUpdates.analyzeWithTimeout(timeout())
 
       val analysisWithoutUpdates = baseNoUpdates(program)
-
-      // analysisWithoutUpdates.analyzeWithTimeout(timeout())
-      // analysisWithoutUpdates.analyzeWithTimeout(timeout())
       val beforeAnalysis = System.nanoTime
       analysisWithoutUpdates.version = New
       analysisWithoutUpdates.analyzeWithTimeout(timeout())
@@ -217,8 +216,8 @@ object UpdateStructuresInAnalysis extends App:
 
       println()
 
-      // println("Mapping with updating: " + mappingWithUpdate.toString)
-      //  println("Mapping with regular reanalysis: " + mappingWithoutUpdate.toString)
+      println("Mapping with updating: " + mappingWithUpdate.toString)
+      println("Mapping with regular reanalysis: " + mappingWithoutUpdate.toString)
 
 
       println("Mapping reanalysis -> Update: " + mappingWithoutUpdate.forall((k, v) =>
