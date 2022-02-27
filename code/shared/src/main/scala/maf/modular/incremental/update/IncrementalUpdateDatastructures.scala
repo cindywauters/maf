@@ -103,48 +103,48 @@ class IncrementalUpdateDatastructures {
               insertInDeps(a, addrDep, addrDep, oldValue, newValue)
       )
 
-  def buildNewExpr(expr: SchemeExp): SchemeExp = expr match
-  case lambda: SchemeLambda =>
-    allExpressionsInChange.get(lambda) match
-      case Some(newLam) => newLam.asInstanceOf[SchemeExp]
-      case _ => SchemeLambda(lambda.name, lambda.args, lambda.body.map(buildNewExpr), lambda.annotation, lambda.idn)
-  case lambda: SchemeVarArgLambda =>
-    allExpressionsInChange.get(lambda) match
-      case Some(newLam) => newLam.asInstanceOf[SchemeExp]
-      case _ => SchemeVarArgLambda(lambda.name, lambda.args, lambda.vararg, lambda.body.map(buildNewExpr), lambda.annotation, lambda.idn)
-  case let: SchemeLet =>
-    allExpressionsInChange.get(let) match
-      case Some(newLet) => newLet.asInstanceOf[SchemeExp]
-      case None => SchemeLet(let.bindings.map(b => (b._1, buildNewExpr(b._2))), let.body.map(buildNewExpr), let.idn)
-  case let: SchemeLetStar =>
-    allExpressionsInChange.get(let) match
-      case Some(newLet) => newLet.asInstanceOf[SchemeExp]
-      case None => SchemeLetStar(let.bindings.map(b => (b._1, buildNewExpr(b._2))), let.body.map(buildNewExpr), let.idn)
-  case let: SchemeLetrec =>
-    allExpressionsInChange.get(let) match
-      case Some(newLet) => newLet.asInstanceOf[SchemeExp]
-      case None => SchemeLetrec(let.bindings.map(b => (b._1, buildNewExpr(b._2))), let.body.map(buildNewExpr), let.idn)
-  case ifExp: SchemeIf =>
-    allExpressionsInChange.get(ifExp) match
-      case Some(newif) => newif.asInstanceOf[SchemeExp]
-      case None => SchemeIf(buildNewExpr(ifExp.cond), buildNewExpr(ifExp.cons), buildNewExpr(ifExp.alt), ifExp.idn)
-  case fun: SchemeFuncall =>
-    allExpressionsInChange.get(fun) match
-      case Some(newfun) => newfun.asInstanceOf[SchemeExp]
-      case None => SchemeFuncall(buildNewExpr(fun.f), fun.args.map(buildNewExpr), fun.idn)
-  case set: SchemeSet =>
-    allExpressionsInChange.get(set) match
-      case Some(newSet) => newSet.asInstanceOf[SchemeExp]
-      case None => SchemeSet(set.variable, buildNewExpr(set.value), set.idn)
-  case begin: SchemeBegin =>
-    allExpressionsInChange.get(begin) match
-      case Some(newBegin) => newBegin.asInstanceOf[SchemeExp]
-      case None => SchemeBegin(begin.exps.map(buildNewExpr), begin.idn)
-  case scmVar: SchemeVar =>
-    allExpressionsInChange.get(scmVar) match
-      case Some(newVar) => newVar.asInstanceOf[SchemeExp]
-      case None => scmVar
-  case _ => expr
+  def buildNewExpr(expr: SchemeExp, allChanges: Map[maf.core.Expression, maf.core.Expression] = allExpressionsInChange): SchemeExp = expr match
+    case lambda: SchemeLambda =>
+      allChanges.get(lambda) match
+        case Some(newLam) => newLam.asInstanceOf[SchemeExp]
+        case _ => SchemeLambda(lambda.name, lambda.args, lambda.body.map(buildNewExpr(_, allChanges)), lambda.annotation, lambda.idn)
+    case lambda: SchemeVarArgLambda =>
+      allChanges.get(lambda) match
+        case Some(newLam) => newLam.asInstanceOf[SchemeExp]
+        case _ => SchemeVarArgLambda(lambda.name, lambda.args, lambda.vararg, lambda.body.map(buildNewExpr(_, allChanges)), lambda.annotation, lambda.idn)
+    case let: SchemeLet =>
+      allChanges.get(let) match
+        case Some(newLet) => newLet.asInstanceOf[SchemeExp]
+        case None => SchemeLet(let.bindings.map(b => (b._1, buildNewExpr(b._2, allChanges))), let.body.map(buildNewExpr(_, allChanges)), let.idn)
+    case let: SchemeLetStar =>
+      allChanges.get(let) match
+        case Some(newLet) => newLet.asInstanceOf[SchemeExp]
+        case None => SchemeLetStar(let.bindings.map(b => (b._1, buildNewExpr(b._2, allChanges))), let.body.map(buildNewExpr(_, allChanges)), let.idn)
+    case let: SchemeLetrec =>
+      allChanges.get(let) match
+        case Some(newLet) => newLet.asInstanceOf[SchemeExp]
+        case None => SchemeLetrec(let.bindings.map(b => (b._1, buildNewExpr(b._2, allChanges))), let.body.map(buildNewExpr(_, allChanges)), let.idn)
+    case ifExp: SchemeIf =>
+      allChanges.get(ifExp) match
+        case Some(newif) => newif.asInstanceOf[SchemeExp]
+        case None => SchemeIf(buildNewExpr(ifExp.cond, allChanges), buildNewExpr(ifExp.cons, allChanges), buildNewExpr(ifExp.alt, allChanges), ifExp.idn)
+    case fun: SchemeFuncall =>
+      allChanges.get(fun) match
+        case Some(newfun) => newfun.asInstanceOf[SchemeExp]
+        case None => SchemeFuncall(buildNewExpr(fun.f, allChanges), fun.args.map(buildNewExpr(_, allChanges)), fun.idn)
+    case set: SchemeSet =>
+      allChanges.get(set) match
+        case Some(newSet) => newSet.asInstanceOf[SchemeExp]
+        case None => SchemeSet(set.variable, buildNewExpr(set.value, allChanges), set.idn)
+    case begin: SchemeBegin =>
+      allChanges.get(begin) match
+        case Some(newBegin) => newBegin.asInstanceOf[SchemeExp]
+        case None => SchemeBegin(begin.exps.map(buildNewExpr(_, allChanges)), begin.idn)
+    case scmVar: SchemeVar =>
+      allChanges.get(scmVar) match
+        case Some(newVar) => newVar.asInstanceOf[SchemeExp]
+        case None => scmVar
+    case _ => expr
 
 
   // In the mapping, the key is a (Scheme) expression and the value is a set of components
@@ -159,11 +159,7 @@ class IncrementalUpdateDatastructures {
         case _ =>
           if findAllSubExps(oldKey).exists(e => allExpressionsInChange.contains(e)) then
             oldKey match
-              case oldKey: SchemeExp =>
-                println("rebuilding")
-                println(oldKey)
-                println(buildNewExpr(oldKey))
-                newKey = buildNewExpr(oldKey)
+              case oldKey: SchemeExp => newKey = buildNewExpr(oldKey)
       (oldKey, newKey, newValue) match
         case (oldKey: SchemeExp, newKey: SchemeExp, newValue: Set[a.Component]) =>
           if newKey.equals(oldKey) then
@@ -245,6 +241,8 @@ class IncrementalUpdateDatastructures {
             val newAddr = maf.modular.ReturnAddr[SchemeModFComponent](idn = newIdn, cmp = newCmp)
             newAddr
           case _ =>
+            if findAllSubExps(lam).exists(e => allExpressionsInChange.contains(e)) then
+              return maf.modular.ReturnAddr[SchemeModFComponent](idn = buildNewExpr(lam).asInstanceOf[SchemeLambda].body.head.idn, cmp = newCmp)
             val newAddr = maf.modular.ReturnAddr[SchemeModFComponent](idn = addr.idn, cmp = newCmp)
             newAddr
 
@@ -252,12 +250,12 @@ class IncrementalUpdateDatastructures {
   // Get a new component. First look if it is a Main call or a function call. In case of main, just return the old component
   // In the case of a function call, only change the component if it exists within a changed expression (otherwise return the old component)
   // Also create a new environment making use of createNewEnvironment
-  def getNewComponent(a: IncrementalModAnalysis[Expression], comp: Serializable, changedExprs: Map[maf.core.Expression, maf.core.Expression] = allExpressionsInChange): SchemeModFComponent =
+  def getNewComponent(a: IncrementalModAnalysis[Expression], comp: Serializable): SchemeModFComponent =
     comp match
       case comp: SchemeModFComponent.Main.type =>
         comp
       case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), ctx: _) =>
-        val changeToLambda = changedExprs.get(lam)
+        val changeToLambda = allExpressionsInChange.get(lam)
         val newCtx = updateCtx(a, ctx).asInstanceOf[ctx.type]
         changeToLambda match
           case Some(lambda: SchemeLambdaExp) =>
@@ -265,8 +263,11 @@ class IncrementalUpdateDatastructures {
             val newCmp = SchemeModFComponent.Call(clo = (lambda, new BasicEnvironment[Address](newEnv)), ctx = newCtx)
             newCmp
           case _ =>
+            var newLam = lam
+            if findAllSubExps(lam).exists(e => allExpressionsInChange.contains(e)) then
+              newLam = buildNewExpr(lam).asInstanceOf[SchemeLambda]
             val newEnv = createNewEnvironment(a, env)
-            val newCmp = SchemeModFComponent.Call(clo = (lam, new BasicEnvironment[Address](newEnv)), ctx = newCtx)
+            val newCmp = SchemeModFComponent.Call(clo = (newLam, new BasicEnvironment[Address](newEnv)), ctx = newCtx)
             newCmp
 
 
@@ -278,6 +279,8 @@ class IncrementalUpdateDatastructures {
       case Some(newExp: SchemeExp) =>
         addr.copy(exp = newExp, ctx = newCtx)
       case _ =>
+        if findAllSubExps(addr.exp).exists(e => allExpressionsInChange.contains(e)) then
+          return addr.copy(exp = buildNewExpr(addr.exp), ctx = newCtx)
         addr.copy(ctx = newCtx)
 
   // A value can be either annotated elements or elements. In both cases, we want to get all the values within the elements and update each of them
@@ -311,10 +314,13 @@ class IncrementalUpdateDatastructures {
                   var newEnv = createNewEnvironment(a, env)
                   (lambda, new BasicEnvironment[Address](newEnv))
             case _ =>
+              var nwLam = closure._1
+              if findAllSubExps(nwLam).exists(e => allExpressionsInChange.contains(e)) then
+                nwLam = buildNewExpr(nwLam).asInstanceOf[SchemeLambda]
               closure._2 match // update the environment of the lambda if it needs changing
                 case env : maf.core.BasicEnvironment[_] =>
                   var newEnv = createNewEnvironment(a, env)
-                  (closure._1, new BasicEnvironment[Address](newEnv))
+                  (nwLam, new BasicEnvironment[Address](newEnv))
         )
         IncrementalSchemeTypeDomain.modularLattice.Clo(newClos)
       case vector: IncrementalSchemeTypeDomain.modularLattice.Vec =>

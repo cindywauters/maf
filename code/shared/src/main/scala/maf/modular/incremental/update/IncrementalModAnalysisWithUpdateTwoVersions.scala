@@ -34,8 +34,9 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
           case (Some(old: Expr), Some(_)) =>
             mapping.get(old) match
               case Some(comp) => comp
-              case _ => Set()
+              case _ => Set(initialComponent)
           case _ => Set(initialComponent)
         )
+        addToWorkList(initialComponent)
         affected.foreach(addToWorkList)
     analyzeWithTimeout(timeout)

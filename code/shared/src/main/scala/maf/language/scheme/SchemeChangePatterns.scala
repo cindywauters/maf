@@ -92,7 +92,6 @@ object SchemeChangePatterns:
     (old, nw) match
       case (ol: SchemeLambda, nl: SchemeLambda) =>
         if checkRenamingsVariables(ol, nl)._1 then
-          //if ol.args != nl.args then
           return List((Some(ol), Some(nl)))
       case _ =>
     val differentOlds = old.subexpressions.filterNot(oe => nw.subexpressions.exists(ne => oe.idn == ne.idn))
@@ -105,8 +104,6 @@ object SchemeChangePatterns:
               findLowestChangedSubExpressions(oe, ne)
             else
               List((Some(oe), Some(ne))))
-    //val deletedExps = differentOlds.map(e => (Some(e), None))
-    //val insertedExps = differentNews.map(e => (None, Some(e)))
     if differentOlds.nonEmpty || differentNews.nonEmpty then
       updated.::((Some(old), Some(nw))) // Something is inserted or deleted so we want to return the encapsulating expression
     else
@@ -151,7 +148,7 @@ object SchemeChangePatterns:
                   rename = rename.::((oe, ne), checkRenamingsVariables(oe, ne))
                 else
                   reanalyse = reanalyse.::((Some(oe), Some(ne)))
-            case (Some(oe), None) => reanalyse = reanalyse.::((Some(oe), None))
+            case (Some(oe), None)    => reanalyse = reanalyse.::((Some(oe), None))
           )
           )
         (reanalyse, rename)

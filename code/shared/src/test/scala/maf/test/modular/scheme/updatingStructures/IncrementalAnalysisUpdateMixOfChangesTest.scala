@@ -314,7 +314,9 @@ class IncrementalAnalysisUpdateMixOfChangesTest extends AnyPropSpec:
     twoVersionsNewOnly.version = New
     twoVersionsNewOnly.analyzeWithTimeout(standardTimeout())
 
-    twoVersions.updateAnalysis(standardTimeout())
+    twoVersions.analyzeWithTimeout(standardTimeout())
+    twoVersions.version = New
+    twoVersions.updateAnalysis(standardTimeout(), true)
 
     checkSubsumption(a, u, full)
     checkSubsumptionForUpdate(twoVersionsNewOnly, twoVersions)

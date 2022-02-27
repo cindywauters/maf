@@ -60,6 +60,15 @@ object RenamingTester extends App:
       println(program._1.prettyString())
       println(program._2.prettyString())
 
+    /*  for(x <- 1 to 10) {
+        val analysisWithUpdates = baseUpdates(program._1, program._2)
+
+        analysisWithUpdates.analyzeWithTimeout(timeout())
+        val beforeUpdateAnalysis = System.nanoTime
+        analysisWithUpdates.version = New
+        analysisWithUpdates.updateAnalysis(timeout(), true)
+        val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
+      }*/
       val analysisWithUpdates = baseUpdates(program._1, program._2)
 
       analysisWithUpdates.analyzeWithTimeout(timeout())
@@ -94,9 +103,10 @@ object RenamingTester extends App:
       println("Store with update: " + storeWithUpdate.toString)
       println("Store new only   : " + storeWithoutUpdate.toString)
 
-      println("store reanalysis -> Update (subsumption): " + storeWithoutUpdate.forall((k, v) =>
+     println("store reanalysis -> Update (subsumption): " + storeWithoutUpdate.forall((k, v) =>
         storeWithUpdate.get(k) match
-          case Some(updatedValue) => analysisWithUpdates.lattice.subsumes(updatedValue, v)
+          case Some(updatedValue) =>
+            analysisWithUpdates.lattice.subsumes(updatedValue, v)
           case _ =>
             println("old: " + v.toString + " " + k.toString())
             false).toString)
@@ -106,7 +116,8 @@ object RenamingTester extends App:
 
       println("Dependencies reanalysis -> Update (subsumption): " + depsWithoutUpdate.forall((k, v) =>
         depsWithUpdate.get(k) match
-          case Some(updatedValue) => updatedValue.==(v) || v.forall(elv => updatedValue.contains(elv))
+          case Some(updatedValue) =>
+            v.forall(elv => updatedValue.contains(elv))
           case _ => false).toString)
 
       println("Mapping with update : " + mappingWithUpdate.toString)
@@ -114,12 +125,23 @@ object RenamingTester extends App:
 
       println("Mapping reanalysis -> Update (subsumption): " + mappingWithoutUpdate.forall((k, v) =>
         mappingWithUpdate.get(k) match
-          case Some(updatedValue) => v.forall(elv => updatedValue.contains(elv))
-          case _ => false).toString)
+          case Some(updatedValue) =>
+            if !v.forall(elv => updatedValue.contains(elv)) then
+              println(v)
+              println(updatedValue)
+            v.forall(elv => updatedValue.contains(elv))
+          case _ =>
+            println(k)
+            println(v)
+            false).toString)
 
       println("Visited with update : " + visitedWithUpdate.toString)
       println("Visited new only    : " + visitedWithoutUpdate.toString)
-      println("Visited reanalysis -> Update (subsumption): " + visitedWithoutUpdate.forall(e => visitedWithUpdate.contains(e)).toString)
+      println("Visited reanalysis -> Update (subsumption): " +
+        visitedWithoutUpdate.forall(e =>
+          if !visitedWithUpdate.contains(e) then
+            println(e)
+          visitedWithUpdate.contains(e)).toString)
 
       println(storeWithUpdate.size)
       println(depsWithUpdate.size)
@@ -134,8 +156,8 @@ object RenamingTester extends App:
   end modfAnalysis
 
   val modConcbenchmarks: List[String] = List()
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/updateTestFile.scm")
-  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/gambit/NoSensitivity/paraffins.scm")
+ // val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/testfile.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/array1.scm")
 
   val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 
