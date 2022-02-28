@@ -102,49 +102,22 @@ class IncrementalUpdateDatastructures {
             case k: PrmAddr =>
               insertInDeps(a, addrDep, addrDep, oldValue, newValue)
       )
-
-  def buildNewExpr(expr: SchemeExp, allChanges: Map[maf.core.Expression, maf.core.Expression] = allExpressionsInChange): SchemeExp = expr match
-    case lambda: SchemeLambda =>
-      allChanges.get(lambda) match
-        case Some(newLam) => newLam.asInstanceOf[SchemeExp]
-        case _ => SchemeLambda(lambda.name, lambda.args, lambda.body.map(buildNewExpr(_, allChanges)), lambda.annotation, lambda.idn)
-    case lambda: SchemeVarArgLambda =>
-      allChanges.get(lambda) match
-        case Some(newLam) => newLam.asInstanceOf[SchemeExp]
-        case _ => SchemeVarArgLambda(lambda.name, lambda.args, lambda.vararg, lambda.body.map(buildNewExpr(_, allChanges)), lambda.annotation, lambda.idn)
-    case let: SchemeLet =>
-      allChanges.get(let) match
-        case Some(newLet) => newLet.asInstanceOf[SchemeExp]
-        case None => SchemeLet(let.bindings.map(b => (b._1, buildNewExpr(b._2, allChanges))), let.body.map(buildNewExpr(_, allChanges)), let.idn)
-    case let: SchemeLetStar =>
-      allChanges.get(let) match
-        case Some(newLet) => newLet.asInstanceOf[SchemeExp]
-        case None => SchemeLetStar(let.bindings.map(b => (b._1, buildNewExpr(b._2, allChanges))), let.body.map(buildNewExpr(_, allChanges)), let.idn)
-    case let: SchemeLetrec =>
-      allChanges.get(let) match
-        case Some(newLet) => newLet.asInstanceOf[SchemeExp]
-        case None => SchemeLetrec(let.bindings.map(b => (b._1, buildNewExpr(b._2, allChanges))), let.body.map(buildNewExpr(_, allChanges)), let.idn)
-    case ifExp: SchemeIf =>
-      allChanges.get(ifExp) match
-        case Some(newif) => newif.asInstanceOf[SchemeExp]
-        case None => SchemeIf(buildNewExpr(ifExp.cond, allChanges), buildNewExpr(ifExp.cons, allChanges), buildNewExpr(ifExp.alt, allChanges), ifExp.idn)
-    case fun: SchemeFuncall =>
-      allChanges.get(fun) match
-        case Some(newfun) => newfun.asInstanceOf[SchemeExp]
-        case None => SchemeFuncall(buildNewExpr(fun.f, allChanges), fun.args.map(buildNewExpr(_, allChanges)), fun.idn)
-    case set: SchemeSet =>
-      allChanges.get(set) match
-        case Some(newSet) => newSet.asInstanceOf[SchemeExp]
-        case None => SchemeSet(set.variable, buildNewExpr(set.value, allChanges), set.idn)
-    case begin: SchemeBegin =>
-      allChanges.get(begin) match
-        case Some(newBegin) => newBegin.asInstanceOf[SchemeExp]
-        case None => SchemeBegin(begin.exps.map(buildNewExpr(_, allChanges)), begin.idn)
-    case scmVar: SchemeVar =>
-      allChanges.get(scmVar) match
-        case Some(newVar) => newVar.asInstanceOf[SchemeExp]
-        case None => scmVar
-    case _ => expr
+  
+  def buildNewExpr(expr: SchemeExp, allChanges: Map[maf.core.Expression, maf.core.Expression] = allExpressionsInChange): SchemeExp =
+    allChanges.get(expr) match
+      case Some(e) => e.asInstanceOf[SchemeExp]
+      case None => expr match
+        case lambda: SchemeLambda       => SchemeLambda(lambda.name, lambda.args, lambda.body.map(buildNewExpr(_, allChanges)), lambda.annotation, lambda.idn)
+        case lambda: SchemeVarArgLambda => SchemeVarArgLambda(lambda.name, lambda.args, lambda.vararg, lambda.body.map(buildNewExpr(_, allChanges)), lambda.annotation, lambda.idn)
+        case let: SchemeLet             => SchemeLet(let.bindings.map(b => (b._1, buildNewExpr(b._2, allChanges))), let.body.map(buildNewExpr(_, allChanges)), let.idn)
+        case let: SchemeLetStar         => SchemeLetStar(let.bindings.map(b => (b._1, buildNewExpr(b._2, allChanges))), let.body.map(buildNewExpr(_, allChanges)), let.idn)
+        case let: SchemeLetrec          => SchemeLetrec(let.bindings.map(b => (b._1, buildNewExpr(b._2, allChanges))), let.body.map(buildNewExpr(_, allChanges)), let.idn)
+        case ifExp: SchemeIf            => SchemeIf(buildNewExpr(ifExp.cond, allChanges), buildNewExpr(ifExp.cons, allChanges), buildNewExpr(ifExp.alt, allChanges), ifExp.idn)
+        case fun: SchemeFuncall         => SchemeFuncall(buildNewExpr(fun.f, allChanges), fun.args.map(buildNewExpr(_, allChanges)), fun.idn)
+        case set: SchemeSet             => SchemeSet(set.variable, buildNewExpr(set.value, allChanges), set.idn)
+        case begin: SchemeBegin         => SchemeBegin(begin.exps.map(buildNewExpr(_, allChanges)), begin.idn)
+        case scmVar: SchemeVar          => scmVar
+        case _                          => expr
 
 
   // In the mapping, the key is a (Scheme) expression and the value is a set of components
