@@ -100,6 +100,8 @@ object RenamingTester extends App:
      println("store reanalysis -> Update (subsumption): " + storeWithoutUpdate.forall((k, v) =>
         storeWithUpdate.get(k) match
           case Some(updatedValue) =>
+            if !analysisWithUpdates.lattice.subsumes(updatedValue, v) then
+              println("store r -> u " + k.toString() + " " + v.toString + " " + updatedValue.toString)
             analysisWithUpdates.lattice.subsumes(updatedValue, v)
           case _ =>
             println("old: " + v.toString + " " + k.toString())
@@ -111,6 +113,14 @@ object RenamingTester extends App:
       println("Dependencies reanalysis -> Update (subsumption): " + depsWithoutUpdate.forall((k, v) =>
         depsWithUpdate.get(k) match
           case Some(updatedValue) =>
+            if !v.forall(elv => updatedValue.contains(elv)) then
+              println(" deps r -> u " + k.toString() + " " + v.toString + " " + updatedValue.toString)
+         /*     v.foreach(e => e match
+                case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+                  println(lam.toString + " " + env.toString + " " + oldCtx.toString))
+              updatedValue.foreach(e => e match
+                case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+                  println(lam.toString + " " + env.toString + " " + oldCtx.toString)  )*/
             v.forall(elv => updatedValue.contains(elv))
           case _ => false).toString)
 
@@ -125,10 +135,12 @@ object RenamingTester extends App:
               println(updatedValue)
               v.foreach(e => e match
                 case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
-                  println(lam.toString + " " + env.toString + " " + oldCtx.toString))
+                  println(lam.toString + " " + env.toString + " " + oldCtx.toString)
+                case _ =>)
               updatedValue.foreach(e => e match
                     case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
-                      println(lam.toString + " " + env.toString + " " + oldCtx.toString)  )
+                      println(lam.toString + " " + env.toString + " " + oldCtx.toString)
+                    case _ =>)
             v.forall(elv => updatedValue.contains(elv))
           case _ =>
             println(k)
