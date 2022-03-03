@@ -1,3 +1,9 @@
+(not 5)
+(<= 5 6)
+(< 5 6)
+(> 5 6)
+(>= 5 6)
+
 (define test
  (lambda (x)
   (<update>
@@ -8,7 +14,7 @@
      (+ x 1)
      (display x))
      x)
-   (if (not (< x 5))
+   (if (>= x 5)
        x
       (begin
           (+ x x)
@@ -18,7 +24,7 @@
 
 (define (test2 x)
 (<update>
-(if (<= x 6)
+(if (not (> x 6))
     (display "c")
     (display "d"))
 (if (> x 6)
@@ -29,10 +35,10 @@
 
 (define (test3 x)
 (<update>
-(if (>= 5 x)
+(if (< 5 x)
     (display "c")
     (display "d"))
-(if (< 5 x)
+(if (>= 5 x)
     (display "d")
     (display "c"))))
 

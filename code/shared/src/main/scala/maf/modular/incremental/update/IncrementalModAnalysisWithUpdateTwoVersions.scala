@@ -17,19 +17,19 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
     (program, secondProgram) match
       case (old: SchemeExp, nw: SchemeExp) =>
         val changes = SchemeChangePatterns.comparePrograms(old, nw)
-        changes._1.foreach(e => e match
+        changes.reanalyse.foreach(e => e match
           case (Some(oe), Some(ne)) => allChanges = allChanges + (oe -> ne)
           case (Some(oe), None)     => allDeletes = allDeletes.::(oe)
           case _ =>
         )
-        var affectedAll = changes._1.appendedAll(changes._2.map(_._1))
+        var affectedAll = changes.reanalyse.appendedAll(changes.renamings.map(_._1))
         if rename then
           this match
             case a: IncrementalModAnalysis[Expression] =>
-              if changes._2.nonEmpty then
-                val renamed = changes._2.map(e => (e._1, e._2._2)).toSet
-                update.changeDataStructures(a, program, renamed)
-          affectedAll = changes._1
+              if changes.renamings.nonEmpty || changes.ifs.nonEmpty then
+                val renamed = changes.renamings.map(e => (e._1, e._2._2)).toSet
+                update.changeDataStructures(a, program, renamed, changes.ifs)
+          affectedAll = changes.reanalyse
         val affected = affectedAll.flatMap(e => e match
           case (Some(old: Expr), Some(_)) =>
             mapping.get(old) match
@@ -37,6 +37,6 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
               case _ => Set(initialComponent)
           case _ => Set(initialComponent)
         )
-        addToWorkList(initialComponent)
+       // addToWorkList(initialComponent)
         affected.foreach(addToWorkList)
     analyzeWithTimeout(timeout)

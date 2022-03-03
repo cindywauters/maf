@@ -32,16 +32,18 @@ class IncrementalUpdateDatastructures {
 
   // Call this function when you want to update all the datastructures of an analysis
   // Arguments are an analysis and the expression that is being analysed
-  def changeDataStructures(a: IncrementalModAnalysis[Expression], exp: Expression, changed: Set[((maf.core.Expression, maf.core.Expression), Map[maf.core.Identifier, maf.core.Identifier])]): Boolean =
+  def changeDataStructures(a: IncrementalModAnalysis[Expression], exp: Expression, renamings: Set[((maf.core.Expression, maf.core.Expression), Map[maf.core.Identifier, maf.core.Identifier])], ifs: Map[maf.core.Expression, maf.core.Expression] = Map()): Boolean =
 
-    val changedVarsSwapped = changed.flatMap(e => e._2).toMap
+    val changedVarsSwapped = renamings.flatMap(e => e._2).toMap
     changedVars = changedVarsSwapped.map(_.swap).toMap // Get all renamed vars
-    changedExpressions = changed.map(e => e._1).toMap // Get all expressions that have been changed
+    changedExpressions = renamings.map(e => e._1).toMap // Get all expressions that have been changed
 
     // get all expressions that exist within an old expression and in a new expression and zip them together to know what has changed to what
     val allOldExps = changedExpressions.flatMap(e => findAllSubExps(e._1))
     val allNewExps = changedExpressions.flatMap(e => findAllSubExps(e._2))
     allExpressionsInChange = allOldExps.zip(allNewExps).toMap
+    ifs.foreach(e => allExpressionsInChange = allExpressionsInChange + e)
+
 
 
     a match
@@ -105,7 +107,9 @@ class IncrementalUpdateDatastructures {
   
   def buildNewExpr(expr: SchemeExp, allChanges: Map[maf.core.Expression, maf.core.Expression] = allExpressionsInChange): SchemeExp =
     allChanges.get(expr) match
-      case Some(e) => e.asInstanceOf[SchemeExp]
+      case Some(e) =>
+        println(e)
+        e.asInstanceOf[SchemeExp]
       case None => expr match
         case lambda: SchemeLambda       => SchemeLambda(lambda.name, lambda.args, lambda.body.map(buildNewExpr(_, allChanges)), lambda.annotation, lambda.idn)
         case lambda: SchemeVarArgLambda => SchemeVarArgLambda(lambda.name, lambda.args, lambda.vararg, lambda.body.map(buildNewExpr(_, allChanges)), lambda.annotation, lambda.idn)
@@ -292,6 +296,10 @@ class IncrementalUpdateDatastructures {
                 nwLam = buildNewExpr(nwLam).asInstanceOf[SchemeLambda]
               closure._2 match // update the environment of the lambda if it needs changing
                 case env : maf.core.BasicEnvironment[_] =>
+                  println("closure: ")
+                  println(closure._1)
+                  println(nwLam)
+                  findAllSubExps(nwLam).foreach(e => println(e.idn))
                   var newEnv = createNewEnvironment(a, env)
                   (nwLam, new BasicEnvironment[Address](newEnv))
         )
@@ -319,6 +327,8 @@ class IncrementalUpdateDatastructures {
   // If a variable did not change, it can be added to the new environment
   // If it did change, the variable that it changed into needs to be added to the environment
   def createNewEnvironment(a: IncrementalModAnalysis[Expression], oldEnv: maf.core.BasicEnvironment[_]): Map[String, Address] =
+    println("old env: ")
+    println(oldEnv.content)
     var newEnv: Map[String, Address] = Map()
     oldEnv.content.foreach((k, v) =>
       v match
@@ -334,6 +344,8 @@ class IncrementalUpdateDatastructures {
               newEnv += (k -> newVarAddr)
         case _ =>
           newEnv += (k -> v))
+    println("new env: ")
+    println(newEnv)
     newEnv
 
   // Update context. This currently supports SchemeModFNoSensitivity, SchemeModFFullArgumentCallSiteSensitivity, SchemeModFCallSiteSensitivity and SchemeModFFullArgumentSensitivity
