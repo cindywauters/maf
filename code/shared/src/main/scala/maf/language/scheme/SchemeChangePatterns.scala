@@ -23,16 +23,16 @@ object SchemeChangePatterns:
       args.map(arg => arg).appendedAll(body.flatMap(e => findAllVarsInOrder(e)))
     // In case of let, let* and letrec, take the names of the bindings and look in the body for more
     case SchemeLet(bindings, body, pos) =>
-      var bindingsVars = bindings.flatMap(binding => findAllVarsInOrder(binding._2))
-      var bodyVars = body.flatMap(e => findAllVarsInOrder(e))
+      val bindingsVars = bindings.flatMap(binding => findAllVarsInOrder(binding._2))
+      val bodyVars = body.flatMap(e => findAllVarsInOrder(e))
       bindings.map(binding => binding._1).appendedAll(bindingsVars).appendedAll(bodyVars)
     case SchemeLetStar(bindings, body, pos) =>
-      var bindingsVars = bindings.flatMap(binding => findAllVarsInOrder(binding._2))
-      var bodyVars = body.flatMap(e => findAllVarsInOrder(e))
+      val bindingsVars = bindings.flatMap(binding => findAllVarsInOrder(binding._2))
+      val bodyVars = body.flatMap(e => findAllVarsInOrder(e))
       bindings.map(binding => binding._1).appendedAll(bindingsVars).appendedAll(bodyVars)
     case SchemeLetrec(bindings, body, pos) =>
-      var bindingsVars = bindings.flatMap(binding => findAllVarsInOrder(binding._2))
-      var bodyVars = body.flatMap(e => findAllVarsInOrder(e))
+      val bindingsVars = bindings.flatMap(binding => findAllVarsInOrder(binding._2))
+      val bodyVars = body.flatMap(e => findAllVarsInOrder(e))
       bindings.map(binding => binding._1).appendedAll(bindingsVars).appendedAll(bodyVars)
     // In case of a list of expressions, look at each expression individually
     case exps: List[_] =>
@@ -86,6 +86,44 @@ object SchemeChangePatterns:
     else
       (false, Map())
 
+  // conditions are represented as a list as in case such as (not (...)) the arguments of not are used
+  def comparePartialCondAndBranches(oldCond: List[SchemeExp], newCond: List[SchemeExp], oldTrue: SchemeExp, oldFalse: SchemeExp, newTrue: SchemeExp, newFalse: SchemeExp): Boolean =
+    oldCond.zip(newCond).map(e => e._1.eql(e._2)).forall(e => e) && oldTrue.eql(newFalse) && newTrue.eql(oldFalse)
+
+  def compareIfs(oldIf: SchemeIf, newIf: SchemeIf): Boolean =
+    (oldIf.cond, newIf.cond) match
+      case (oldFun: SchemeFuncall, newFun: SchemeFuncall) =>
+        (oldFun.f, newFun.f) match
+          case (SchemeVar(oldId), _) if oldId.name == "not" =>
+            comparePartialCondAndBranches(oldFun.args, List(newFun), oldIf.cons, oldIf.alt, newIf.cons, newIf.alt)
+          case (_, SchemeVar(newId)) if newId.name == "not" =>
+            comparePartialCondAndBranches(List(oldFun), newFun.args, oldIf.cons, oldIf.alt, newIf.cons, newIf.alt)
+          case (SchemeVar(oldId), SchemeVar(newId)) if oldId.name == "<=" && newId.name == ">" =>
+            comparePartialCondAndBranches(oldFun.args, newFun.args, oldIf.cons, oldIf.alt, newIf.cons, newIf.alt)
+          case (SchemeVar(oldId), SchemeVar(newId)) if oldId.name == ">" && newId.name == "<=" =>
+            comparePartialCondAndBranches(oldFun.args, newFun.args, oldIf.cons, oldIf.alt, newIf.cons, newIf.alt)
+          case (SchemeVar(oldId), SchemeVar(newId)) if oldId.name == ">=" && newId.name == "<" =>
+            comparePartialCondAndBranches(oldFun.args, newFun.args, oldIf.cons, oldIf.alt, newIf.cons, newIf.alt)
+          case (SchemeVar(oldId), SchemeVar(newId)) if oldId.name == "<" && newId.name == ">=" =>
+            comparePartialCondAndBranches(oldFun.args, newFun.args, oldIf.cons, oldIf.alt, newIf.cons, newIf.alt)
+          case (_, _) =>
+            false
+      case (oldVal: SchemeValue, newFun: SchemeFuncall) =>
+        newFun.f match
+          case SchemeVar(newId) =>
+            if newId.name == "not" then
+              comparePartialCondAndBranches(List(oldVal), newFun.args, oldIf.cons, oldIf.alt, newIf.cons, newIf.alt)
+            else false
+          case _ => false
+      case (oldFun: SchemeFuncall, newVal: SchemeValue) =>
+        oldFun.f match
+          case SchemeVar(oldId) =>
+            if oldId.name == "not" then
+              comparePartialCondAndBranches(oldFun.args, List(newVal), oldIf.cons, oldIf.alt, newIf.cons, newIf.alt)
+            else false
+          case _ => false
+      case (e1: _, e2: _) => false
+
   def findLowestChangedSubExpressions(old: Expression, nw: Expression): List[(Option[Expression], Option[Expression])] =
     if old.eql(nw) then
       return List()
@@ -110,7 +148,6 @@ object SchemeChangePatterns:
       updated.::((Some(old), Some(nw))) // Something is inserted or deleted so we want to return the encapsulating expression
     else
       updated
-
 
   // Returns a list of expressions that needs to be reanalysed (old and new), and a list of tuples of expressions that are just renamings together with their mappings
   def comparePrograms(old: SchemeExp, nw: SchemeExp): (List[(Option[maf.core.Expression], Option[maf.core.Expression])], List[((maf.core.Expression, maf.core.Expression), (Boolean, Map[Identifier, Identifier]))]) =
@@ -144,6 +181,11 @@ object SchemeChangePatterns:
                   rename = rename.::((oe, ne), (true, Map(ne -> oe)))
               case (oe: Identifier, _) => reanalyse = reanalyse.::((Some(oe), Some(ne)))
               case (_, ne: Identifier) => reanalyse = reanalyse.::((Some(oe), Some(ne)))
+              // check for ifs
+              case (oldIf: SchemeIf, newIf: SchemeIf) =>
+                if compareIfs(oldIf, newIf) then
+                  // temporary, either rename the "rename" list or keep swapped ifs seperately
+                  rename = rename.::((oe, ne), (true,Map()))
               case _ =>
                 val renamings = checkRenamingsVariables(oe, ne)
                 if renamings._1 then

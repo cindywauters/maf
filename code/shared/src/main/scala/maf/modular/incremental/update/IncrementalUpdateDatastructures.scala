@@ -323,13 +323,13 @@ class IncrementalUpdateDatastructures {
     oldEnv.content.foreach((k, v) =>
       v match
         case varAddr: VarAddr =>
-          var oldIdn = varAddr.idn
+          val oldIdn = varAddr.idn
           changedVars.find((k , v) => k.idn == oldIdn) match
             case Some(identifiers) =>
               val newVarAddr = getNewVarAddr(a, varAddr)
               newEnv += (identifiers._2.name -> newVarAddr)
             case _ =>
-              var newCtx = updateCtx(a, varAddr.ctx).asInstanceOf[varAddr.ctx.type]
+              val newCtx = updateCtx(a, varAddr.ctx).asInstanceOf[varAddr.ctx.type]
               val newVarAddr = varAddr.copy(ctx= newCtx) // bugfix for some context sensitive things, context might update even if the actual var addr does not
               newEnv += (k -> newVarAddr)
         case _ =>
@@ -388,8 +388,8 @@ class IncrementalUpdateDatastructures {
       case elements: Serializable =>
         getNewValues(a, elements)
     )
-    var newCall = findNewPosition(ctx.call)
-    var newFn = findNewPosition(ctx.fn)
+    val newCall = findNewPosition(ctx.call)
+    val newFn = findNewPosition(ctx.fn)
     maf.modular.scheme.modf.ArgCallSiteContext(newFn, newCall, newArgs)
 
   def findNewPosition(oldPosition: Position.Position): Position.Position =

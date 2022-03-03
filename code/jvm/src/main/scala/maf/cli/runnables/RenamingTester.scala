@@ -60,15 +60,6 @@ object RenamingTester extends App:
       println(program._1.prettyString())
       println(program._2.prettyString())
 
-      for(x <- 1 to 10) {
-        val analysisWithUpdates = baseUpdates(program._1, program._2)
-
-        analysisWithUpdates.analyzeWithTimeout(timeout())
-        val beforeUpdateAnalysis = System.nanoTime
-        analysisWithUpdates.version = New
-        analysisWithUpdates.updateAnalysis(timeout(), true)
-        val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
-      }
       val analysisWithUpdates = baseUpdates(program._1, program._2)
 
       analysisWithUpdates.analyzeWithTimeout(timeout())
@@ -165,8 +156,8 @@ object RenamingTester extends App:
   end modfAnalysis
 
   val modConcbenchmarks: List[String] = List()
- // val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/testfile.scm")
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/array1.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/testfile.scm")
+ // val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/array1.scm")
 
   val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 

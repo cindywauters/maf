@@ -102,6 +102,8 @@ object UpdateStructuresInAnalysis extends App:
       interpretProgram(bench)
       val program = CSchemeParser.parseProgram(Reader.loadFile(bench))
 
+      println(program.prettyString())
+
       // analysisWithoutUpdates.analyzeWithTimeout(timeout())
       // analysisWithoutUpdates.analyzeWithTimeout(timeout())
 
@@ -136,7 +138,7 @@ object UpdateStructuresInAnalysis extends App:
       println("Time updating:                " + timeUpdateAnalysis)
 
 
-      //  println("Store with updating: " + storeWithUpdate.toString)
+      println("Store with updating: " + storeWithUpdate.toString)
       //   println("Store with regular reanalysis: " + storeWithoutUpdate.toString)
 
 
@@ -149,32 +151,6 @@ object UpdateStructuresInAnalysis extends App:
         storeWithoutUpdate.get(k) match
           case Some(updatedValue) => updatedValue.==(v)
           case _ => false).toString)
-
-      println("store reanalysis -> Update (subsumption): " + storeWithoutUpdate.forall((k, v) =>
-        storeWithUpdate.get(k) match
-          case Some(updatedValue) =>
-            println(k)
-            println("all closure new only:")
-            v match
-              case element: IncrementalSchemeTypeDomain.modularLattice.AnnotatedElements =>
-                element.values.foreach(e => e match
-                  case clos : IncrementalSchemeTypeDomain.modularLattice.Clo => clos.closures.foreach(println)
-                  case _ =>)
-              case _ =>
-            println("all closure update:")
-            updatedValue match
-              case element: IncrementalSchemeTypeDomain.modularLattice.AnnotatedElements =>
-                element.values.foreach(e => e match
-                  case clos : IncrementalSchemeTypeDomain.modularLattice.Clo => clos.closures.foreach(println)
-                  case _ =>)
-              case _ =>
-            analysisWithUpdates.lattice.subsumes(updatedValue, v)
-          case _ =>
-            println("old: " + v.toString + " " + k.toString())
-            false).toString)
-
-      println("subsumption store: " + checkSubsumptionSetOfStore())
-
 
       storeWithoutUpdate.foreach((k, v) =>
         storeWithUpdate.get(k) match
@@ -206,7 +182,7 @@ object UpdateStructuresInAnalysis extends App:
 
       println()
 
-      //  println("Dependencies with updating: " + depsWithUpdate.toString)
+      println("Dependencies with updating: " + depsWithUpdate.toString)
       //  println("Dependencies with regular reanalysis: " + depsWithoutUpdate.toString)
 
 
@@ -368,7 +344,7 @@ object UpdateStructuresInAnalysis extends App:
 
       println()
 
-      //   println("Visited with updating: " + visitedWithUpdate.toString)
+      println("Visited with updating: " + visitedWithUpdate.toString)
       //   println("Visited with regular reanalysis: " + visitedWithoutUpdate.toString)
 
 
@@ -425,8 +401,8 @@ object UpdateStructuresInAnalysis extends App:
   end modfAnalysis
 
   val modConcbenchmarks: List[String] = List()
-  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/testfile.scm")
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/array1.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/testfile.scm")
+ // val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/array1.scm")
  // val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm", "test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/symbols.scm")

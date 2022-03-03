@@ -1,12 +1,42 @@
-(define (create-y x)
-  (<change>
-  (let* ((n (vector-length x))
-         (result (make-vector n 0)))
-    (do ((i (- n 1) (- i 1)))
-        ((< i 0) result)
-      (vector-set! result i (vector-ref x i))))
-  (let* ((n1 (vector-length x))
-               (result (make-vector n1 0)))
-          (do ((i (- n1 1) (- i 2))) ;; NOT RENAMING
-              ((< i 0) result)
-            (vector-set! result i (vector-ref x i))))))
+(define test
+ (lambda (x)
+  (<update>
+   (if (< x 5)
+    (begin
+     (+ x x)
+     (display x)
+     (+ x 1)
+     (display x))
+     x)
+   (if (not (< x 5))
+       x
+      (begin
+          (+ x x)
+          (display x)
+          (+ x 1)
+          (display x))))))
+
+(define (test2 x)
+(<update>
+(if (<= x 6)
+    (display "c")
+    (display "d"))
+(if (> x 6)
+    (display "d")
+    (display "c"))))
+
+(test2 5)
+
+(define (test3 x)
+(<update>
+(if (>= 5 x)
+    (display "c")
+    (display "d"))
+(if (< 5 x)
+    (display "d")
+    (display "c"))))
+
+(test3 5)
+
+
+(test 5)
