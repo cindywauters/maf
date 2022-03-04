@@ -33,7 +33,7 @@ class IncrementalUpdateDatastructures {
 
   // Call this function when you want to update all the datastructures of an analysis
   // Arguments are an analysis and the expression that is being analysed
-  def changeDataStructures(a: IncrementalModAnalysis[Expression], exp: Expression, renamings: Set[((maf.core.Expression, maf.core.Expression), Map[maf.core.Identifier, maf.core.Identifier])], ifs: List[((maf.core.Expression, maf.core.Expression), List[Identifier])] = List()): Boolean =
+  def changeDataStructures(a: IncrementalModAnalysis[Expression], exp: Expression, renamings: Set[((maf.core.Expression, maf.core.Expression), Map[maf.core.Identifier, maf.core.Identifier])], ifs: List[((SchemeIf, SchemeIf), List[Identifier])] = List()): Boolean =
 
     val changedVarsSwapped = renamings.flatMap(e => e._2).toMap
     changedVars = changedVarsSwapped.map(_.swap).toMap // Get all renamed vars
@@ -43,7 +43,14 @@ class IncrementalUpdateDatastructures {
     val allOldExps = changedExpressions.flatMap(e => findAllSubExps(e._1))
     val allNewExps = changedExpressions.flatMap(e => findAllSubExps(e._2))
     allExpressionsInChange = allOldExps.zip(allNewExps).toMap
-    ifs.foreach(e => allExpressionsInChange = allExpressionsInChange + (e._1._1 -> e._1._2))
+    ifs.foreach(e =>
+      val oldIf = e._1._1
+      val newIf = e._1._2
+      findAllSubExps(oldIf.cons).zip(findAllSubExps(newIf.alt)).foreach(e => allExpressionsInChange = allExpressionsInChange + (e._1 -> e._2))
+      findAllSubExps(oldIf.alt).zip(findAllSubExps(newIf.cons)).foreach(e => allExpressionsInChange = allExpressionsInChange + (e._1 -> e._2))
+      allExpressionsInChange = allExpressionsInChange + (oldIf -> newIf)
+
+    )
     allIfs = ifs
 
 

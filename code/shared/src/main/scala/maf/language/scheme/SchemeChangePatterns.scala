@@ -160,7 +160,7 @@ object SchemeChangePatterns:
     var reanalyse: List[(Option[maf.core.Expression], Option[maf.core.Expression])] = List()
     var rename: List[((maf.core.Expression, maf.core.Expression), (Boolean, Map[Identifier, Identifier]))] = List()
     var needed_prims: List[Identifier] = List()
-    var ifs: List[((maf.core.Expression, maf.core.Expression), List[Identifier])]  = List()
+    var ifs: List[((SchemeIf, SchemeIf), List[Identifier])]  = List()
     (old, nw) match
       case (oldlet: SchemeLettishExp, newlet: SchemeLettishExp) =>
         oldlet.bindings.foreach(oe =>
@@ -215,4 +215,4 @@ object SchemeChangePatterns:
 
 
 
-case class differentChanges(reanalyse: List[(Option[maf.core.Expression], Option[maf.core.Expression])], renamings: List[((maf.core.Expression, maf.core.Expression), (Boolean, Map[Identifier, Identifier]))], ifs: List[((maf.core.Expression, maf.core.Expression), List[Identifier])])
+case class differentChanges(reanalyse: List[(Option[maf.core.Expression], Option[maf.core.Expression])], renamings: List[((maf.core.Expression, maf.core.Expression), (Boolean, Map[Identifier, Identifier]))], ifs: List[((SchemeIf, SchemeIf), List[Identifier])])
