@@ -29,11 +29,11 @@ class IncrementalUpdateDatastructures {
   var changedVars: Map[maf.core.Identifier, maf.core.Identifier] = Map()
   var changedExpressions: Map[maf.core.Expression, maf.core.Expression] = Map()
   var allExpressionsInChange: Map[maf.core.Expression, maf.core.Expression] = Map()
-  var allIfs: List[((maf.core.Expression, maf.core.Expression), List[Identifier])] = List()
+  var allIfs: List[((SchemeIf, SchemeIf),  List[Identifier], (Expression, Expression))] = List()
 
   // Call this function when you want to update all the datastructures of an analysis
   // Arguments are an analysis and the expression that is being analysed
-  def changeDataStructures(a: IncrementalModAnalysis[Expression], exp: Expression, renamings: Set[((maf.core.Expression, maf.core.Expression), Map[maf.core.Identifier, maf.core.Identifier])], ifs: List[((SchemeIf, SchemeIf), List[Identifier])] = List()): Boolean =
+  def changeDataStructures(a: IncrementalModAnalysis[Expression], exp: Expression, renamings: Set[((maf.core.Expression, maf.core.Expression), Map[maf.core.Identifier, maf.core.Identifier])], ifs: List[((SchemeIf, SchemeIf),  List[Identifier], (Expression, Expression))] = List()): Boolean =
 
     val changedVarsSwapped = renamings.flatMap(e => e._2).toMap
     changedVars = changedVarsSwapped.map(_.swap).toMap // Get all renamed vars
@@ -45,7 +45,10 @@ class IncrementalUpdateDatastructures {
     allExpressionsInChange = allOldExps.zip(allNewExps).toMap
     ifs.foreach(e =>
       val oldIf = e._1._1
+      val oldIfCondSubs = findAllSubExps(oldIf.cond)
       val newIf = e._1._2
+      val newIfCondSubs = findAllSubExps(newIf.cond)
+      findAllSubExps(e._3._1).zip(findAllSubExps(e._3._2)).foreach(e => allExpressionsInChange = allExpressionsInChange + (e._1 -> e._2))
       findAllSubExps(oldIf.cons).zip(findAllSubExps(newIf.alt)).foreach(e => allExpressionsInChange = allExpressionsInChange + (e._1 -> e._2))
       findAllSubExps(oldIf.alt).zip(findAllSubExps(newIf.cons)).foreach(e => allExpressionsInChange = allExpressionsInChange + (e._1 -> e._2))
       allExpressionsInChange = allExpressionsInChange + (oldIf -> newIf)
@@ -341,7 +344,7 @@ class IncrementalUpdateDatastructures {
     println(allIfs.exists(e => e._1._2.eql(expr.body.head)))
     println(allIfs.exists(e => e._1._1.eql(expr.body.head)))
     allIfs.find(e => e._1._1.eql(expr.body.head) || e._1._2.eql(expr.body.head)) match
-      case Some(((_, _), ids: List[Identifier])) =>
+      case Some((_, ids: List[Identifier], _)) =>
         println("338")
         ids.foreach(e =>
           val newAddr = maf.modular.scheme.VarAddr(e, None)

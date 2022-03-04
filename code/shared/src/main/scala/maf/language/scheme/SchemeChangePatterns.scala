@@ -90,22 +90,22 @@ object SchemeChangePatterns:
   def comparePartialCondAndBranches(oldCond: List[SchemeExp], newCond: List[SchemeExp], oldTrue: SchemeExp, oldFalse: SchemeExp, newTrue: SchemeExp, newFalse: SchemeExp): Boolean =
     oldCond.zip(newCond).map(e => e._1.eql(e._2)).forall(e => e) && oldTrue.eql(newFalse) && newTrue.eql(oldFalse)
 
-  def compareIfs(oldIf: SchemeIf, newIf: SchemeIf, prims: List[Identifier]): Option[List[Identifier]] =
+  def compareIfs(oldIf: SchemeIf, newIf: SchemeIf, prims: List[Identifier]): Option[(List[Identifier], (Expression, Expression))] =
     (oldIf.cond, newIf.cond) match
       case (oldFun: SchemeFuncall, newFun: SchemeFuncall) =>
         (oldFun.f, newFun.f) match
           case (SchemeVar(oldId), _) if oldId.name == "not" =>
             if comparePartialCondAndBranches(oldFun.args, List(newFun), oldIf.cons, oldIf.alt, newIf.cons, newIf.alt) then
-              Some(List())
+              Some(List(), (oldFun.args.head, newFun))
             else None
           case (_, SchemeVar(newId)) if newId.name == "not" =>
             if comparePartialCondAndBranches(List(oldFun), newFun.args, oldIf.cons, oldIf.alt, newIf.cons, newIf.alt) then
-              Some(prims.filter(e => e.name == "not"))
+              Some(prims.filter(e => e.name == "not"), (oldFun, newFun.args.head))
             else None
           case (SchemeVar(oldId), SchemeVar(newId)) =>
             if oldId.name == "<=" && newId.name == ">"|| oldId.name == ">" && newId.name == "<=" || oldId.name == ">=" && newId.name == "<" || oldId.name == "<" && newId.name == ">=" then
               if comparePartialCondAndBranches(oldFun.args, newFun.args, oldIf.cons, oldIf.alt, newIf.cons, newIf.alt) then
-                Some(prims.filter(e => e.name == newId.name))
+                Some(prims.filter(e => e.name == newId.name), (oldFun, newFun))
               else None
             else None
           case (_, _) =>
@@ -115,7 +115,7 @@ object SchemeChangePatterns:
           case SchemeVar(newId) =>
             if newId.name == "not" then
               if comparePartialCondAndBranches(List(oldVal), newFun.args, oldIf.cons, oldIf.alt, newIf.cons, newIf.alt) then
-                Some(prims.filter(e => e.name == "not"))
+                Some(prims.filter(e => e.name == "not"), (oldVal, newFun.args.head))
               else None
             else None
           case _ => None
@@ -124,7 +124,7 @@ object SchemeChangePatterns:
           case SchemeVar(oldId) =>
             if oldId.name == "not" then
               if comparePartialCondAndBranches(oldFun.args, List(newVal), oldIf.cons, oldIf.alt, newIf.cons, newIf.alt) then
-                Some(List())
+                Some(List(), (oldFun.args.head, newVal))
               else None
             else None
           case _ => None
@@ -160,7 +160,7 @@ object SchemeChangePatterns:
     var reanalyse: List[(Option[maf.core.Expression], Option[maf.core.Expression])] = List()
     var rename: List[((maf.core.Expression, maf.core.Expression), (Boolean, Map[Identifier, Identifier]))] = List()
     var needed_prims: List[Identifier] = List()
-    var ifs: List[((SchemeIf, SchemeIf), List[Identifier])]  = List()
+    var ifs: List[((SchemeIf, SchemeIf),  List[Identifier], (Expression, Expression))] = List()
     (old, nw) match
       case (oldlet: SchemeLettishExp, newlet: SchemeLettishExp) =>
         oldlet.bindings.foreach(oe =>
@@ -197,8 +197,8 @@ object SchemeChangePatterns:
               case (oldIf: SchemeIf, newIf: SchemeIf) =>
                 val maybeSwapped = compareIfs(oldIf, newIf, needed_prims)
                 maybeSwapped match
-                  case Some(added : List[Identifier]) =>
-                    ifs = ifs.::((oldIf -> newIf), added)
+                  case Some((added, conds)) =>
+                    ifs = ifs.::((oldIf -> newIf), added, conds)
                   case None =>
               case _ =>
                 val renamings = checkRenamingsVariables(oe, ne)
@@ -215,4 +215,4 @@ object SchemeChangePatterns:
 
 
 
-case class differentChanges(reanalyse: List[(Option[maf.core.Expression], Option[maf.core.Expression])], renamings: List[((maf.core.Expression, maf.core.Expression), (Boolean, Map[Identifier, Identifier]))], ifs: List[((SchemeIf, SchemeIf), List[Identifier])])
+case class differentChanges(reanalyse: List[(Option[maf.core.Expression], Option[maf.core.Expression])], renamings: List[((maf.core.Expression, maf.core.Expression), (Boolean, Map[Identifier, Identifier]))], ifs: List[((SchemeIf, SchemeIf),  List[Identifier], (Expression, Expression))])
