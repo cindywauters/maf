@@ -145,27 +145,26 @@ object RenamingTester extends App:
       println("Mapping new only    : " + mappingWithoutUpdate.toString)
 
       println(mappingWithoutUpdate.size)
-      println("Mapping reanalysis -> Update (subsumption): ")//
-      mappingWithoutUpdate.foreach((k, v) =>
+      println("Mapping reanalysis -> Update (subsumption): " + mappingWithoutUpdate.forall((k, v) =>
         mappingWithUpdate.get(k) match
           case Some(updatedValue) =>
-           /* if !v.forall(elv => updatedValue.contains(elv)) then*/
-            println(v)
-            println(updatedValue)
-            v.foreach(e => e match
-              case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
-                println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
-              case _ =>)
-            updatedValue.foreach(e => e match
-                  case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
-                    println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
-                  case _ =>)
+            if !v.forall(elv => updatedValue.contains(elv)) then
+              println(v)
+              println(updatedValue)
+              v.foreach(e => e match
+                case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+                  println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
+                case _ =>)
+              updatedValue.foreach(e => e match
+                    case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+                      println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
+                    case _ =>)
             v.forall(elv => updatedValue.contains(elv))
           case _ =>
             println("no matching key")
             println(k)
             println(v)
-            false)
+            false).toString)
 
       println("Visited with update : " + visitedWithUpdate.toString)
       println("Visited new only    : " + visitedWithoutUpdate.toString)

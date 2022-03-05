@@ -55,6 +55,18 @@ class IncrementalUpdateDatastructures {
 
     )
     allIfs = ifs
+    ifs.foreach(e =>
+      if e._2.exists(e => e.name == "not") then
+        println("60")
+        println(e._3._1)
+        println(e._3._2)
+        a.mapping.get(e._3._1) match
+          case Some(mapping) =>
+            e._1._2.cond match
+              case cond: SchemeFuncall =>
+                a.mapping += (cond -> mapping)
+                a.mapping += (cond.f -> mapping)
+    )
 
 
     a match
