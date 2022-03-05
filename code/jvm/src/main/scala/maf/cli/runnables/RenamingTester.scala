@@ -52,6 +52,23 @@ object RenamingTester extends App:
       override def intraAnalysis(
                                   cmp: Component
                                 ) = new IntraAnalysis(cmp) with UpdateIncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis    }
+    def baseUpdatesChange(program: SchemeExp) = new ModAnalysis[SchemeExp](program)
+      with StandardSchemeModFComponents
+      // with SchemeModFFullArgumentSensitivity
+      // with SchemeModFCallSiteSensitivity
+      //  with SchemeModFFullArgumentCallSiteSensitivity
+      with SchemeModFNoSensitivity
+      with SchemeModFSemanticsM
+      with LIFOWorklistAlgorithm[SchemeExp]
+      with IncrementalSchemeModFBigStepSemantics
+      with IncrementalSchemeTypeDomain
+      with IncrementalGlobalStoreWithUpdate[SchemeExp]
+    {
+      var configuration: IncrementalConfiguration = noOptimisations
+      override def intraAnalysis(
+                                  cmp: Component
+                                ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis
+    }
 
     try {
       println(s"***** $bench *****")
@@ -127,25 +144,28 @@ object RenamingTester extends App:
       println("Mapping with update : " + mappingWithUpdate.toString)
       println("Mapping new only    : " + mappingWithoutUpdate.toString)
 
-      println("Mapping reanalysis -> Update (subsumption): " + mappingWithoutUpdate.forall((k, v) =>
+      println(mappingWithoutUpdate.size)
+      println("Mapping reanalysis -> Update (subsumption): ")//
+      mappingWithoutUpdate.foreach((k, v) =>
         mappingWithUpdate.get(k) match
           case Some(updatedValue) =>
-            if !v.forall(elv => updatedValue.contains(elv)) then
-              println(v)
-              println(updatedValue)
-              v.foreach(e => e match
-                case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
-                  println(lam.toString + " " + env.toString + " " + oldCtx.toString)
-                case _ =>)
-              updatedValue.foreach(e => e match
-                    case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
-                      println(lam.toString + " " + env.toString + " " + oldCtx.toString)
-                    case _ =>)
+           /* if !v.forall(elv => updatedValue.contains(elv)) then*/
+            println(v)
+            println(updatedValue)
+            v.foreach(e => e match
+              case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+                println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
+              case _ =>)
+            updatedValue.foreach(e => e match
+                  case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+                    println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
+                  case _ =>)
             v.forall(elv => updatedValue.contains(elv))
           case _ =>
+            println("no matching key")
             println(k)
             println(v)
-            false).toString)
+            false)
 
       println("Visited with update : " + visitedWithUpdate.toString)
       println("Visited new only    : " + visitedWithoutUpdate.toString)

@@ -22,7 +22,7 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
           case (Some(oe), None)     => allDeletes = allDeletes.::(oe)
           case _ =>
         )
-        var affectedAll = changes.reanalyse.appendedAll(changes.renamings.map(_._1))
+        var affectedAll = changes.reanalyse.appendedAll(changes.renamings.map(_._1)).appendedAll(changes.ifs.map(_._1._1))
         if rename then
           this match
             case a: IncrementalModAnalysis[Expression] =>

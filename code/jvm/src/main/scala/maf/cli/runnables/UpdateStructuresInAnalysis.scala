@@ -118,6 +118,13 @@ object UpdateStructuresInAnalysis extends App:
       val mappingWithoutUpdate = analysisWithoutUpdates.mapping
       val visitedWithoutUpdate = analysisWithoutUpdates.visited
 
+      visitedWithoutUpdate.foreach(e =>
+        println(e)
+          e match
+          case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+            println(env)
+          case _ =>)
+
       println("first analysis done")
 
       val analysisWithUpdates = baseUpdates(program)
@@ -354,6 +361,10 @@ object UpdateStructuresInAnalysis extends App:
 
       visitedWithoutUpdate.foreach(e =>
         println(e)
+        e match
+          case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+            println(env)
+          case _ =>
         if !visitedWithUpdate.contains(e) then
           e match
             case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>

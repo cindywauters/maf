@@ -340,12 +340,19 @@ class IncrementalUpdateDatastructures {
   def createNewEnvironment(expr: SchemeLambdaExp, a: IncrementalModAnalysis[Expression], oldEnv: maf.core.BasicEnvironment[_]): Map[String, Address] =
     println("old env: ")
     println(oldEnv.content)
+ //   expr.fv.foreach(e => println(e))
     var newEnv: Map[String, Address] = Map()
-    println(allIfs.exists(e => e._1._2.eql(expr.body.head)))
-    println(allIfs.exists(e => e._1._1.eql(expr.body.head)))
-    allIfs.find(e => e._1._1.eql(expr.body.head) || e._1._2.eql(expr.body.head)) match
-      case Some((_, ids: List[Identifier], _)) =>
-        println("338")
+    var changingIf = false
+    var varsToRemove: Set[String] = Set()
+    println(allIfs.exists(e => findAllSubExps(expr).exists(s => e._1._1.eql(s))))
+    println(expr.fv)
+  //  println(allIfs.exists(e => e._1._1.eql(expr.body.head)))*/
+    allIfs.find(e => findAllSubExps(expr).exists(s => e._1._1.eql(s))) match
+      case Some((exprs, ids: List[Identifier], _)) =>
+        println(exprs._1.fv)
+        println(exprs._2.fv)
+        changingIf = true
+        varsToRemove = exprs._1.fv.diff(exprs._2.fv)
         ids.foreach(e =>
           val newAddr = maf.modular.scheme.VarAddr(e, None)
           newEnv = newEnv + (e.name -> newAddr)
@@ -362,9 +369,14 @@ class IncrementalUpdateDatastructures {
             case _ =>
               val newCtx = updateCtx(a, varAddr.ctx).asInstanceOf[varAddr.ctx.type]
               val newVarAddr = varAddr.copy(ctx= newCtx) // bugfix for some context sensitive things, context might update even if the actual var addr does not
-              newEnv += (k -> newVarAddr)
+              if !changingIf || !varsToRemove.contains(k) then
+                println("this case")
+                println(varsToRemove)
+                println(k)
+                newEnv += (k -> newVarAddr)
         case _ =>
-          newEnv += (k -> v))
+          if !changingIf || !varsToRemove.contains(k) then
+            newEnv += (k -> v))
     println("new env: ")
     println(newEnv)
     newEnv

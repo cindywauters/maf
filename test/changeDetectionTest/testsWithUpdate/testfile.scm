@@ -5,13 +5,17 @@
 (>= 5 6)
 
 (define (test3 x)
-(<update>
+(let ((smthing 5))
+(- x 3)
+((lambda (a)
+(+ x 3)
+(<change>
 (if  (< 5 x)
     (display "c")
     (display "d"))
-(if (not (< 5 x))
+(if (>= 5 x)
     (display "d")
-    (display "c"))))
+    (display "c")))) 5)))
 
 (test3 5)
 
