@@ -5,6 +5,7 @@ import maf.core.Label
 import maf.language.change.ChangeExp
 import maf.modular.incremental.IncrementalModAnalysis
 import maf.core.Expression
+import maf.modular.incremental.update.IncrementalUpdateDatastructures
 
 import scala.::
 
@@ -213,6 +214,24 @@ object SchemeChangePatterns:
           )
         differentChanges(reanalyse, rename, ifs)
       case _ => differentChanges(reanalyse, rename, ifs)
+
+  def up = new IncrementalUpdateDatastructures
+
+  def findEquivalent(expr: Expression, in: List[Expression]): Option[Expression] = in match
+    case List() => None
+    case first :: _ if first.idn == expr.idn && first.getClass == expr.getClass => Some(first)
+    case first :: second :: rest if first.idn.idn.line <= expr.idn.idn.line && expr.idn.idn.line < second.idn.idn.line =>
+      val subs: List[Expression] =  up.findAllSubExps(first)
+      findEquivalent(expr, subs.tail)
+    case first :: rest => findEquivalent(expr, rest)
+
+  def findEquivalentLambdas(lams: List[Expression], program: Expression): List[(Expression, Option[Expression])] =
+    var matchingLams: List[(SchemeLambda, SchemeLambda)] = List()
+    program match
+      case let: SchemeLettishExp =>
+        val bindings = let.bindings.map(_._2)
+        lams.map(e => (e, findEquivalent(e, bindings)))//.foreach(println)
+
 
 
 

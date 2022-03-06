@@ -24,9 +24,17 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
           case _ =>
         )
         var affectedAll = changes.reanalyse.appendedAll(changes.renamings.map(_._1)).appendedAll(changes.ifs.map(_._1._1))
-        var affectedLambdas = changes.reanalyse.collect{
-          case (Some(ol), Some(nl)) => (ol, nl)
-        }
+        var affectedLambdas = visited.collect {
+          case comp @ SchemeModFComponent.Call((lam: Expr, env: BasicEnvironment[_]), oldCtx: _) => (lam, comp)
+        }.toList
+        var affectedLambdasPairsIntermediate = SchemeChangePatterns.findEquivalentLambdas(affectedLambdas.map(_._1), secondProgram)
+        var affectedLambdasPairs: List[(Expression, Expression)] = List()
+        affectedLambdasPairsIntermediate.foreach(e => e match
+          case (expr: Expression, Some(other: Expression)) => affectedLambdasPairs = affectedLambdasPairs.::(expr, other)
+          case (expr: Expression, None) => affectedLambdas.filter(e => e == expr).foreach(e => addToWorkList(e._2))
+        )
+        println("31")
+        affectedLambdasPairs.foreach(println)
         println("affected lambdas:")
         println(affectedLambdas)
         println(changes.reanalyse)
@@ -35,7 +43,7 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
             case a: IncrementalModAnalysis[Expression] =>
               if changes.renamings.nonEmpty || changes.ifs.nonEmpty then
                 val renamed = changes.renamings.map(e => (e._1, e._2._2)).toSet
-                update.changeDataStructures(a, program, renamed, changes.ifs)
+                update.changeDataStructures(a, program, renamed, changes.ifs, affectedLambdasPairs)
           affectedAll = changes.reanalyse
         var affected = affectedAll.flatMap(e => e match
           case (Some(old: Expr), Some(_)) =>
@@ -45,14 +53,5 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
           case _ => Set(initialComponent)
         )
        // addToWorkList(initialComponent)
-        println("47")
-        println(affected)
-        affected.foreach(e => e match
-          case SchemeModFComponent.Call((lam: Expr, env: BasicEnvironment[_]), oldCtx: _) =>
-            mapping.get(lam) match
-              case Some(comp: Set[Component]) => comp.foreach(addToWorkList)
-              case _ =>
-          case _ =>
-        )
         affected.foreach(addToWorkList)
     analyzeWithTimeout(timeout)
