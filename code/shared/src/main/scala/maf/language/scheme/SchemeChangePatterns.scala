@@ -164,12 +164,12 @@ object SchemeChangePatterns:
     (old, nw) match
       case (oldlet: SchemeLettishExp, newlet: SchemeLettishExp) =>
         oldlet.bindings.foreach(oe =>
-          if !newlet.bindings.exists(ne => oe._2.idn == ne._2.idn) then
+          if !newlet.bindings.exists(ne => oe._1.idn == ne._1.idn) then
             reanalyse = reanalyse.::((Some(oe._2), None))
           if oe._1.idn.idn.tag != Position.noTag then
             needed_prims = needed_prims.::(oe._1))
         newlet.bindings.foreach(ne =>
-          if !oldlet.bindings.exists(oe => oe._2.idn == ne._2.idn) then
+          if !oldlet.bindings.exists(oe => oe._1.idn == ne._1.idn) then
             reanalyse = reanalyse.::((None, Some(ne._2)))
           if ne._1.idn.idn.tag != Position.noTag && !needed_prims.contains(ne._1) then
             needed_prims = needed_prims.::(ne._1))
@@ -200,6 +200,8 @@ object SchemeChangePatterns:
                   case Some((added, conds)) =>
                     ifs = ifs.::((oldIf -> newIf), added, conds)
                   case None =>
+                    if oldIf.eql(newIf) then
+                      rename = rename.::((oldIf, newIf), (true, Map()))
               case _ =>
                 val renamings = checkRenamingsVariables(oe, ne)
                 if renamings._1 then

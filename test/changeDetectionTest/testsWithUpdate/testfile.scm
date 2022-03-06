@@ -4,17 +4,27 @@
 (> 5 6)
 (>= 5 6)
 
+(define (cond-test)
+  (<change>
+  (if (< 5 6)
+      (display "a")
+      (display "b"))
+  (cond ((< 5 6) (display "a"))
+         (else (display "b")))))
+
+(cond-test)
+
 (define test
  (lambda (x)
   (<update>
-   (if (< x 5)
+   (if (> x 5)
     (begin
      (+ x x)
      (display x)
      (+ x 1)
      (display x))
      x)
-   (if (>= x 5)
+   (if (<= x 5)
        x
       (begin
           (+ x x)
@@ -39,10 +49,10 @@
 ((lambda (a)
 (+ x 3)
 (<change>
-(if  (< 5 x)
+(if  (> 5 x)
     (display "c")
     (display "d"))
-(if (>= 5 x)
+(if (<= 5 x)
     (display "d")
     (display "c")))) 5)))
 

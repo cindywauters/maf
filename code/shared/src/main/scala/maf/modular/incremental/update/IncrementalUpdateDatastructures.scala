@@ -10,7 +10,7 @@ import maf.language.scheme.interpreter.ConcreteValues.Value.Clo
 import maf.language.scheme.interpreter.ConcreteValues.{Addr, AddrInfo}
 import maf.language.scheme.lattices.{ModularSchemeLattice, SchemeOp}
 import maf.lattice.interfaces.*
-import maf.modular.AddrDependency
+import maf.modular.{AddrDependency, ReturnAddr}
 import maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain.modularLattice.incrementalSchemeLattice
 import maf.modular.incremental.scheme.lattice.*
 import maf.modular.incremental.{IncrementalGlobalStore, IncrementalModAnalysis}
@@ -55,18 +55,34 @@ class IncrementalUpdateDatastructures {
 
     )
     allIfs = ifs
-    ifs.foreach(e =>
-      if e._2.exists(e => e.name == "not") then
-        println("60")
-        println(e._3._1)
-        println(e._3._2)
-        a.mapping.get(e._3._1) match
-          case Some(mapping) =>
-            e._1._2.cond match
-              case cond: SchemeFuncall =>
-                a.mapping += (cond -> mapping)
-                a.mapping += (cond.f -> mapping)
-    )
+    ifs.foreach(i =>
+      println("59")
+     // println(i._3._2.subexpressions.head)
+     // if i._2.exists(e => e.idn == i._3._1.subexpressions.head.idn) then
+      a.mapping.get(i._3._1) match
+        case Some(mapping) =>
+          println("some mapping:")
+          println(mapping)
+          i._1._2.cond match
+            case cond: SchemeFuncall =>
+              a.mapping += (cond -> mapping)
+              a.mapping += (cond.f -> mapping)
+          a.deps.foreach(dep => dep._1 match
+              case addrDep: AddrDependency =>
+                addrDep.addr match
+                  case k: VarAddr if k.id.name == i._2.head.name =>
+                    a.deps = a.deps + (dep._1 -> (dep._2 ++ mapping))
+                  case k: RetAddr if k.idn.pos.tag.show == i._2.head.idn.pos.tag.show =>
+                    println("72")
+                    println(k.cmp)
+                    println(k.idn.pos.tag.show)
+                    println(i._2.head.idn.pos.tag.show)
+                    a.deps = a.deps + (dep._1 -> (dep._2 ++ mapping))
+                    true
+                  case _ => false
+              case _ => false
+   )
+  )
 
 
     a match
