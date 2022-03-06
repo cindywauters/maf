@@ -54,10 +54,10 @@ object RenamingTester extends App:
                                 ) = new IntraAnalysis(cmp) with UpdateIncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis    }
     def baseUpdatesChange(program: SchemeExp) = new ModAnalysis[SchemeExp](program)
       with StandardSchemeModFComponents
-      // with SchemeModFFullArgumentSensitivity
+      with SchemeModFFullArgumentSensitivity
       // with SchemeModFCallSiteSensitivity
       //  with SchemeModFFullArgumentCallSiteSensitivity
-      with SchemeModFNoSensitivity
+     // with SchemeModFNoSensitivity
       with SchemeModFSemanticsM
       with LIFOWorklistAlgorithm[SchemeExp]
       with IncrementalSchemeModFBigStepSemantics
@@ -76,6 +76,7 @@ object RenamingTester extends App:
 
       println(program._1.prettyString())
       println(program._2.prettyString())
+
 
       val analysisWithUpdates = baseUpdates(program._1, program._2)
 
@@ -187,8 +188,8 @@ object RenamingTester extends App:
   end modfAnalysis
 
   val modConcbenchmarks: List[String] = List()
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/testfile.scm")
- // val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/array1.scm")
+//  val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/testfile.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/array1.scm")
 
   val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 
