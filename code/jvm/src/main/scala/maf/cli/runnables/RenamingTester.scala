@@ -112,8 +112,8 @@ object RenamingTester extends App:
       println("Time updating:                    " + timeUpdateAnalysis)
       println("Time analysis new:                " + timeNewAnalysis)
 
-      println("Store with update: " + storeWithUpdate.toString)
-      println("Store new only   : " + storeWithoutUpdate.toString)
+    //  println("Store with update: " + storeWithUpdate.toString)
+    //  println("Store new only   : " + storeWithoutUpdate.toString)
 
      println("store reanalysis -> Update (subsumption): " + storeWithoutUpdate.forall((k, v) =>
         storeWithUpdate.get(k) match
@@ -125,8 +125,8 @@ object RenamingTester extends App:
             println("old: " + v.toString + " " + k.toString())
             false).toString)
 
-      println("Dependencies with update: " + depsWithUpdate.toString)
-      println("Dependencies new only   : " + depsWithoutUpdate.toString)
+    //  println("Dependencies with update: " + depsWithUpdate.toString)
+    //  println("Dependencies new only   : " + depsWithoutUpdate.toString)
 
       println("Dependencies reanalysis -> Update (subsumption): " + depsWithoutUpdate.forall((k, v) =>
         depsWithUpdate.get(k) match
@@ -142,8 +142,8 @@ object RenamingTester extends App:
             v.forall(elv => updatedValue.contains(elv))
           case _ => false).toString)
 
-      println("Mapping with update : " + mappingWithUpdate.toString)
-      println("Mapping new only    : " + mappingWithoutUpdate.toString)
+    //  println("Mapping with update : " + mappingWithUpdate.toString)
+    //  println("Mapping new only    : " + mappingWithoutUpdate.toString)
 
       println(mappingWithoutUpdate.size)
       println("Mapping reanalysis -> Update (subsumption): " + mappingWithoutUpdate.forall((k, v) =>
@@ -175,10 +175,15 @@ object RenamingTester extends App:
             println(e)
           visitedWithUpdate.contains(e)).toString)
 
+
       println(storeWithUpdate.size)
       println(depsWithUpdate.size)
       println(mappingWithUpdate.size)
       println(visitedWithUpdate.size)
+      println(storeWithoutUpdate.size)
+      println(depsWithoutUpdate.size)
+      println(mappingWithoutUpdate.size)
+      println(visitedWithoutUpdate.size)
 
 
     } catch {
@@ -189,7 +194,7 @@ object RenamingTester extends App:
 
   val modConcbenchmarks: List[String] = List()
 //  val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/testfile.scm")
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/array1.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/NoSensitivity/earley.scm")
 
   val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 

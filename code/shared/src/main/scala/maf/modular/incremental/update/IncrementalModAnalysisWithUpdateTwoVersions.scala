@@ -1,6 +1,6 @@
 package maf.modular.incremental.update
 
-import maf.core.{BasicEnvironment, Expression}
+import maf.core.{BasicEnvironment, Expression, Position}
 import maf.language.change.CodeVersion.{New, Old}
 import maf.language.scheme.{SchemeChangePatterns, SchemeExp, SchemeLambda, SchemeLambdaExp}
 import maf.modular.incremental.IncrementalModAnalysis
@@ -25,19 +25,21 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
         )
         var affectedAll = changes.reanalyse.appendedAll(changes.renamings.map(_._1)).appendedAll(changes.ifs.map(_._1._1))
         var affectedLambdas = visited.collect {
-          case comp @ SchemeModFComponent.Call((lam: Expr, env: BasicEnvironment[_]), oldCtx: _) => (lam, comp)
+          case comp @ SchemeModFComponent.Call((lam: Expr, env: BasicEnvironment[_]), oldCtx: _) if lam.idn.idn.tag == Position.noTag=>
+            (lam, comp)
         }.toList
         var affectedLambdasPairsIntermediate = SchemeChangePatterns.findEquivalentLambdas(affectedLambdas.map(_._1), secondProgram)
+        println("32")
+        affectedLambdasPairsIntermediate.foreach(e =>
+          println(e._1)
+          println(e._2))
         var affectedLambdasPairs: List[(Expression, Expression)] = List()
         affectedLambdasPairsIntermediate.foreach(e => e match
-          case (expr: Expression, Some(other: Expression)) => affectedLambdasPairs = affectedLambdasPairs.::(expr, other)
-          case (expr: Expression, None) => affectedLambdas.filter(e => e == expr).foreach(e => addToWorkList(e._2))
+          case (expr: Expression, Some(other: Expression)) if expr != other && !changes.reanalyse.exists(e => e._1.contains(expr)) =>
+            affectedLambdasPairs = affectedLambdasPairs.::(expr, other)
+          case (expr: Expression, _) =>
+            affectedLambdas.filter(e => e._1 == expr).foreach(e => addToWorkList(e._2))
         )
-        println("31")
-        affectedLambdasPairs.foreach(println)
-        println("affected lambdas:")
-        println(affectedLambdas)
-        println(changes.reanalyse)
         if rename then
           this match
             case a: IncrementalModAnalysis[Expression] =>
@@ -46,12 +48,13 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
                 update.changeDataStructures(a, program, renamed, changes.ifs, affectedLambdasPairs)
           affectedAll = changes.reanalyse
         var affected = affectedAll.flatMap(e => e match
-          case (Some(old: Expr), Some(_)) =>
-            mapping.get(old) match
-              case Some(comp) => comp
-              case _ => Set(initialComponent)
+          case (Some(old: Expr), Some(nw: Expr)) =>
+            (mapping.get(old), mapping.get(nw)) match
+              case (Some(compold), _) =>
+                compold
+              case _ =>
+                Set(initialComponent)
           case _ => Set(initialComponent)
         )
-       // addToWorkList(initialComponent)
         affected.foreach(addToWorkList)
     analyzeWithTimeout(timeout)

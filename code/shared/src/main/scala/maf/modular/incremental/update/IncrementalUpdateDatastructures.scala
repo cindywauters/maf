@@ -43,10 +43,6 @@ class IncrementalUpdateDatastructures {
     val allOldExps = changedExpressions.flatMap(e => findAllSubExps(e._1)).toList.appendedAll(otherChanges.map(_._1))
     val allNewExps = changedExpressions.flatMap(e => findAllSubExps(e._2)).toList.appendedAll(otherChanges.map(_._2))
     allExpressionsInChange = allOldExps.zip(allNewExps).toMap
-    println("46")
-    println(otherChanges)
-    println("48")
-    allExpressionsInChange.foreach(println)
     ifs.foreach(e =>
       val oldIf = e._1._1
       val oldIfCondSubs = findAllSubExps(oldIf.cond)
@@ -181,7 +177,7 @@ class IncrementalUpdateDatastructures {
     )
 
   // Visited consists of a set of components
-  // Fir this, we simply want to loop over this set and for each of them create a new component with getNewComponent
+  // For this, we simply want to loop over this set and for each of them create a new component with getNewComponent
   // Because getNewComponent can return the original component, we test if the original and the new one are the same
   // If they are not, we replace the old component with the new component. Otherwise, nothing happens
   def updateVisited(a: IncrementalModAnalysis[Expression]): Unit =

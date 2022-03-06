@@ -99,7 +99,7 @@ object UpdateStructuresInAnalysis extends App:
 
     try {
       println(s"***** $bench *****")
-      interpretProgram(bench)
+    //  interpretProgram(bench)
       val program = CSchemeParser.parseProgram(Reader.loadFile(bench))
 
       println(program.prettyString())
@@ -418,7 +418,7 @@ object UpdateStructuresInAnalysis extends App:
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/symbols.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/various/NoSensitivity/SICP-compiler.scm")
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/array1.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/NoSensitivity/perm9.scm")
   val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 
   modFbenchmarks.foreach(modfAnalysis(_, standardTimeout))

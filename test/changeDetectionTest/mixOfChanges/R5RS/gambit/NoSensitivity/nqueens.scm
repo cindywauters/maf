@@ -23,8 +23,8 @@
                #f)))
       (lambda (_row0 _dist0 _placed0)
          (if (null? _placed0)
-            #f ;; NOT RENAMING, changed true to false
-            (if (not (= (car _placed0) (+ _row0 _dist0)))
+            #t
+            (if (not (= (car _placed0) (+ 1 _row0 _dist0))) ;; NOT RENAMING, changed added an extra 1
                (if (not (= (car _placed0) (- _row0 _dist0)))
                   (ok? _row0 (+ _dist0 1) (cdr _placed0))
                   #f)

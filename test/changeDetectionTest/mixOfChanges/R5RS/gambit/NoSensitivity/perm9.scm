@@ -16,10 +16,10 @@
                                                  (__do_loop (- j 1)))))))
                         (__do_loop (- n 1)))
                      (letrec ((___do_loop0 (lambda (_j0)
-                                             (if (null? _j0) ;; NOT RENAMING changed zero? to null?
+                                             (if  (zero? _j0)
                                                 (P (- n 1))
                                                 (begin
-                                                   (P (- n 1))
+                                                   (P (- n 2)) ;; NOT RENAMING changed 1 to 2
                                                    (F n)
                                                    (___do_loop0 (- _j0 1)))))))
                         (___do_loop0 (- n 1))))
