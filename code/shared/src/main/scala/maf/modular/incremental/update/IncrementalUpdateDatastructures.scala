@@ -45,17 +45,20 @@ class IncrementalUpdateDatastructures {
     allExpressionsInChange = allOldExps.zip(allNewExps).toMap
     ifs.foreach(e =>
       val oldIf = e._1._1
-      val oldIfCondSubs = findAllSubExps(oldIf.cond)
+    // val oldIfCondSubs = findAllSubExps(oldIf.cond)
       val newIf = e._1._2
-      val newIfCondSubs = findAllSubExps(newIf.cond)
+    //  val newIfCondSubs = findAllSubExps(newIf.cond)
       findAllSubExps(e._3._1).zip(findAllSubExps(e._3._2)).foreach(e => allExpressionsInChange = allExpressionsInChange + (e._1 -> e._2))
       findAllSubExps(oldIf.cons).zip(findAllSubExps(newIf.alt)).foreach(e => allExpressionsInChange = allExpressionsInChange + (e._1 -> e._2))
       findAllSubExps(oldIf.alt).zip(findAllSubExps(newIf.cons)).foreach(e => allExpressionsInChange = allExpressionsInChange + (e._1 -> e._2))
-      allExpressionsInChange = allExpressionsInChange + (oldIf -> newIf)
-
-    )
+      allExpressionsInChange = allExpressionsInChange + (oldIf -> newIf))
+   
     allIfs = ifs
+    println("57")
+    a.mapping.foreach(println)
     ifs.foreach(i =>
+      println("60")
+      println(i._3._1)
       a.mapping.get(i._3._1) match
         case Some(mapping) =>
           i._1._2.cond match
@@ -355,7 +358,7 @@ class IncrementalUpdateDatastructures {
     var newEnv: Map[String, Address] = Map()
     var changingIf = false
     var varsToRemove: Set[String] = Set()
-    allIfs.find(e => findAllSubExps(expr).exists(s => e._1._1.eql(s))) match
+    allIfs.find(e => findAllSubExps(expr).exists(s => e._1._1.eql(s) || e._1._2.eql(s))) match
       case Some((exprs, ids: List[Identifier], _)) =>
         changingIf = true
         varsToRemove = exprs._1.fv.diff(exprs._2.fv)
@@ -380,6 +383,7 @@ class IncrementalUpdateDatastructures {
         case _ =>
           if !changingIf || !varsToRemove.contains(k) then
             newEnv += (k -> v))
+    println(newEnv)
     newEnv
 
   // Update context. This currently supports SchemeModFNoSensitivity, SchemeModFFullArgumentCallSiteSensitivity, SchemeModFCallSiteSensitivity and SchemeModFFullArgumentSensitivity

@@ -391,6 +391,15 @@ object UpdateStructuresInAnalysis extends App:
 
       println("UPDATE")
 
+      println(storeWithUpdate.size)
+      println(depsWithUpdate.size)
+      println(mappingWithUpdate.size)
+      println(visitedWithUpdate.size)
+      println(storeWithoutUpdate.size)
+      println(depsWithoutUpdate.size)
+      println(mappingWithoutUpdate.size)
+      println(visitedWithoutUpdate.size)
+
       visitedWithUpdate.foreach(e =>
         if !visitedWithoutUpdate.contains(e) then
           e match
@@ -398,6 +407,7 @@ object UpdateStructuresInAnalysis extends App:
               println("missing in reanalysis: "))// + e.toString()))
 
       val update = new IncrementalUpdateDatastructures
+
 
 
       println()
@@ -418,7 +428,7 @@ object UpdateStructuresInAnalysis extends App:
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/symbols.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/various/NoSensitivity/SICP-compiler.scm")
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/NoSensitivity/perm9.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/string.scm")
   val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 
   modFbenchmarks.foreach(modfAnalysis(_, standardTimeout))

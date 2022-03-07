@@ -57,4 +57,5 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
           case _ => Set(initialComponent)
         )
         affected.foreach(addToWorkList)
+        println(workList)
     analyzeWithTimeout(timeout)

@@ -77,9 +77,7 @@ object RenamingTester extends App:
       println(program._1.prettyString())
       println(program._2.prettyString())
 
-
       val analysisWithUpdates = baseUpdates(program._1, program._2)
-
       analysisWithUpdates.analyzeWithTimeout(timeout())
       val beforeUpdateAnalysis = System.nanoTime
       analysisWithUpdates.version = New
@@ -169,11 +167,18 @@ object RenamingTester extends App:
 
       println("Visited with update : " + visitedWithUpdate.toString)
       println("Visited new only    : " + visitedWithoutUpdate.toString)
-      println("Visited reanalysis -> Update (subsumption): " +
-        visitedWithoutUpdate.forall(e =>
+      visitedWithoutUpdate.foreach(e =>
           if !visitedWithUpdate.contains(e) then
             println(e)
-          visitedWithUpdate.contains(e)).toString)
+            e match
+              case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+                println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString))
+      visitedWithUpdate.foreach(e =>
+          if !visitedWithoutUpdate.contains(e) then
+            println(e)
+            e match
+              case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+                println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString))
 
 
       println(storeWithUpdate.size)
@@ -193,8 +198,8 @@ object RenamingTester extends App:
   end modfAnalysis
 
   val modConcbenchmarks: List[String] = List()
-//  val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/testfile.scm")
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/NoSensitivity/earley.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/testfile.scm")
+ // val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/string.scm")
 
   val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 
