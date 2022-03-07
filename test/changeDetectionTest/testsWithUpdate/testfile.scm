@@ -1,9 +1,3 @@
-(not 5)
-(<= 5 6)
-(< 5 6)
-(> 5 6)
-(>= 5 6)
-
 (define (cond-test)
   (<change>
   (if (< 5 6)
@@ -49,10 +43,10 @@
 ((lambda (a)
 (+ x 3)
 (<change>
-(if  (> 5 x)
+(if  (<= 5 x)
     (display "c")
     (display "d"))
-(if (<= 5 x)
+(if (> 5 x)
     (display "d")
     (display "c")))) 5)))
 

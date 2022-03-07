@@ -31,7 +31,7 @@ import java.time.LocalDateTime
 import scala.concurrent.duration.*
 import maf.modular.incremental.update.SchemeModFSemanticsUpdate
 
-object RenamingTester extends App:
+object TwoSeperateVersionsAnalyse extends App:
 
   def modfAnalysis(bench: String, timeout: () => Timeout.T): Unit =
 
@@ -110,10 +110,10 @@ object RenamingTester extends App:
       println("Time updating:                    " + timeUpdateAnalysis)
       println("Time analysis new:                " + timeNewAnalysis)
 
-    //  println("Store with update: " + storeWithUpdate.toString)
-    //  println("Store new only   : " + storeWithoutUpdate.toString)
+      println("Store with update: " + storeWithUpdate.toString)
+      println("Store new only   : " + storeWithoutUpdate.toString)
 
-     println("store reanalysis -> Update (subsumption): " + storeWithoutUpdate.forall((k, v) =>
+      println("store reanalysis -> Update (subsumption): " + storeWithoutUpdate.forall((k, v) =>
         storeWithUpdate.get(k) match
           case Some(updatedValue) =>
             if !analysisWithUpdates.lattice.subsumes(updatedValue, v) then
@@ -123,8 +123,8 @@ object RenamingTester extends App:
             println("old: " + v.toString + " " + k.toString())
             false).toString)
 
-    //  println("Dependencies with update: " + depsWithUpdate.toString)
-    //  println("Dependencies new only   : " + depsWithoutUpdate.toString)
+      println("Dependencies with update: " + depsWithUpdate.toString)
+      println("Dependencies new only   : " + depsWithoutUpdate.toString)
 
       println("Dependencies reanalysis -> Update (subsumption): " + depsWithoutUpdate.forall((k, v) =>
         depsWithUpdate.get(k) match
@@ -140,8 +140,8 @@ object RenamingTester extends App:
             v.forall(elv => updatedValue.contains(elv))
           case _ => false).toString)
 
-    //  println("Mapping with update : " + mappingWithUpdate.toString)
-    //  println("Mapping new only    : " + mappingWithoutUpdate.toString)
+      println("Mapping with update : " + mappingWithUpdate.toString)
+      println("Mapping new only    : " + mappingWithoutUpdate.toString)
 
       println(mappingWithoutUpdate.size)
       println("Mapping reanalysis -> Update (subsumption): " + mappingWithoutUpdate.forall((k, v) =>
@@ -167,28 +167,20 @@ object RenamingTester extends App:
 
       println("Visited with update : " + visitedWithUpdate.toString)
       println("Visited new only    : " + visitedWithoutUpdate.toString)
-      visitedWithoutUpdate.foreach(e =>
+      println("Visited reanalysis -> Update (subsumption): " + visitedWithoutUpdate.forall(e =>
           if !visitedWithUpdate.contains(e) then
             println(e)
             e match
               case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
-                println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString))
-      visitedWithUpdate.foreach(e =>
-          if !visitedWithoutUpdate.contains(e) then
-            println(e)
-            e match
-              case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
-                println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString))
+                println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
+          visitedWithUpdate.contains(e) ).toString)
 
 
-      println(storeWithUpdate.size)
-      println(depsWithUpdate.size)
-      println(mappingWithUpdate.size)
-      println(visitedWithUpdate.size)
-      println(storeWithoutUpdate.size)
-      println(depsWithoutUpdate.size)
-      println(mappingWithoutUpdate.size)
-      println(visitedWithoutUpdate.size)
+      println(storeWithUpdate.size + " (" + storeWithoutUpdate.size + ")")
+      println(depsWithUpdate.size + "  (" + depsWithoutUpdate.size + ")")
+      println(mappingWithUpdate.size + " (" + mappingWithoutUpdate.size + ")")
+      println(visitedWithUpdate.size + "  (" + visitedWithoutUpdate.size + ")")
+
 
 
     } catch {
@@ -198,8 +190,8 @@ object RenamingTester extends App:
   end modfAnalysis
 
   val modConcbenchmarks: List[String] = List()
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/testfile.scm")
- // val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/string.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
+//  val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/string.scm")
 
   val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 

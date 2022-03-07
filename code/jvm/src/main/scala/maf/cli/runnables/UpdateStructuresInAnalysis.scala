@@ -391,14 +391,10 @@ object UpdateStructuresInAnalysis extends App:
 
       println("UPDATE")
 
-      println(storeWithUpdate.size)
-      println(depsWithUpdate.size)
-      println(mappingWithUpdate.size)
-      println(visitedWithUpdate.size)
-      println(storeWithoutUpdate.size)
-      println(depsWithoutUpdate.size)
-      println(mappingWithoutUpdate.size)
-      println(visitedWithoutUpdate.size)
+      println(storeWithUpdate.size + " (" + storeWithoutUpdate.size + ")")
+      println(depsWithUpdate.size + "  (" + depsWithoutUpdate.size + ")")
+      println(mappingWithUpdate.size + " (" + mappingWithoutUpdate.size + ")")
+      println(visitedWithUpdate.size + "  (" + visitedWithoutUpdate.size + ")")
 
       visitedWithUpdate.foreach(e =>
         if !visitedWithoutUpdate.contains(e) then
@@ -428,7 +424,7 @@ object UpdateStructuresInAnalysis extends App:
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/symbols.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/various/NoSensitivity/SICP-compiler.scm")
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/string.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/array1.scm")
   val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 
   modFbenchmarks.foreach(modfAnalysis(_, standardTimeout))

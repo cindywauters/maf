@@ -54,11 +54,7 @@ class IncrementalUpdateDatastructures {
       allExpressionsInChange = allExpressionsInChange + (oldIf -> newIf))
    
     allIfs = ifs
-    println("57")
-    a.mapping.foreach(println)
     ifs.foreach(i =>
-      println("60")
-      println(i._3._1)
       a.mapping.get(i._3._1) match
         case Some(mapping) =>
           i._1._2.cond match
@@ -383,7 +379,6 @@ class IncrementalUpdateDatastructures {
         case _ =>
           if !changingIf || !varsToRemove.contains(k) then
             newEnv += (k -> v))
-    println(newEnv)
     newEnv
 
   // Update context. This currently supports SchemeModFNoSensitivity, SchemeModFFullArgumentCallSiteSensitivity, SchemeModFCallSiteSensitivity and SchemeModFFullArgumentSensitivity

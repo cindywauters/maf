@@ -29,7 +29,6 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
             (lam, comp)
         }.toList
         var affectedLambdasPairsIntermediate = SchemeChangePatterns.findEquivalentLambdas(affectedLambdas.map(_._1), secondProgram)
-        println("32")
         affectedLambdasPairsIntermediate.foreach(e =>
           println(e._1)
           println(e._2))
@@ -38,7 +37,7 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
           case (expr: Expression, Some(other: Expression)) if expr != other && !changes.reanalyse.exists(e => e._1.contains(expr)) =>
             affectedLambdasPairs = affectedLambdasPairs.::(expr, other)
           case (expr: Expression, _) =>
-            affectedLambdas.filter(e => e._1 == expr).foreach(e => addToWorkList(e._2))
+           // affectedLambdas.filter(e => e._1 == expr).foreach(e => addToWorkList(e._2))
         )
         if rename then
           this match
@@ -56,6 +55,7 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
                 Set(initialComponent)
           case _ => Set(initialComponent)
         )
+        mapping = mapping + (secondProgram -> Set(initialComponent))
         affected.foreach(addToWorkList)
         println(workList)
     analyzeWithTimeout(timeout)
