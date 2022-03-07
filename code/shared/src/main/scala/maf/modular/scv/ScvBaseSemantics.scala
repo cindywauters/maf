@@ -76,9 +76,9 @@ trait ScvBaseSemantics extends BigStepModFSemanticsT { outer =>
         // two programs paths are not merged together in Scv but are rather explorered seperately
         nondet(x, y)
       def fail[X](e: Error): EvalM[X] =
-          // also ignore exception in Scv semantics
-          warn(s"encountered error $e")
-          mzero
+        // also ignore exception in Scv semantics
+        //warn(s"encountered error $e")
+        mzero
 
   /* MonadStateT((state) => {
           val xRes = x.run(state)
@@ -162,6 +162,12 @@ trait ScvBaseSemantics extends BigStepModFSemanticsT { outer =>
   /** Executes both computations non-determinstically */
   protected def nondet[X](tru: EvalM[X], fls: EvalM[X]): EvalM[X] =
     nondets(Set(tru, fls))
+
+  /** For executing a side-effecting computation within the Monad (delayed) */
+  protected def effectful(c: => Unit): EvalM[Unit] = MonadStateT((state) =>
+      c
+      TaggedSet.taggedSetMonad.unit(((), state))
+  )
 
   /** Executes the given computations non-determinstically */
   protected def nondets[X](branches: EvalM[X]*): EvalM[X] =

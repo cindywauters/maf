@@ -47,7 +47,7 @@ filter_times <- function(perf_data, mutations) {
   # First, omit entries that are not complete.
   data_complete <- na.omit(perf_data)
   # Second, remove the standard deviations.
-  times<- data_complete %>% select(starts_with("benchmark") | starts_with("ms"))
+  times <- data_complete %>% select(starts_with("benchmark") | starts_with("ms"))
   # Third, remove benchmarks for which the initial time was under the min_init_time.
   times_slow <- times[(times$ms..init.>=min_init_time),]
   # Lastly, only keep entries for which all 5 variations are present if these are the generated benchmarks.
@@ -60,7 +60,9 @@ filter_times <- function(perf_data, mutations) {
         drop <- c(row, drop)
       }
     }
-    times_slow <- (times_slow %>% slice(-drop))
+    if (!is.null(drop)) {
+       times_slow <- (times_slow %>% slice(-drop))
+    }
   }
   return(times_slow)
 }

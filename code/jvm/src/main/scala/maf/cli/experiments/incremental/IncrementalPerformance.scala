@@ -171,7 +171,9 @@ trait IncrementalTime[E <: Expression] extends IncrementalExperiment[E] with Tab
           // Run the initial analysis.
           val initAnalysis = analysis(program, ci_di_wi.disableAsserts()) // Allow all caches to be initialised (may increase memory footprint).
           initAnalysis.analyzeWithTimeout(timeout())
-          if !initAnalysis.finished then return initAnalysis.intraComponentAnalysisTimeAcc = 0 // Reset the timer.
+          if !initAnalysis.finished then return () // Put unit explicitly to stop the formatter from putting the next line here.
+
+          initAnalysis.intraComponentAnalysisTimeAcc = 0 // Reset the timer.
 
           configurations.foreach { config =>
               warmUp(config.toString,
@@ -260,8 +262,13 @@ object IncrementalSchemeModConcCPPerformance extends IncrementalSchemePerformanc
 object IncrementalSchemeModXPerformance:
     def main(args: Array[String]): Unit =
         val curated = IncrementalSchemeModFTypePerformance.execute(IncrementalSchemeBenchmarkPrograms.sequential.toArray)
-//val generated = IncrementalSchemeModFTypePerformance.execute(IncrementalSchemeBenchmarkPrograms.sequentialGenerated.toArray)
-//if args.contains("-graphs") then RBridge.runScript("scripts/R/scripts/performance.R", curated, generated)
-        IncrementalSchemeModFCPPerformance.execute(args)
-//IncrementalSchemeModConcPerformance.main(args)
-//IncrementalSchemeModConcCPPerformance.main(args)
+        IncrementalSchemeModFTypePerformance.first = true
+        val generated = IncrementalSchemeModFTypePerformance.execute(IncrementalSchemeBenchmarkPrograms.sequentialGenerated.toArray)
+    //if args.contains("-graphs") then RBridge.runScript("scripts/R/scripts/performance.R", curated, generated)
+    //IncrementalSchemeModFCPPerformance.execute(IncrementalSchemeBenchmarkPrograms.sequential.toArray)
+    //IncrementalSchemeModFCPPerformance.first = true
+    //IncrementalSchemeModFCPPerformance.execute(IncrementalSchemeBenchmarkPrograms.sequentialGenerated.toArray)
+    //IncrementalSchemeModConcPerformance.main(args)
+    //IncrementalSchemeModConcCPPerformance.main(args)
+    end main
+end IncrementalSchemeModXPerformance
