@@ -223,6 +223,7 @@ object SchemeChangePatterns:
          deletes.foreach(e =>
           if inserts.exists(i => i.eql(e)) then
             println("223")
+              println(e.idn)
             e.fv.foreach(name =>
               println(name)
               findLatestInScope(name, None, e, oldlet.bindings) match
@@ -231,6 +232,7 @@ object SchemeChangePatterns:
          inserts.foreach(i =>
           if deletes.exists(e => i.eql(e)) then
             println("229")
+            println(i.idn)
             i.fv.foreach(name =>
               println(name)
               findLatestInScope(name, None, i, oldlet.bindings) match
@@ -239,12 +241,14 @@ object SchemeChangePatterns:
         differentChanges(reanalyse, rename, ifs)
       case _ => differentChanges(reanalyse, rename, ifs)
 
+  var up = new IncrementalUpdateDatastructures
+
   @tailrec
   def findEquivalent(expr: Expression, in: List[Expression]): Option[Expression] = in match
     case List() => None
     case first :: _ if first.idn == expr.idn && first.getClass == expr.getClass => Some(first)
     case first :: second :: rest if first.idn.idn.line <= expr.idn.idn.line && expr.idn.idn.line < second.idn.idn.line =>
-      val subs: List[Expression] =  first.allSubexpressions
+      val subs: List[Expression] =  up.findAllSubExps(first)
       findEquivalent(expr, subs.tail)
     case first :: rest => findEquivalent(expr, rest)
 
@@ -257,10 +261,12 @@ object SchemeChangePatterns:
 
   @tailrec
   def findLatestInScope(toFindName: String, toFind: Option[Identifier], expr: Expression, program: List[(Identifier, Expression)]): Option[Identifier] = program match
-    case List() => toFind
-    case (id, binding) :: _    if expr.idn.idn.line < binding.idn.idn.line => toFind
-    case (id, binding) :: rest if binding.allSubexpressions.contains(toFind) =>
-      findLatestInScope(toFindName, toFind, expr, binding.allSubexpressions.collect {case b: SchemeLettishExp => b.bindings}.flatten.appendedAll(rest))
+    case List() =>
+      toFind
+    case (id, binding) :: _    if expr.idn.idn.line < binding.idn.idn.line =>
+      toFind
+    case (id, binding) :: rest if up.findAllSubExps(binding).contains(expr) =>
+      findLatestInScope(toFindName, toFind, expr, up.findAllSubExps(binding).collect {case b: SchemeLettishExp => b.bindings}.flatten.appendedAll(rest))
     case (id, binding) :: rest if id.name == toFindName =>
       findLatestInScope(toFindName, Some(id), expr, rest)
     case head :: rest =>

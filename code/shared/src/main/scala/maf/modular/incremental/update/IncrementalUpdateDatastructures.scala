@@ -247,7 +247,7 @@ class IncrementalUpdateDatastructures {
             newAddr
           case _ =>
             if findAllSubExps(lam).exists(e => allExpressionsInChange.contains(e)) then
-              return maf.modular.ReturnAddr[SchemeModFComponent](idn = buildNewExpr(lam).asInstanceOf[SchemeLambda].body.head.idn, cmp = newCmp)
+              return maf.modular.ReturnAddr[SchemeModFComponent](idn = buildNewExpr(lam).asInstanceOf[lam.type].body.head.idn, cmp = newCmp)
             val newAddr = maf.modular.ReturnAddr[SchemeModFComponent](idn = addr.idn, cmp = newCmp)
             newAddr
 
@@ -270,7 +270,7 @@ class IncrementalUpdateDatastructures {
           case _ =>
             var newLam = lam
             if findAllSubExps(lam).exists(e => allExpressionsInChange.contains(e)) then
-              newLam = buildNewExpr(lam).asInstanceOf[SchemeLambda]
+              newLam = buildNewExpr(lam).asInstanceOf[lam.type]
             val newEnv = createNewEnvironment(lam, a, env)
             val newCmp = SchemeModFComponent.Call(clo = (newLam, new BasicEnvironment[Address](newEnv)), ctx = newCtx)
             newCmp
@@ -321,7 +321,7 @@ class IncrementalUpdateDatastructures {
             case _ =>
               var nwLam = closure._1
               if findAllSubExps(nwLam).exists(e => allExpressionsInChange.contains(e)) then
-                nwLam = buildNewExpr(nwLam).asInstanceOf[SchemeLambda]
+                nwLam = buildNewExpr(nwLam).asInstanceOf[closure._1.type]
               closure._2 match // update the environment of the lambda if it needs changing
                 case env : maf.core.BasicEnvironment[_] =>
                   val newEnv = createNewEnvironment(closure._1, a, env)
