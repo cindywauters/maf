@@ -218,30 +218,27 @@ object SchemeChangePatterns:
           )
       //findLatestInScope
          println("218")
-         deletes.foreach(println)
-         inserts.foreach(println)
-         deletes.foreach(e =>
-          if inserts.exists(i => i.eql(e)) then
-            println("looking at inserted expr")
-            println(e.idn)
-            println(e)
-            e.fv.foreach(name =>
-              findLatestInScope(name, None, e, oldlet.bindings) match
-                case Some(id: Identifier) =>
-                  println(name)
-                  println(id.idn)
-                case None =>))
-         inserts.foreach(i =>
-          if deletes.exists(e => i.eql(e)) then
-            println("looking at inserted expr")
-            println(i.idn)
-            println(i)
-            i.fv.foreach(name =>
-              findLatestInScope(name, None, i, oldlet.bindings) match
-                case Some(id: Identifier) =>
-                  println(name)
-                  println(id.idn)
-                case None =>))
+        /* deletes.foreach(println)
+         inserts.foreach(println)*/
+         deletes.foreach(deleted =>
+           inserts.find(i => i.eql(deleted)) match
+             case Some(inserted) =>
+               var bindingsin = inserted.fv.map(name => findLatestInScope(name, None, inserted, newlet.bindings))
+               var bindingsout = deleted.fv.map(name => findLatestInScope(name, None, deleted, oldlet.bindings))
+               if bindingsin == bindingsout then
+                 println("moved scopes: ")
+               else
+                 println("different functions: ")
+               println(inserted.idn.toString + " " + deleted.idn.toString + " " + inserted.toString)
+               bindingsin.foreach(e => e match
+                 case Some(id) => print(id.idn.toString + " ")
+                 case _ => print("None "))
+               println()
+               bindingsout.foreach(e => e match
+                 case Some(id) => print(id.idn.toString + " ")
+                 case _ => print("None "))
+               println()
+             case _ =>)
         differentChanges(reanalyse, rename, ifs)
       case _ => differentChanges(reanalyse, rename, ifs)
 
