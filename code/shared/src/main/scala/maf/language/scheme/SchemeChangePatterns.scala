@@ -222,22 +222,26 @@ object SchemeChangePatterns:
          inserts.foreach(println)
          deletes.foreach(e =>
           if inserts.exists(i => i.eql(e)) then
-            println("223")
-              println(e.idn)
+            println("looking at inserted expr")
+            println(e.idn)
+            println(e)
             e.fv.foreach(name =>
-              println(name)
               findLatestInScope(name, None, e, oldlet.bindings) match
-                case Some(id: Identifier) => println(id.idn)
-                case None => println("none")))
+                case Some(id: Identifier) =>
+                  println(name)
+                  println(id.idn)
+                case None =>))
          inserts.foreach(i =>
           if deletes.exists(e => i.eql(e)) then
-            println("229")
+            println("looking at inserted expr")
             println(i.idn)
+            println(i)
             i.fv.foreach(name =>
-              println(name)
               findLatestInScope(name, None, i, oldlet.bindings) match
-              case Some(id: Identifier) => println(id.idn)
-              case None => println("none")))
+                case Some(id: Identifier) =>
+                  println(name)
+                  println(id.idn)
+                case None =>))
         differentChanges(reanalyse, rename, ifs)
       case _ => differentChanges(reanalyse, rename, ifs)
 
