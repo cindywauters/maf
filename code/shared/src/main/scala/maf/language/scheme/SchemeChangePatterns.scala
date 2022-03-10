@@ -8,6 +8,7 @@ import maf.core.Expression
 import maf.modular.incremental.update.IncrementalUpdateDatastructures
 
 import scala.::
+import scala.annotation.tailrec
 
 object SchemeChangePatterns:
 
@@ -215,26 +216,35 @@ object SchemeChangePatterns:
             case (Some(oe), None)    => reanalyse = reanalyse.::((Some(oe), None))
           )
           )
-        println("218")
-        deletes.foreach(println)
-        inserts.foreach(println)
-        deletes.foreach(e =>
+      //findLatestInScope
+         println("218")
+         deletes.foreach(println)
+         inserts.foreach(println)
+         deletes.foreach(e =>
           if inserts.exists(i => i.eql(e)) then
-           println("223")
-           println(e)
-          else
-            println("225")
-            println(e))
+            println("223")
+            e.fv.foreach(name =>
+              println(name)
+              findLatestInScope(name, None, e, oldlet.bindings) match
+                case Some(id: Identifier) => println(id.idn)
+                case None => println("none")))
+         inserts.foreach(i =>
+          if deletes.exists(e => i.eql(e)) then
+            println("229")
+            i.fv.foreach(name =>
+              println(name)
+              findLatestInScope(name, None, i, oldlet.bindings) match
+              case Some(id: Identifier) => println(id.idn)
+              case None => println("none")))
         differentChanges(reanalyse, rename, ifs)
       case _ => differentChanges(reanalyse, rename, ifs)
 
-  def up = new IncrementalUpdateDatastructures
-
+  @tailrec
   def findEquivalent(expr: Expression, in: List[Expression]): Option[Expression] = in match
     case List() => None
     case first :: _ if first.idn == expr.idn && first.getClass == expr.getClass => Some(first)
     case first :: second :: rest if first.idn.idn.line <= expr.idn.idn.line && expr.idn.idn.line < second.idn.idn.line =>
-      val subs: List[Expression] =  up.findAllSubExps(first)
+      val subs: List[Expression] =  first.allSubexpressions
       findEquivalent(expr, subs.tail)
     case first :: rest => findEquivalent(expr, rest)
 
@@ -243,7 +253,18 @@ object SchemeChangePatterns:
     program match
       case let: SchemeLettishExp =>
         val bindings = let.bindings.map(_._2)
-        lams.map(e => (e, findEquivalent(e, bindings)))//.foreach(println)
+        lams.map(e => (e, findEquivalent(e, bindings)))
+
+  @tailrec
+  def findLatestInScope(toFindName: String, toFind: Option[Identifier], expr: Expression, program: List[(Identifier, Expression)]): Option[Identifier] = program match
+    case List() => toFind
+    case (id, binding) :: _    if expr.idn.idn.line < binding.idn.idn.line => toFind
+    case (id, binding) :: rest if binding.allSubexpressions.contains(toFind) =>
+      findLatestInScope(toFindName, toFind, expr, binding.allSubexpressions.collect {case b: SchemeLettishExp => b.bindings}.flatten.appendedAll(rest))
+    case (id, binding) :: rest if id.name == toFindName =>
+      findLatestInScope(toFindName, Some(id), expr, rest)
+    case head :: rest =>
+      findLatestInScope(toFindName, toFind, expr, rest)
 
 
 
