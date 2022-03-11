@@ -48,3 +48,32 @@
            (end "end"))
       (second-moved-function firstval)
       (display end))))
+
+(<delete> (define is-even?
+  (lambda (n)
+    (or (zero? n)
+        (is-odd? (- n 1))))))
+
+;; moved scopes due to the letrec
+(letrec ((<insert> (is-even? (lambda (n)
+                       (or (zero? n)
+                           (is-odd? (- n 1))))))
+         (is-odd? (lambda (n)
+                      (and (not (zero? n))
+                           (is-even? (- n 1))))))
+    (is-odd? 11))
+
+(<insert> (define calls-subtract (lambda (x)(subtract x)))) ;; calls subtract with idn 12:9
+
+(letrec ((<delete> (calls-subtract (lambda (x)(subtract x)))) ;; calls subtract with idn 69:11 (not moved)
+         (subtract (lambda (x) (- x 2))))
+    (display (calls-subtract 5)))
+
+
+(let* ((<delete> (calls-subtract (lambda (x)(subtract x)))) ;; calls subtract with idn 12:9 (moved scopes)
+       (subtract (lambda (x) (- x 2))))
+    (display (calls-subtract 5)))
+
+(let ((<delete> (calls-subtract (lambda (x)(subtract x)))) ;; calls subtract with idn 12:9 (moved scopes)
+      (subtract (lambda (x) (- x 2))))
+    (display (calls-subtract 5)))

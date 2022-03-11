@@ -260,16 +260,16 @@ object SchemeChangePatterns:
         val bindings = let.bindings.map(_._2)
         lams.map(e => (e, findEquivalent(e, bindings)))
 
-  @tailrec
+  //@tailrec
   def findLatestInScope(toFindName: String, toFind: Option[Identifier], expr: Expression, program: List[(Identifier, Expression)]): Option[Identifier] = program match
     case List() =>
       toFind
-    case (id, binding) :: _    if expr.idn.idn.line < binding.idn.idn.line =>
-      toFind
+    //case (id, binding) :: _   if expr.idn.idn.line < binding.idn.idn.line =>
+    //  toFind
     case (id, binding) :: rest if up.findAllSubExps(binding).contains(expr) =>
       val newBindings = up.findAllSubExps(binding).collect {
-        case let: SchemeLet if !let.bindings.exists(b => b._2.eql(expr)) => let.bindings
-        case letstar: SchemeLetStar => letstar.bindings
+        case let: SchemeLet if !let.bindings.exists(b => b._2.eql(expr)) => let.bindings.filter(e => e._2.idn.idn.line < expr.idn.idn.line)
+        case letstar: SchemeLetStar => letstar.bindings.filter(e => e._2.idn.idn.line < expr.idn.idn.line)
         case letrec: SchemeLetrec => letrec.bindings
       }.flatten.appendedAll(rest)
       findLatestInScope(toFindName, toFind, expr,newBindings)
