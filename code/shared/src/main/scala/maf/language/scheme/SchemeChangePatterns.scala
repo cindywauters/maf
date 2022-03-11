@@ -5,7 +5,8 @@ import maf.core.Label
 import maf.language.change.ChangeExp
 import maf.modular.incremental.IncrementalModAnalysis
 import maf.core.Expression
-import maf.modular.incremental.update.IncrementalUpdateDatastructures
+import maf.modular.incremental.update.{IncrementalModAnalysisWithUpdateTwoVersions, IncrementalUpdateDatastructures}
+import maf.modular.scheme.modf.SchemeModFComponent
 
 import scala.::
 import scala.annotation.tailrec
@@ -155,7 +156,7 @@ object SchemeChangePatterns:
       updated
 
   // Returns a list of expressions that needs to be reanalysed (old and new), and a list of tuples of expressions that are just renamings together with their mappings
-  def comparePrograms(old: SchemeExp, nw: SchemeExp): differentChanges =
+  def comparePrograms(old: SchemeExp, nw: SchemeExp, analysis: Option[IncrementalModAnalysisWithUpdateTwoVersions[_]] = None): differentChanges =
     var reanalyse: List[(Option[Expression], Option[Expression])] = List()
     var rename: List[((Expression, Expression), (Boolean, Map[Identifier, Identifier]))] = List()
     var needed_prims: List[Identifier] = List()
@@ -224,7 +225,30 @@ object SchemeChangePatterns:
            inserts.find(i => i.eql(deleted)) match
              case Some(inserted) =>
                val bindingsin: Map[String, Option[Identifier]] = findLatestInScope(inserted.fv.map(name => (name, None)).toMap, inserted, newlet.bindings)
-               val bindingsout: Map[String, Option[Identifier]] = findLatestInScope(deleted.fv.map(name => (name, None)).toMap, deleted, oldlet.bindings)
+               var bindingsout: Map[String, Option[Identifier]] = Map()
+               analysis match
+                 case Some(analysis) =>
+                   println(deleted)
+                   println(analysis.mapping)
+                   val relatedComponent = analysis.getMapping(deleted)
+                   if relatedComponent.size == 1 then
+                     println("has an environment")
+                     relatedComponent.foreach(comp =>
+                      comp match
+                        case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+                          println(env.content)
+                          println(lam)
+                          env.content.foreach(e =>
+                            if deleted.fv.contains(e._1) then
+                              e._2 match
+                                case varAddr: maf.modular.scheme.VarAddr[_] =>
+                                  bindingsout = bindingsout + (e._1 -> Some(varAddr.id))
+                                case prmAddr: maf.modular.scheme.PrmAddr =>
+                                  bindingsout = bindingsout + (e._1 -> None)
+                                case _ => println(e._2.getClass)))
+                 case None           =>
+               if bindingsout.size != bindingsin.size then
+                  bindingsout = findLatestInScope(deleted.fv.map(name => (name, None)).toMap, deleted, oldlet.bindings)
                if bindingsin == bindingsout then
                  println("moved scopes: ")
                else
@@ -260,15 +284,13 @@ object SchemeChangePatterns:
         val bindings = let.bindings.map(_._2)
         lams.map(e => (e, findEquivalent(e, bindings)))
 
+  @tailrec
   def findLatestInScope(toFind: Map[String, Option[Identifier]], expr: Expression, program: List[(Identifier, Expression)]): Map[String, Option[Identifier]] = program match
     case List() =>
-      println("loop")
       toFind
     case (id, binding) :: rest if binding.eq(expr) =>
-      println("loop")
       findLatestInScope(toFind, expr, rest)
     case (id, binding) :: rest if up.findAllSubExps(binding).contains(expr) =>
-      println("loop")
       val newBindings = up.findAllSubExps(binding).collect {
         // In case of let: let must not contain the expression itself (other expressions of let will be out of scope) and the beginning line of let must not be larger than the expression line (out of scope)
         case let: SchemeLet if let.idn.idn.line <= expr.idn.idn.line && !let.bindings.exists(b => b._2.eql(expr)) =>
@@ -280,10 +302,8 @@ object SchemeChangePatterns:
         case letrec: SchemeLetrec if letrec.idn.idn.line <= expr.idn.idn.line  =>
           letrec.bindings
       }.flatten
-      // First try to find the toFind in the nested scope
       findLatestInScope(toFind, expr, rest.appendedAll(newBindings))
     case (id, binding) :: rest =>
-      println("loop")
       if toFind.contains(id.name) then
         findLatestInScope(toFind + (id.name -> Some(id)), expr, rest)
       else

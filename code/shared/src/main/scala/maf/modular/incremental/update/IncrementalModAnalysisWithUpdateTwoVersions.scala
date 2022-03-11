@@ -14,10 +14,16 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
   var allChanges: Map[Expression, Expression] = Map()
   var allDeletes: List[Expression] = List()
 
+  def getMapping(expr: Expression): Set[Component] =
+    mapping.get(expr.asInstanceOf[Expr]) match
+      case Some(comp) => comp
+      case None       => Set()
+
+
   def updateAnalysis(timeout: Timeout.T, rename: Boolean): Unit =
     (program, secondProgram) match
       case (old: SchemeExp, nw: SchemeExp) =>
-        val changes = SchemeChangePatterns.comparePrograms(old, nw)
+        val changes = SchemeChangePatterns.comparePrograms(old, nw, Some(this))
         changes.reanalyse.foreach(e => e match
           case (Some(oe), Some(ne)) => allChanges = allChanges + (oe -> ne)
           case (Some(oe), None)     => allDeletes = allDeletes.::(oe)
