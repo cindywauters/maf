@@ -77,3 +77,15 @@
 (let ((<delete> (calls-subtract (lambda (x)(subtract x)))) ;; calls subtract with idn 12:9 (moved scopes)
       (subtract (lambda (x) (- x 2))))
     (display (calls-subtract 5)))
+
+(letrec ((<insert> (calls-times (lambda (x)(times x)))) ;; calls times with idn 82:11 (not moved)
+         (times (lambda (x) (* x 3))))
+    (display (calls-times 5))
+    (let ((times (lambda (x) (* x 4))))
+      (display (calls-times 5))))
+
+
+(<delete> (define calls-times (lambda (x)(times x)))) ;; calls times with idn 87:9
+(define times (lambda (x) (* x 2)))
+
+(<delete> (display (calls-times 5)))

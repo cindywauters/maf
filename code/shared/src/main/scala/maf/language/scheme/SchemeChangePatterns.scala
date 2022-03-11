@@ -267,11 +267,13 @@ object SchemeChangePatterns:
     //case (id, binding) :: _   if expr.idn.idn.line < binding.idn.idn.line =>
     //  toFind
     case (id, binding) :: rest if up.findAllSubExps(binding).contains(expr) =>
-      val newBindings = up.findAllSubExps(binding).collect {
+     // val newBingins = binding match
+     //   case
+      val newBindings = rest.appendedAll(up.findAllSubExps(binding).collect {
         case let: SchemeLet if !let.bindings.exists(b => b._2.eql(expr)) => let.bindings.filter(e => e._2.idn.idn.line < expr.idn.idn.line)
         case letstar: SchemeLetStar => letstar.bindings.filter(e => e._2.idn.idn.line < expr.idn.idn.line)
-        case letrec: SchemeLetrec => letrec.bindings
-      }.flatten.appendedAll(rest)
+        case letrec: SchemeLetrec if letrec.idn.idn.line <= expr.idn.idn.line  => letrec.bindings
+      }.flatten)
       findLatestInScope(toFindName, toFind, expr,newBindings)
     case (id, binding) :: rest if id.name == toFindName =>
       findLatestInScope(toFindName, Some(id), expr, rest)
