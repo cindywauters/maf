@@ -223,18 +223,18 @@ object SchemeChangePatterns:
          deletes.foreach(deleted =>
            inserts.find(i => i.eql(deleted)) match
              case Some(inserted) =>
-               var bindingsin = inserted.fv.map(name => findLatestInScope(name, None, inserted, newlet.bindings))
-               var bindingsout = deleted.fv.map(name => findLatestInScope(name, None, deleted, oldlet.bindings))
+               val bindingsin: Map[String, Option[Identifier]] = findLatestInScope(inserted.fv.map(name => (name, None)).toMap, inserted, newlet.bindings)
+               val bindingsout: Map[String, Option[Identifier]] = findLatestInScope(deleted.fv.map(name => (name, None)).toMap, deleted, oldlet.bindings)
                if bindingsin == bindingsout then
                  println("moved scopes: ")
                else
                  println("different functions: ")
                println(inserted.idn.toString + " " + deleted.idn.toString + " " + inserted.toString)
-               bindingsin.foreach(e => e match
+               bindingsin.foreach(e => e._2 match
                  case Some(id) => print(id.idn.toString + " ")
                  case _ => print("None "))
                println()
-               bindingsout.foreach(e => e match
+               bindingsout.foreach(e => e._2 match
                  case Some(id) => print(id.idn.toString + " ")
                  case _ => print("None "))
                println()
@@ -260,25 +260,34 @@ object SchemeChangePatterns:
         val bindings = let.bindings.map(_._2)
         lams.map(e => (e, findEquivalent(e, bindings)))
 
-  //@tailrec
-  def findLatestInScope(toFindName: String, toFind: Option[Identifier], expr: Expression, program: List[(Identifier, Expression)]): Option[Identifier] = program match
+  def findLatestInScope(toFind: Map[String, Option[Identifier]], expr: Expression, program: List[(Identifier, Expression)]): Map[String, Option[Identifier]] = program match
     case List() =>
+      println("loop")
       toFind
-    //case (id, binding) :: _   if expr.idn.idn.line < binding.idn.idn.line =>
-    //  toFind
+    case (id, binding) :: rest if binding.eq(expr) =>
+      println("loop")
+      findLatestInScope(toFind, expr, rest)
     case (id, binding) :: rest if up.findAllSubExps(binding).contains(expr) =>
-     // val newBingins = binding match
-     //   case
-      val newBindings = rest.appendedAll(up.findAllSubExps(binding).collect {
-        case let: SchemeLet if !let.bindings.exists(b => b._2.eql(expr)) => let.bindings.filter(e => e._2.idn.idn.line < expr.idn.idn.line)
-        case letstar: SchemeLetStar => letstar.bindings.filter(e => e._2.idn.idn.line < expr.idn.idn.line)
-        case letrec: SchemeLetrec if letrec.idn.idn.line <= expr.idn.idn.line  => letrec.bindings
-      }.flatten)
-      findLatestInScope(toFindName, toFind, expr,newBindings)
-    case (id, binding) :: rest if id.name == toFindName =>
-      findLatestInScope(toFindName, Some(id), expr, rest)
-    case head :: rest =>
-      findLatestInScope(toFindName, toFind, expr, rest)
+      println("loop")
+      val newBindings = up.findAllSubExps(binding).collect {
+        // In case of let: let must not contain the expression itself (other expressions of let will be out of scope) and the beginning line of let must not be larger than the expression line (out of scope)
+        case let: SchemeLet if let.idn.idn.line <= expr.idn.idn.line && !let.bindings.exists(b => b._2.eql(expr)) =>
+          let.bindings
+        // Let*: bindings know of each other and can call eachother, but not ones that are defined later
+        case letstar: SchemeLetStar if letstar.idn.idn.line <= expr.idn.idn.line =>
+          letstar.bindings.filter(e => e._2.idn.idn.line < expr.idn.idn.line)
+        // Letrec: bindings can call each other even if they are defined later within the same letrec bindings
+        case letrec: SchemeLetrec if letrec.idn.idn.line <= expr.idn.idn.line  =>
+          letrec.bindings
+      }.flatten
+      // First try to find the toFind in the nested scope
+      findLatestInScope(toFind, expr, rest.appendedAll(newBindings))
+    case (id, binding) :: rest =>
+      println("loop")
+      if toFind.contains(id.name) then
+        findLatestInScope(toFind + (id.name -> Some(id)), expr, rest)
+      else
+        findLatestInScope(toFind, expr, rest)
 
 
 
