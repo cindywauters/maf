@@ -267,7 +267,12 @@ object SchemeChangePatterns:
     case (id, binding) :: _    if expr.idn.idn.line < binding.idn.idn.line =>
       toFind
     case (id, binding) :: rest if up.findAllSubExps(binding).contains(expr) =>
-      findLatestInScope(toFindName, toFind, expr, up.findAllSubExps(binding).collect {case b: SchemeLettishExp => b.bindings}.flatten.appendedAll(rest))
+      val newBindings = up.findAllSubExps(binding).collect {
+        case let: SchemeLet if !let.bindings.exists(b => b._2.eql(expr)) => let.bindings
+        case letstar: SchemeLetStar => letstar.bindings
+        case letrec: SchemeLetrec => letrec.bindings
+      }.flatten.appendedAll(rest)
+      findLatestInScope(toFindName, toFind, expr,newBindings)
     case (id, binding) :: rest if id.name == toFindName =>
       findLatestInScope(toFindName, Some(id), expr, rest)
     case head :: rest =>

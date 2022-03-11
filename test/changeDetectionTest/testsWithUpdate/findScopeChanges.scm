@@ -36,3 +36,15 @@
 
 
 (scope-with-nested-lets-update 5)
+
+;; use let rather than let* (despite the add, it is a let so the second-moved-function will be using the same add as it does in the other scope
+(define (let-test-update x)
+  (let* ((firstval 5)
+         (secondval 10))
+    (+ firstval secondval)
+    (second-moved-function firstval)
+    (let ((add (lambda (x) (+ x 2)))
+           (<delete> (second-moved-function (lambda (x) (display (add x))(display (subtract x))(f x))))
+           (end "end"))
+      (second-moved-function firstval)
+      (display end))))
