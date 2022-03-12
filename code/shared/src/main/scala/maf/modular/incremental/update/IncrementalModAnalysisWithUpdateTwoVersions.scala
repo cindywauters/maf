@@ -63,5 +63,5 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
         )
         mapping = mapping + (secondProgram -> Set(initialComponent))
         affected.foreach(addToWorkList)
-      //  println(workList)
+        println(changes.renamings)
     analyzeWithTimeout(timeout)

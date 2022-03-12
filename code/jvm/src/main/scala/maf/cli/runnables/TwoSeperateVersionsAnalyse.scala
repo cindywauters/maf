@@ -131,12 +131,12 @@ object TwoSeperateVersionsAnalyse extends App:
           case Some(updatedValue) =>
             if !v.forall(elv => updatedValue.contains(elv)) then
               println(" deps r -> u " + k.toString() + " " + v.toString + " " + updatedValue.toString)
-         /*     v.foreach(e => e match
+              v.foreach(e => e match
                 case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
                   println(lam.toString + " " + env.toString + " " + oldCtx.toString))
               updatedValue.foreach(e => e match
                 case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
-                  println(lam.toString + " " + env.toString + " " + oldCtx.toString)  )*/
+                  println(lam.toString + " " + env.toString + " " + oldCtx.toString)  )
             v.forall(elv => updatedValue.contains(elv))
           case _ => false).toString)
 
@@ -190,7 +190,7 @@ object TwoSeperateVersionsAnalyse extends App:
   end modfAnalysis
 
   val modConcbenchmarks: List[String] = List()
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/testfile.scm")
 //  val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/string.scm")
 
   val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
