@@ -264,6 +264,7 @@ object SchemeChangePatterns:
                 case _ => print("None "))
               println()
             case _ =>)
+        allBindingsInprogram(oldlet).foreach(println)
         differentChanges(reanalyse, rename, ifs, scopeChanges)
       case _ => differentChanges(reanalyse, rename, ifs, scopeChanges)
 
@@ -284,6 +285,18 @@ object SchemeChangePatterns:
       case let: SchemeLettishExp =>
         val bindings = let.bindings.map(_._2)
         lams.map(e => (e, findEquivalent(e, bindings)))
+
+  def allBindingsInProgramIdSchemeExp(expr: Expression): List[(Identifier, Expression)] =
+    if expr.subexpressions.isEmpty && expr.height == 1 then
+      List()
+    else if expr.subexpressions.isEmpty then
+      List()
+    else expr match
+      case let: SchemeLettishExp => let.bindings.appendedAll(let.bindings.flatMap(b => allBindingsInProgramIdSchemeExp(b._2))).appendedAll(let.body.flatMap(allBindingsInProgramIdSchemeExp))
+      case _ => expr.subexpressions.flatMap(e => allBindingsInProgramIdSchemeExp(e))
+
+  def allBindingsInprogram(expr: Expression): Map[Expression, Identifier] =
+    allBindingsInProgramIdSchemeExp(expr).map(_.swap).toMap
 
   @tailrec
   def findLatestInScope(toFind: Map[String, Option[Identifier]], expr: Expression, program: List[(Identifier, Expression)]): Map[String, Option[Identifier]] = program match
