@@ -77,6 +77,7 @@ object TwoSeperateVersionsAnalyse extends App:
       println(program._1.prettyString())
       println(program._2.prettyString())
 
+
       val analysisWithUpdates = baseUpdates(program._1, program._2)
       analysisWithUpdates.analyzeWithTimeout(timeout())
       val beforeUpdateAnalysis = System.nanoTime
@@ -148,6 +149,7 @@ object TwoSeperateVersionsAnalyse extends App:
         mappingWithUpdate.get(k) match
           case Some(updatedValue) =>
             if !v.forall(elv => updatedValue.contains(elv)) then
+              println(k)
               println(v)
               println(updatedValue)
               v.foreach(e => e match
@@ -168,11 +170,11 @@ object TwoSeperateVersionsAnalyse extends App:
       println("Visited with update : " + visitedWithUpdate.toString)
       println("Visited new only    : " + visitedWithoutUpdate.toString)
       println("Visited reanalysis -> Update (subsumption): " + visitedWithoutUpdate.forall(e =>
-          println(e)
+         /* println(e)
           e match
             case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
               println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
-            case _ =>
+            case _ =>*/
           visitedWithUpdate.contains(e) ).toString)
 
 
@@ -190,7 +192,7 @@ object TwoSeperateVersionsAnalyse extends App:
   end modfAnalysis
 
   val modConcbenchmarks: List[String] = List()
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/testfile.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
 //  val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/string.scm")
 
   val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))

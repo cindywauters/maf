@@ -34,11 +34,10 @@ class IncrementalUpdateDatastructures {
 
   // Call this function when you want to update all the datastructures of an analysis
   // Arguments are an analysis and the expression that is being analysed
-  def changeDataStructures(a: IncrementalModAnalysis[Expression], exp: Expression, renamings: Set[((Expression, Expression), Map[Identifier, Identifier])], ifs: ifsList = List(), otherChanges: List[(Expression, Expression)] = List()): Boolean =
-
+  def changeDataStructures(a: IncrementalModAnalysis[Expression], exp: Expression, renamings: List[((Expression, Expression), Map[Identifier, Identifier])], ifs: ifsList = List(), scopeChanges: List[(Expression, Expression)] = List(), otherChanges: List[(Expression, Expression)] = List()): Boolean =
     val changedVarsSwapped = renamings.flatMap(e => e._2).toMap
     changedVars = changedVarsSwapped.map(_.swap).toMap // Get all renamed vars
-    changedExpressions = renamings.map(e => e._1).toMap // Get all expressions that have been changed
+    changedExpressions = renamings.map(e => e._1).appendedAll(scopeChanges).toMap // Get all expressions that have been changed
 
     // get all expressions that exist within an old expression and in a new expression and zip them together to know what has changed to what
     val allOldExps = changedExpressions.flatMap(e => findAllSubExps(e._1)).toList.appendedAll(otherChanges.map(_._1))
@@ -53,6 +52,9 @@ class IncrementalUpdateDatastructures {
       findAllSubExps(oldIf.cons).zip(findAllSubExps(newIf.alt)).foreach(e => allExpressionsInChange = allExpressionsInChange + (e._1 -> e._2))
       findAllSubExps(oldIf.alt).zip(findAllSubExps(newIf.cons)).foreach(e => allExpressionsInChange = allExpressionsInChange + (e._1 -> e._2))
       allExpressionsInChange = allExpressionsInChange + (oldIf -> newIf))
+
+    println("mappings")
+    println(allExpressionsInChange)
    
     allIfs = ifs
 
@@ -346,17 +348,33 @@ class IncrementalUpdateDatastructures {
   // If it did change, the variable that it changed into needs to be added to the environment
   def createNewEnvironment(expr: SchemeLambdaExp, a: IncrementalModAnalysis[Expression], oldEnv: maf.core.BasicEnvironment[_]): Map[String, Address] =
     var newEnv: Map[String, Address] = Map()
-    var changingIf = false
+    //var changingIf = false
     var varsToRemove: Set[String] = Set()
-    allIfs.find(e => findAllSubExps(expr).exists(s => e._1._1.eql(s) || e._1._2.eql(s))) match
-      case Some((exprs, ids: List[Identifier], _)) =>
+    allExpressionsInChange.find(changed => changed._1 == expr || changed._2 == expr) match
+      case Some(exprs) =>
+        varsToRemove = exprs._1.fv.diff(exprs._2.fv)
+        println("vars to remove")
+        println(varsToRemove)
+        allIfs.find(e => findAllSubExps(expr).exists(s => e._1._1.eql(s) || e._1._2.eql(s))) match
+          case Some((exprs, ids: List[Identifier], _)) =>
+            ids.foreach(e =>
+              val newAddr = maf.modular.scheme.VarAddr(e, None)
+              newEnv = newEnv + (e.name -> newAddr))
+          case None =>
+      case None =>
+        println(expr)
+    //allIfs.find(e => findAllSubExps(expr).exists(s => e._1._1.eql(s) || e._1._2.eql(s))) match
+ /*     case Some((exprs, ids: List[Identifier], _)) =>
         changingIf = true
         varsToRemove = exprs._1.fv.diff(exprs._2.fv)
         ids.foreach(e =>
           val newAddr = maf.modular.scheme.VarAddr(e, None)
           newEnv = newEnv + (e.name -> newAddr)
         )
-      case None =>
+      case None =>*/
+
+    println("oldenv")
+    println(oldEnv)
     oldEnv.content.foreach((k, v) =>
       v match
         case varAddr: VarAddr =>
@@ -368,11 +386,16 @@ class IncrementalUpdateDatastructures {
             case _ =>
               val newCtx = updateCtx(a, varAddr.ctx)
               val newVarAddr = varAddr.copy(ctx= newCtx) // bugfix for some context sensitive things, context might update even if the actual var addr does not
-              if !changingIf || !varsToRemove.contains(k) then
+              if !varsToRemove.contains(k) then
+                println(k)
+                println(varsToRemove)
                 newEnv += (k -> newVarAddr)
         case _ =>
-          if !changingIf || !varsToRemove.contains(k) then
+          if !varsToRemove.contains(k) then
             newEnv += (k -> v))
+    println("newenv")
+    println(newEnv)
+
     newEnv
 
   // Update context. This currently supports SchemeModFNoSensitivity, SchemeModFFullArgumentCallSiteSensitivity, SchemeModFCallSiteSensitivity and SchemeModFFullArgumentSensitivity

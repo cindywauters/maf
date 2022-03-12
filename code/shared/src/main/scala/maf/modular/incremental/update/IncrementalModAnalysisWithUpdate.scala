@@ -15,7 +15,7 @@ trait IncrementalModAnalysisWithUpdate[Expr <: Expression] extends IncrementalMo
     program match
       case expr: SchemeExp =>
         //println(program)
-        val changedAndRenamings = SchemeChangePatterns.checkForRenamingParameter(expr)
+        val changedAndRenamings = SchemeChangePatterns.checkForRenamingParameter(expr).toList
         val notRenamed = changedAndRenamings.filter(e => !e._2._1)
         val renamed = changedAndRenamings.filter(e => e._2._1).map(e => (e._1, e._2._2))
         val notRenamedOld = notRenamed.map(e => e._1._1)

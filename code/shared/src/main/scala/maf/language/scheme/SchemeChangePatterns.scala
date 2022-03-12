@@ -167,17 +167,16 @@ object SchemeChangePatterns:
     var ifs: ifsList = List()
     var inserts: List[Expression] = List()
     var deletes: List[Expression] = List()
+    var scopeChanges: List[(Expression, Expression)] = List()
     (old, nw) match
       case (oldlet: SchemeLettishExp, newlet: SchemeLettishExp) =>
         oldlet.bindings.foreach(oe =>
           if !newlet.bindings.exists(ne => oe._2.idn == ne._2.idn) then
-            reanalyse = reanalyse.::((Some(oe._2), None))
             deletes = deletes.::(oe._2)
           if oe._1.idn.idn.tag != Position.noTag then
             needed_prims = needed_prims.::(oe._1))
         newlet.bindings.foreach(ne =>
           if !oldlet.bindings.exists(oe => oe._2.idn == ne._2.idn) then
-            reanalyse = reanalyse.::((None, Some(ne._2)))
             inserts = inserts.::(ne._2)
           if ne._1.idn.idn.tag != Position.noTag && !needed_prims.contains(ne._1) then
             needed_prims = needed_prims.::(ne._1))
@@ -195,8 +194,10 @@ object SchemeChangePatterns:
         }
         changedBindingsBoth.filterNot(e => renamedBindings.contains(e)).foreach(e =>
           findLowestChangedSubExpressions(e._1._2, e._2._2).foreach(e => e match
-            case (Some(oe), None) => deletes = deletes.::(oe)
-            case (None, Some(ne)) => inserts = inserts.::(ne)
+            case (Some(oe), None) =>
+              deletes = deletes.::(oe)
+            case (None, Some(ne)) =>
+              inserts = inserts.::(ne)
             case (Some(oe), Some(ne)) => (oe, ne) match
               case (oe: Identifier, ne: Identifier) =>
                 if renamedBindings.exists(e => e._1._1.name == oe.name && e._2._1.name == ne.name) then
@@ -218,11 +219,8 @@ object SchemeChangePatterns:
                   rename = rename.::((oe, ne), checkRenamingsVariables(oe, ne))
                 else
                   reanalyse = reanalyse.::((Some(oe), Some(ne)))
-            case (Some(oe), None)    => reanalyse = reanalyse.::((Some(oe), None))
-          )
-          )
-      //findLatestInScope
-   /*     println("218")
+            case (Some(oe), None)    => reanalyse = reanalyse.::((Some(oe), None))))
+        println("218")
         deletes.foreach(deleted =>
           inserts.find(i => i.eql(deleted)) match
             case Some(inserted) =>
@@ -248,9 +246,11 @@ object SchemeChangePatterns:
                                 case _ => println(e._2.getClass)))
                 case None           =>
               if bindingsout.size != bindingsin.size then
+                println("has no (matching) environment")
                  bindingsout = findLatestInScope(deleted.fv.map(name => (name, None)).toMap, deleted, oldlet.bindings)
               if bindingsin == bindingsout then
                 println("moved scopes: ")
+                scopeChanges = scopeChanges.::(deleted, inserted)
               else
                 println("different functions: ")
               println(inserted.idn.toString + " " + deleted.idn.toString + " " + inserted.toString)
@@ -262,9 +262,9 @@ object SchemeChangePatterns:
                 case Some(id) => print(id.idn.toString + " ")
                 case _ => print("None "))
               println()
-            case _ =>)*/
-        differentChanges(reanalyse, rename, ifs)
-      case _ => differentChanges(reanalyse, rename, ifs)
+            case _ =>)
+        differentChanges(reanalyse, rename, ifs, scopeChanges)
+      case _ => differentChanges(reanalyse, rename, ifs, scopeChanges)
 
   var up = new IncrementalUpdateDatastructures
 
@@ -313,4 +313,4 @@ object SchemeChangePatterns:
 
 
 
-case class differentChanges(reanalyse: reanalysisList, renamings: renamingsList, ifs: ifsList)
+case class differentChanges(reanalyse: reanalysisList, renamings: renamingsList, ifs: ifsList, scopeChanges: List[(Expression, Expression)])

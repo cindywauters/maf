@@ -33,6 +33,7 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
         var affectedLambdas = visited.collect {
           case comp @ SchemeModFComponent.Call((lam: Expr, env: BasicEnvironment[_]), oldCtx: _) if lam.idn.idn.tag == Position.noTag=>
             (lam, comp)
+
         }.toList
         var affectedLambdasPairsIntermediate = SchemeChangePatterns.findEquivalentLambdas(affectedLambdas.map(_._1), secondProgram)
      /*   affectedLambdasPairsIntermediate.foreach(e =>
@@ -48,9 +49,9 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
         if rename then
           this match
             case a: IncrementalModAnalysis[Expression] =>
-              if changes.renamings.nonEmpty || changes.ifs.nonEmpty then
-                val renamed = changes.renamings.map(e => (e._1, e._2._2)).toSet
-                update.changeDataStructures(a, program, renamed, changes.ifs, affectedLambdasPairs)
+              if changes.renamings.nonEmpty || changes.ifs.nonEmpty || changes.scopeChanges.nonEmpty then
+                val renamed = changes.renamings.map(e => (e._1, e._2._2))//.toSet
+                update.changeDataStructures(a, program, renamed, changes.ifs, changes.scopeChanges, affectedLambdasPairs)
           affectedAll = changes.reanalyse
         var affected = affectedAll.flatMap(e => e match
           case (Some(old: Expr), Some(nw: Expr)) =>
@@ -62,6 +63,6 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
           case _ => Set(initialComponent)
         )
         mapping = mapping + (secondProgram -> Set(initialComponent))
-        affected.foreach(addToWorkList)
-        println(changes.renamings)
+       // affected.foreach(addToWorkList)
+        println(changes.scopeChanges)
     analyzeWithTimeout(timeout)
