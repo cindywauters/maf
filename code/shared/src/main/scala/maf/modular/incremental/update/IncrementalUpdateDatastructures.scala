@@ -42,7 +42,13 @@ class IncrementalUpdateDatastructures {
     // get all expressions that exist within an old expression and in a new expression and zip them together to know what has changed to what
     val allOldExps = changedExpressions.flatMap(e => findAllSubExps(e._1)).toList.appendedAll(otherChanges.map(_._1))
     val allNewExps = changedExpressions.flatMap(e => findAllSubExps(e._2)).toList.appendedAll(otherChanges.map(_._2))
-    allExpressionsInChange = allOldExps.zip(allNewExps).toMap
+    allExpressionsInChange = allOldExps.zip(allNewExps).appendedAll(
+      for
+        oldExp <- otherChanges.map(_._1).flatMap(findAllSubExps)
+        newExp <- otherChanges.map(_._2).flatMap(findAllSubExps)
+        if oldExp.idn == newExp.idn && oldExp.getClass == newExp.getClass && oldExp != newExp
+      yield (oldExp, newExp)).toMap
+
     ifs.foreach(e =>
       val oldIf = e._1._1
     // val oldIfCondSubs = findAllSubExps(oldIf.cond)
@@ -55,7 +61,7 @@ class IncrementalUpdateDatastructures {
 
     println("mappings")
     println(allExpressionsInChange)
-   
+
     allIfs = ifs
 
      ifsWithMappings = ifs.map(i =>
@@ -82,23 +88,47 @@ class IncrementalUpdateDatastructures {
         case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), ctx: _) =>
           if !findAllSubExps(lam).contains(expr._2) then
 
-    )*/
+    )
+    */
     var moved: Map[Expression, Set[SchemeModFComponent]] = scopeChanges.map(e => (e._2, Set())).toMap
     a.visited.foreach(comp => comp match
       case comp @ SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), ctx: _) =>
         val allSubs = findAllSubExps(lam)
+     /*   allSubs.foreach(sub =>
+          a.mapping.find(m => m._1.idn == sub.idn) match
+            case Some(map) =>
+              a.mapping = a.mapping - map._1
+              a.mapping = a.mapping + (sub -> a.mapping.getOrElse(sub, Set()) ++ Set(comp))
+            case _ =>
+      */
         scopeChanges.foreach(exprs =>
           if allSubs.contains(exprs._2) then
-            moved = moved + (exprs._2 -> (moved.getOrElse(exprs._2, Set()) ++ Set(comp)))
+            var toInsert = moved.getOrElse(exprs._2, Set()) ++ Set(comp)
+            moved = moved + (exprs._2 -> toInsert)
+            println("all subs")
+            println(allSubs)
+            allSubs.filter(sub => a.mapping.contains(sub)).foreach(sub => moved = moved + (sub -> toInsert))
       )
       case comp: SchemeModFComponent.Main.type =>
     )
     moved.foreach(e =>
-     if e._2.isEmpty then
-       a.mapping = a.mapping + (e._1 -> Set(a.initialComponent))
-     else
-       a.mapping = a.mapping + (e._1 -> e._2.asInstanceOf[Set[a.Component]])
-    )
+     var toInsert: Set[a.Component] = Set(a.initialComponent)
+     if e._2.nonEmpty then
+       toInsert = e._2.asInstanceOf[Set[a.Component]]
+     println("exprs")
+     println(findAllSubExps(e._1))
+     if toInsert != a.mapping.get(e._1) then
+       findAllSubExps(e._1).foreach(sub =>
+         a.mapping.find(m => m._1.idn == sub.idn && m != sub) match
+           case Some(map) =>
+             println("replacing")
+             println(map._1)
+             a.mapping = a.mapping - map._1
+             a.mapping = a.mapping + (sub -> toInsert)
+           case _ =>
+         ))
+    println("moved")
+    println(moved)
     true
 
   // Find all the subexpressions of an expression, and their subexpressions.
@@ -158,7 +188,7 @@ class IncrementalUpdateDatastructures {
             case k: PrmAddr =>
               insertInDeps(a, addrDep, addrDep, oldValue, newValue)
       )
-  
+
   def buildNewExpr(expr: SchemeExp, allChanges: Map[Expression, Expression] = allExpressionsInChange): SchemeExp =
     allChanges.get(expr) match
       case Some(e: SchemeExp) =>
