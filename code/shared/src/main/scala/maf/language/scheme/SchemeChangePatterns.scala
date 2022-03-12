@@ -11,6 +11,10 @@ import maf.modular.scheme.modf.SchemeModFComponent
 import scala.::
 import scala.annotation.tailrec
 
+type reanalysisList = List[(Option[Expression], Option[Expression])]
+type renamingsList  = List[((Expression, Expression), (Boolean, Map[Identifier, Identifier]))]
+type ifsList        = List[((SchemeIf, SchemeIf),  List[Identifier], (Expression, Expression))]
+
 object SchemeChangePatterns:
 
 // find all the changed expressions and create a set with all the old and new expressions
@@ -130,7 +134,7 @@ object SchemeChangePatterns:
           case _ => None
       case (e1: _, e2: _) => None
 
-  def findLowestChangedSubExpressions(old: Expression, nw: Expression): List[(Option[Expression], Option[Expression])] =
+  def findLowestChangedSubExpressions(old: Expression, nw: Expression): reanalysisList =
     if old.eql(nw) then
       return List()
     if old.subexpressions.isEmpty && nw.subexpressions.isEmpty then
@@ -157,10 +161,10 @@ object SchemeChangePatterns:
 
   // Returns a list of expressions that needs to be reanalysed (old and new), and a list of tuples of expressions that are just renamings together with their mappings
   def comparePrograms(old: SchemeExp, nw: SchemeExp, analysis: Option[IncrementalModAnalysisWithUpdateTwoVersions[_]] = None): differentChanges =
-    var reanalyse: List[(Option[Expression], Option[Expression])] = List()
-    var rename: List[((Expression, Expression), (Boolean, Map[Identifier, Identifier]))] = List()
+    var reanalyse: reanalysisList = List()
+    var rename: renamingsList = List()
     var needed_prims: List[Identifier] = List()
-    var ifs: List[((SchemeIf, SchemeIf),  List[Identifier], (Expression, Expression))] = List()
+    var ifs: ifsList = List()
     var inserts: List[Expression] = List()
     var deletes: List[Expression] = List()
     (old, nw) match
@@ -218,22 +222,18 @@ object SchemeChangePatterns:
           )
           )
       //findLatestInScope
-         println("218")
-        /* deletes.foreach(println)
-         inserts.foreach(println)*/
-         deletes.foreach(deleted =>
-           inserts.find(i => i.eql(deleted)) match
-             case Some(inserted) =>
-               val bindingsin: Map[String, Option[Identifier]] = findLatestInScope(inserted.fv.map(name => (name, None)).toMap, inserted, newlet.bindings)
-               var bindingsout: Map[String, Option[Identifier]] = Map()
-               analysis match
-                 case Some(analysis) =>
-                   println(deleted)
-                   println(analysis.mapping)
-                   val relatedComponent = analysis.getMapping(deleted)
-                   if relatedComponent.size == 1 then
-                     println("has an environment")
-                     relatedComponent.foreach(comp =>
+   /*     println("218")
+        deletes.foreach(deleted =>
+          inserts.find(i => i.eql(deleted)) match
+            case Some(inserted) =>
+              val bindingsin: Map[String, Option[Identifier]] = findLatestInScope(inserted.fv.map(name => (name, None)).toMap, inserted, newlet.bindings)
+              var bindingsout: Map[String, Option[Identifier]] = Map()
+              analysis match
+                case Some(analysis) =>
+                  val relatedComponent = analysis.getMapping(deleted)
+                  if relatedComponent.size == 1 then
+                    println("has an environment")
+                    relatedComponent.foreach(comp =>
                       comp match
                         case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
                           println(env.content)
@@ -242,27 +242,27 @@ object SchemeChangePatterns:
                             if deleted.fv.contains(e._1) then
                               e._2 match
                                 case varAddr: maf.modular.scheme.VarAddr[_] =>
-                                  bindingsout = bindingsout + (e._1 -> Some(varAddr.id))
+                                 bindingsout = bindingsout + (e._1 -> Some(varAddr.id))
                                 case prmAddr: maf.modular.scheme.PrmAddr =>
-                                  bindingsout = bindingsout + (e._1 -> None)
+                                 bindingsout = bindingsout + (e._1 -> None)
                                 case _ => println(e._2.getClass)))
-                 case None           =>
-               if bindingsout.size != bindingsin.size then
-                  bindingsout = findLatestInScope(deleted.fv.map(name => (name, None)).toMap, deleted, oldlet.bindings)
-               if bindingsin == bindingsout then
-                 println("moved scopes: ")
-               else
-                 println("different functions: ")
-               println(inserted.idn.toString + " " + deleted.idn.toString + " " + inserted.toString)
-               bindingsin.foreach(e => e._2 match
-                 case Some(id) => print(id.idn.toString + " ")
-                 case _ => print("None "))
-               println()
-               bindingsout.foreach(e => e._2 match
-                 case Some(id) => print(id.idn.toString + " ")
-                 case _ => print("None "))
-               println()
-             case _ =>)
+                case None           =>
+              if bindingsout.size != bindingsin.size then
+                 bindingsout = findLatestInScope(deleted.fv.map(name => (name, None)).toMap, deleted, oldlet.bindings)
+              if bindingsin == bindingsout then
+                println("moved scopes: ")
+              else
+                println("different functions: ")
+              println(inserted.idn.toString + " " + deleted.idn.toString + " " + inserted.toString)
+              bindingsin.foreach(e => e._2 match
+                case Some(id) => print(id.idn.toString + " ")
+                case _ => print("None "))
+              println()
+              bindingsout.foreach(e => e._2 match
+                case Some(id) => print(id.idn.toString + " ")
+                case _ => print("None "))
+              println()
+            case _ =>)*/
         differentChanges(reanalyse, rename, ifs)
       case _ => differentChanges(reanalyse, rename, ifs)
 
@@ -313,4 +313,4 @@ object SchemeChangePatterns:
 
 
 
-case class differentChanges(reanalyse: List[(Option[Expression], Option[Expression])], renamings: List[((Expression, Expression), (Boolean, Map[Identifier, Identifier]))], ifs: List[((SchemeIf, SchemeIf),  List[Identifier], (Expression, Expression))])
+case class differentChanges(reanalyse: reanalysisList, renamings: renamingsList, ifs: ifsList)

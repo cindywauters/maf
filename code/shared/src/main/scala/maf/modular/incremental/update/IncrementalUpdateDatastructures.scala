@@ -26,14 +26,14 @@ class IncrementalUpdateDatastructures {
   type PrmAddr = maf.modular.scheme.PrmAddr
   type Value = maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain.modularLattice.Value
 
-  var changedVars: Map[maf.core.Identifier, maf.core.Identifier] = Map()
-  var changedExpressions: Map[maf.core.Expression, maf.core.Expression] = Map()
-  var allExpressionsInChange: Map[maf.core.Expression, maf.core.Expression] = Map()
-  var allIfs: List[((SchemeIf, SchemeIf),  List[Identifier], (Expression, Expression))] = List()
+  var changedVars: Map[Identifier, Identifier] = Map()
+  var changedExpressions: Map[Expression, Expression] = Map()
+  var allExpressionsInChange: Map[Expression, Expression] = Map()
+  var allIfs: ifsList = List()
 
   // Call this function when you want to update all the datastructures of an analysis
   // Arguments are an analysis and the expression that is being analysed
-  def changeDataStructures(a: IncrementalModAnalysis[Expression], exp: Expression, renamings: Set[((maf.core.Expression, maf.core.Expression), Map[maf.core.Identifier, maf.core.Identifier])], ifs: List[((SchemeIf, SchemeIf),  List[Identifier], (Expression, Expression))] = List(), otherChanges: List[(maf.core.Expression, maf.core.Expression)] = List()): Boolean =
+  def changeDataStructures(a: IncrementalModAnalysis[Expression], exp: Expression, renamings: Set[((Expression, Expression), Map[Identifier, Identifier])], ifs: ifsList = List(), otherChanges: List[(Expression, Expression)] = List()): Boolean =
 
     val changedVarsSwapped = renamings.flatMap(e => e._2).toMap
     changedVars = changedVarsSwapped.map(_.swap).toMap // Get all renamed vars
@@ -134,7 +134,7 @@ class IncrementalUpdateDatastructures {
               insertInDeps(a, addrDep, addrDep, oldValue, newValue)
       )
   
-  def buildNewExpr(expr: SchemeExp, allChanges: Map[maf.core.Expression, maf.core.Expression] = allExpressionsInChange): SchemeExp =
+  def buildNewExpr(expr: SchemeExp, allChanges: Map[Expression, Expression] = allExpressionsInChange): SchemeExp =
     allChanges.get(expr) match
       case Some(e) =>
         e.asInstanceOf[SchemeExp]
