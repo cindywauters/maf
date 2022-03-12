@@ -243,7 +243,8 @@ object SchemeChangePatterns:
                                  bindingsout = bindingsout + (e._1 -> Some(varAddr.id))
                                 case prmAddr: maf.modular.scheme.PrmAddr =>
                                  bindingsout = bindingsout + (e._1 -> None)
-                                case _ => println(e._2.getClass)))
+                                case _ => println(e._2.getClass))
+                        case _ =>)
                 case None           =>
               if bindingsout.size != bindingsin.size then
                 println("has no (matching) environment")

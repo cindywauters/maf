@@ -74,6 +74,31 @@ class IncrementalUpdateDatastructures {
     updateDependencies(a) // Update the dependencies
     updateMapping(a) // Update the store
     updateVisited(a) // Update visited
+
+  /*  scopeChanges.foreach(expr =>
+      a.mapping.get(expr) match
+        case comp: SchemeModFComponent.Main.type =>
+          comp
+        case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), ctx: _) =>
+          if !findAllSubExps(lam).contains(expr._2) then
+
+    )*/
+    var moved: Map[Expression, Set[SchemeModFComponent]] = scopeChanges.map(e => (e._2, Set())).toMap
+    a.visited.foreach(comp => comp match
+      case comp @ SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), ctx: _) =>
+        val allSubs = findAllSubExps(lam)
+        scopeChanges.foreach(exprs =>
+          if allSubs.contains(exprs._2) then
+            moved = moved + (exprs._2 -> (moved.getOrElse(exprs._2, Set()) ++ Set(comp)))
+      )
+      case comp: SchemeModFComponent.Main.type =>
+    )
+    moved.foreach(e =>
+     if e._2.isEmpty then
+       a.mapping = a.mapping + (e._1 -> Set(a.initialComponent))
+     else
+       a.mapping = a.mapping + (e._1 -> e._2.asInstanceOf[Set[a.Component]])
+    )
     true
 
   // Find all the subexpressions of an expression, and their subexpressions.
