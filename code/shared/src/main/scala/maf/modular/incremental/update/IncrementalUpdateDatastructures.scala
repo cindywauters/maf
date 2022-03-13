@@ -8,12 +8,13 @@ import maf.language.scheme.interpreter.BaseSchemeInterpreter
 import maf.language.scheme.interpreter.ConcreteValues.AddrInfo.VarAddr
 import maf.language.scheme.interpreter.ConcreteValues.Value.Clo
 import maf.language.scheme.interpreter.ConcreteValues.{Addr, AddrInfo}
-import maf.language.scheme.lattices.{ModularSchemeLattice, SchemeOp}
+import maf.language.scheme.lattices.{ModularSchemeLattice, SchemeLattice, SchemeOp}
 import maf.lattice.interfaces.*
 import maf.modular.{AddrDependency, ReturnAddr}
 import maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain.modularLattice.incrementalSchemeLattice
 import maf.modular.incremental.scheme.lattice.*
 import maf.modular.incremental.{IncrementalGlobalStore, IncrementalModAnalysis}
+import maf.modular.scheme.SchemeTypeDomain.primitives.allPrimitives
 import maf.modular.scheme.modf.{NoContext, SchemeModFComponent}
 import maf.modular.scheme.{ModularSchemeLatticeWrapper, PrmAddr, SchemeAddr}
 
@@ -412,18 +413,13 @@ class IncrementalUpdateDatastructures {
           case None =>
       case None =>
         println(expr)
-    //allIfs.find(e => findAllSubExps(expr).exists(s => e._1._1.eql(s) || e._1._2.eql(s))) match
- /*     case Some((exprs, ids: List[Identifier], _)) =>
-        changingIf = true
-        varsToRemove = exprs._1.fv.diff(exprs._2.fv)
-        ids.foreach(e =>
-          val newAddr = maf.modular.scheme.VarAddr(e, None)
-          newEnv = newEnv + (e.name -> newAddr)
-        )
-      case None =>*/
-
     println("oldenv")
     println(oldEnv)
+    //val prims = new SchemeLatticePrimitives[ModularSchemeLattice.L, SimpleAddr]
+    expr.fv.foreach(fv =>
+      if allPrimitives.contains(fv) then
+        newEnv = newEnv + (fv -> PrmAddr(fv))
+    )
     oldEnv.content.foreach((k, v) =>
       v match
         case varAddr: VarAddr =>
