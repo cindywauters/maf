@@ -52,7 +52,8 @@ object TwoSeperateVersionsAnalyse extends App:
       var configuration: IncrementalConfiguration = noOptimisations
       override def intraAnalysis(
                                   cmp: Component
-                                ) = new IntraAnalysis(cmp) with UpdateIncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis    }
+                                ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis    }
+
     def baseUpdatesChange(program: SchemeExp) = new ModAnalysis[SchemeExp](program)
       with StandardSchemeModFComponents
       with SchemeModFFullArgumentSensitivity
@@ -182,12 +183,24 @@ object TwoSeperateVersionsAnalyse extends App:
       println("Visited with update : " + visitedWithUpdate.toString)
       println("Visited new only    : " + visitedWithoutUpdate.toString)
       println("Visited reanalysis -> Update (subsumption): " + visitedWithoutUpdate.forall(e =>
-         /* println(e)
-          e match
-            case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+       /*    println(e)
+           e match
+             case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
               println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
-            case _ =>*/
-          visitedWithUpdate.contains(e) ).toString)
+             case _ =>*/
+          visitedWithUpdate.contains(e)).toString)
+
+    visitedWithUpdate.foreach(e => e match
+      case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+        println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
+      case _ =>
+    )
+
+    visitedWithoutUpdate.foreach(e => e match
+        case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+          println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
+        case _ =>
+      )
 
 
       println(storeWithUpdate.size + " (" + storeWithoutUpdate.size + ")")
@@ -204,8 +217,8 @@ object TwoSeperateVersionsAnalyse extends App:
   end modfAnalysis
 
   val modConcbenchmarks: List[String] = List()
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
-//  val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/string.scm")
+//  val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/string.scm")
 
   val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 
