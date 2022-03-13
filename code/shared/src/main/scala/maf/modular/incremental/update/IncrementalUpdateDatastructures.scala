@@ -29,12 +29,12 @@ class IncrementalUpdateDatastructures {
   var changedVars: Map[Identifier, Identifier] = Map()
   var changedExpressions: Map[Expression, Expression] = Map()
   var allExpressionsInChange: Map[Expression, Expression] = Map()
-  var allIfs: ifsList = List()
+  var allIfs: IfsList = List()
   var ifsWithMappings: Map[Identifier, Set[SchemeModFComponent]] = Map()
 
   // Call this function when you want to update all the datastructures of an analysis
   // Arguments are an analysis and the expression that is being analysed
-  def changeDataStructures(a: IncrementalModAnalysis[Expression], exp: Expression, renamings: List[((Expression, Expression), Map[Identifier, Identifier])], ifs: ifsList = List(), scopeChanges: List[(Expression, Expression)] = List(), otherChanges: List[(Expression, Expression)] = List()): Boolean =
+  def changeDataStructures(a: IncrementalModAnalysis[Expression], exp: Expression, renamings: List[((Expression, Expression), Map[Identifier, Identifier])], ifs: IfsList = List(), scopeChanges: List[(Expression, Expression)] = List(), otherChanges: List[(Expression, Expression)] = List()): Boolean =
     val changedVarsSwapped = renamings.flatMap(e => e._2).toMap
     changedVars = changedVarsSwapped.map(_.swap).toMap // Get all renamed vars
     changedExpressions = renamings.map(e => e._1).appendedAll(scopeChanges).toMap // Get all expressions that have been changed

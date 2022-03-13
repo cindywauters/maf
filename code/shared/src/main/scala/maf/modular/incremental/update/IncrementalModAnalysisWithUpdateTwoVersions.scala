@@ -51,7 +51,7 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
             case a: IncrementalModAnalysis[Expression] =>
               if changes.renamings.nonEmpty || changes.ifs.nonEmpty || changes.scopeChanges.nonEmpty then
                 val renamed = changes.renamings.map(e => (e._1, e._2._2))//.toSet
-                update.changeDataStructures(a, program, renamed, changes.ifs, changes.scopeChanges, affectedLambdasPairs)
+                update.changeDataStructures(a, program, renamed, changes.ifs, List(), affectedLambdasPairs)
           affectedAll = changes.reanalyse
         var affected = affectedAll.flatMap(e => e match
           case (Some(old: Expr), Some(nw: Expr)) =>

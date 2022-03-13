@@ -11,9 +11,11 @@ import maf.modular.scheme.modf.SchemeModFComponent
 import scala.::
 import scala.annotation.tailrec
 
-type reanalysisList = List[(Option[Expression], Option[Expression])]
-type renamingsList  = List[((Expression, Expression), (Boolean, Map[Identifier, Identifier]))]
-type ifsList        = List[((SchemeIf, SchemeIf),  List[Identifier], (Expression, Expression))]
+type ReanalysisList     = List[(Option[Expression], Option[Expression])]
+type RenamingsList      = List[((Expression, Expression), (Boolean, Map[Identifier, Identifier]))]
+type IfsList            = List[((SchemeIf, SchemeIf),  List[Identifier], (Expression, Expression))]
+type BindingsWithScopes = Map[Expression, (Identifier, Map[String, Identifier])]
+type ScopeChanges       = Map[BindingsWithScopes, BindingsWithScopes]
 
 object SchemeChangePatterns:
 
@@ -134,7 +136,7 @@ object SchemeChangePatterns:
           case _ => None
       case (e1: _, e2: _) => None
 
-  def findLowestChangedSubExpressions(old: Expression, nw: Expression): reanalysisList =
+  def findLowestChangedSubExpressions(old: Expression, nw: Expression): ReanalysisList =
     if old.eql(nw) then
       return List()
     if old.subexpressions.isEmpty && nw.subexpressions.isEmpty then
@@ -161,13 +163,15 @@ object SchemeChangePatterns:
 
   // Returns a list of expressions that needs to be reanalysed (old and new), and a list of tuples of expressions that are just renamings together with their mappings
   def comparePrograms(old: SchemeExp, nw: SchemeExp, analysis: Option[IncrementalModAnalysisWithUpdateTwoVersions[_]] = None): differentChanges =
-    var reanalyse: reanalysisList = List()
-    var rename: renamingsList = List()
+    var reanalyse: ReanalysisList = List()
+    var rename: RenamingsList = List()
     var needed_prims: List[Identifier] = List()
-    var ifs: ifsList = List()
+    var ifs: IfsList = List()
     var inserts: List[Expression] = List()
     var deletes: List[Expression] = List()
-    var scopeChanges: List[(Expression, Expression)] = List()
+    var scopeChanges: ScopeChanges = Map()
+    lazy val allOldScopes = findLexicalScopes(old)
+    lazy val allNewScopes = findLexicalScopes(nw)
     (old, nw) match
       case (oldlet: SchemeLettishExp, newlet: SchemeLettishExp) =>
         oldlet.bindings.foreach(oe =>
@@ -224,7 +228,21 @@ object SchemeChangePatterns:
         deletes.foreach(deleted =>
           inserts.find(i => i.eql(deleted)) match
             case Some(inserted) =>
-              val bindingsin: Map[String, Option[Identifier]] = findLatestInScope(inserted.fv.map(name => (name, None)).toMap, inserted, newlet.bindings)
+              val oldEnv = allOldScopes.get(deleted)
+              val newEnv = allNewScopes.get(inserted)
+              (oldEnv, newEnv) match
+                case (Some(oenv), Some(nenv)) =>
+                  println("envs the same?")
+                  println(oenv)
+                  println(nenv)
+                  println(oenv._2 == nenv._2)
+                case _ =>
+                  println("not found: ")
+                  println(deleted)
+                  println(inserted)
+                  println(allOldScopes)
+            case _ =>)
+           /*   val bindingsin: Map[String, Option[Identifier]] = findLatestInScope(inserted.fv.map(name => (name, None)).toMap, inserted, newlet.bindings)
               var bindingsout: Map[String, Option[Identifier]] = Map()
               analysis match
                 case Some(analysis) =>
@@ -265,6 +283,11 @@ object SchemeChangePatterns:
               println()
             case _ =>)
         allBindingsInprogram(oldlet).foreach(println)
+        println("oldscopes")
+        findLexicalScopes(oldlet, Map()).foreach(e =>
+          println(e))
+         // e._2._2.foreach(println))
+        println(findLexicalScopes(newlet, Map()))*/
         differentChanges(reanalyse, rename, ifs, scopeChanges)
       case _ => differentChanges(reanalyse, rename, ifs, scopeChanges)
 
@@ -298,27 +321,31 @@ object SchemeChangePatterns:
   def allBindingsInprogram(expr: Expression): Map[Expression, Identifier] =
     allBindingsInProgramIdSchemeExp(expr).map(_.swap).toMap
 
-  def findLexicalScopes(expr: Expression, currentScope: Map[String, Identifier]): List[Map[Expression, (Identifier, Map[String, Identifier])]] =
+  def findLexicalScopes(expr: Expression, currentScope: Map[String, Identifier] = Map()): BindingsWithScopes =
     var newScope = currentScope
-    var toReturn: List[Map[Expression, (Identifier, Map[String, Identifier])]] = List()
+    var toReturn: BindingsWithScopes = Map()
     expr match
       case let: SchemeLet =>
         let.bindings.foreach(b =>
           newScope = newScope + (b._1.name -> b._1)
-          toReturn = toReturn.::(Map(b._2 -> (b._1, currentScope.filter(variable => b._2.fv.contains(variable._1))))).appendedAll(findLexicalScopes(b._2, currentScope)))
-        toReturn.appendedAll(let.body.flatMap(exp => findLexicalScopes(exp, newScope)))
+          toReturn = toReturn ++ Map(b._2 -> (b._1, currentScope.filter(variable => b._2.fv.contains(variable._1)))) ++ findLexicalScopes(b._2, currentScope))
+        toReturn ++ let.body.flatMap(exp => findLexicalScopes(exp, newScope))
       case let: SchemeLetrec =>
         let.bindings.foreach(b =>
           newScope = newScope + (b._1.name -> b._1))
         let.bindings.foreach(b =>
-          toReturn = toReturn.::(Map(b._2 -> (b._1, newScope.filter(variable => b._2.fv.contains(variable._1))))).appendedAll(findLexicalScopes(b._2, newScope)))
-         toReturn.appendedAll(let.body.flatMap(exp => findLexicalScopes(exp, newScope)))
-      case let: SchemeLetrec =>
+          toReturn = toReturn ++ Map(b._2 -> (b._1, newScope.filter(variable => b._2.fv.contains(variable._1)))) ++ findLexicalScopes(b._2, newScope))
+        toReturn ++ let.body.flatMap(exp => findLexicalScopes(exp, newScope))
+      case let: SchemeLetStar =>
         let.bindings.foreach(b =>
-          toReturn = toReturn.::(Map(b._2 -> (b._1, newScope.filter(variable => b._2.fv.contains(variable._1))))).appendedAll(findLexicalScopes(b._2, newScope))
+          toReturn = toReturn ++ Map(b._2 -> (b._1, newScope.filter(variable => b._2.fv.contains(variable._1)))) ++ findLexicalScopes(b._2, newScope)
           newScope = newScope + (b._1.name -> b._1))
-        toReturn.appendedAll(let.body.flatMap(exp => findLexicalScopes(exp, newScope)))
-      case _ => List()
+        toReturn ++ let.body.flatMap(exp => findLexicalScopes(exp, newScope))
+      case _ =>
+        if expr.height > 1 then
+          expr.subexpressions.flatMap(findLexicalScopes(_, newScope)).toMap
+        else
+          Map()
 
 
 
@@ -348,4 +375,4 @@ object SchemeChangePatterns:
 
 
 
-case class differentChanges(reanalyse: reanalysisList, renamings: renamingsList, ifs: ifsList, scopeChanges: List[(Expression, Expression)])
+case class differentChanges(reanalyse: ReanalysisList, renamings: RenamingsList, ifs: IfsList, scopeChanges: ScopeChanges)
