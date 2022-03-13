@@ -9,6 +9,6 @@
          (secondval 10))
     (+ firstval secondval)
     (let* ((<delete> (third-moved-function (lambda (x) (display (add x))(display (subtract x))(f x))))) ;; uses all the same functions as one on line 28 due to let overriding none
-        (second-moved-function firstval))))
+        (third-moved-function  firstval))))
 
 (scope-with-nested-lets-update 5)

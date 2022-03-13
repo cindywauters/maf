@@ -298,12 +298,36 @@ object SchemeChangePatterns:
   def allBindingsInprogram(expr: Expression): Map[Expression, Identifier] =
     allBindingsInProgramIdSchemeExp(expr).map(_.swap).toMap
 
+  def findLexicalScopes(expr: Expression, currentScope: Map[String, Identifier]): List[Map[Expression, (Identifier, Map[String, Identifier])]] =
+    var newScope = currentScope
+    var toReturn: List[Map[Expression, (Identifier, Map[String, Identifier])]] = List()
+    expr match
+      case let: SchemeLet =>
+        let.bindings.foreach(b =>
+          newScope = newScope + (b._1.name -> b._1)
+          toReturn = toReturn.::(Map(b._2 -> (b._1, currentScope.filter(variable => b._2.fv.contains(variable._1))))).appendedAll(findLexicalScopes(b._2, currentScope)))
+        toReturn.appendedAll(let.body.flatMap(exp => findLexicalScopes(exp, newScope)))
+      case let: SchemeLetrec =>
+        let.bindings.foreach(b =>
+          newScope = newScope + (b._1.name -> b._1))
+        let.bindings.foreach(b =>
+          toReturn = toReturn.::(Map(b._2 -> (b._1, newScope.filter(variable => b._2.fv.contains(variable._1))))).appendedAll(findLexicalScopes(b._2, newScope)))
+         toReturn.appendedAll(let.body.flatMap(exp => findLexicalScopes(exp, newScope)))
+      case let: SchemeLetrec =>
+        let.bindings.foreach(b =>
+          toReturn = toReturn.::(Map(b._2 -> (b._1, newScope.filter(variable => b._2.fv.contains(variable._1))))).appendedAll(findLexicalScopes(b._2, newScope))
+          newScope = newScope + (b._1.name -> b._1))
+        toReturn.appendedAll(let.body.flatMap(exp => findLexicalScopes(exp, newScope)))
+      case _ => List()
+
+
+
   @tailrec
   def findLatestInScope(toFind: Map[String, Option[Identifier]], expr: Expression, program: List[(Identifier, Expression)]): Map[String, Option[Identifier]] = program match
     case List() =>
       toFind
-    case (id, binding) :: rest if binding.eq(expr) =>
-      findLatestInScope(toFind, expr, rest)
+    case (id, binding) :: rest if toFind.contains(id.name) =>
+        findLatestInScope(toFind + (id.name -> Some(id)), expr, rest)
     case (id, binding) :: rest if up.findAllSubExps(binding).contains(expr) =>
       val newBindings = up.findAllSubExps(binding).collect {
         // In case of let: let must not contain the expression itself (other expressions of let will be out of scope) and the beginning line of let must not be larger than the expression line (out of scope)
@@ -318,10 +342,7 @@ object SchemeChangePatterns:
       }.flatten
       findLatestInScope(toFind, expr, rest.appendedAll(newBindings))
     case (id, binding) :: rest =>
-      if toFind.contains(id.name) then
-        findLatestInScope(toFind + (id.name -> Some(id)), expr, rest)
-      else
-        findLatestInScope(toFind, expr, rest)
+      findLatestInScope(toFind, expr, rest)
 
 
 

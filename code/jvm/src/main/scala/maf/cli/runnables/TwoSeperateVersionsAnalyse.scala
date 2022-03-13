@@ -30,6 +30,7 @@ import maf.util.graph.DotGraph.*
 import java.time.LocalDateTime
 import scala.concurrent.duration.*
 import maf.modular.incremental.update.SchemeModFSemanticsUpdate
+import maf.language.CScheme.CSchemeLexicalAddresser
 
 object TwoSeperateVersionsAnalyse extends App:
 
@@ -77,6 +78,11 @@ object TwoSeperateVersionsAnalyse extends App:
       println(program._1.prettyString())
       println(program._2.prettyString())
 
+      def globals(x: String): Boolean = x match
+        case "+" => true
+        case "-" => true
+        case "display" => true
+        case _   => false
 
       val analysisWithUpdates = baseUpdates(program._1, program._2)
       analysisWithUpdates.analyzeWithTimeout(timeout())
