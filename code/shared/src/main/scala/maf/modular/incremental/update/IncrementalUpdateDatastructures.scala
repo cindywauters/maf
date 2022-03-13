@@ -399,6 +399,7 @@ class IncrementalUpdateDatastructures {
         varsToRemove = exprs._1.fv.diff(exprs._2.fv)
         println("vars to remove")
         println(varsToRemove)
+        println(expr)
         allIfs.find(e => findAllSubExps(expr).exists(s => e._1._1.eql(s) || e._1._2.eql(s))) match
           case Some((exprs, ids: List[Identifier], _)) =>
             ids.foreach(e =>
@@ -416,10 +417,6 @@ class IncrementalUpdateDatastructures {
     println("oldenv")
     println(oldEnv)
     //val prims = new SchemeLatticePrimitives[ModularSchemeLattice.L, SimpleAddr]
-    expr.fv.foreach(fv =>
-      if allPrimitives.contains(fv) then
-        newEnv = newEnv + (fv -> PrmAddr(fv))
-    )
     oldEnv.content.foreach((k, v) =>
       v match
         case varAddr: VarAddr =>
@@ -437,10 +434,14 @@ class IncrementalUpdateDatastructures {
                 newEnv += (k -> newVarAddr)
         case _ =>
           if !varsToRemove.contains(k) then
+            println("here")
+            println(k)
             newEnv += (k -> v))
     println("newenv")
     println(newEnv)
-
+    buildNewExpr(expr).fv.foreach(fv => // TODO: Maybe move this higher?
+      if allPrimitives.contains(fv) then
+        newEnv = newEnv + (fv -> PrmAddr(fv)))
     newEnv
 
   // Update context. This currently supports SchemeModFNoSensitivity, SchemeModFFullArgumentCallSiteSensitivity, SchemeModFCallSiteSensitivity and SchemeModFFullArgumentSensitivity

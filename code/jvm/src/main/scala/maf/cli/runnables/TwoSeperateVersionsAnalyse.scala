@@ -5,8 +5,9 @@ import maf.core.Expression
 import maf.language.scheme.SchemeCodeChange
 import maf.modular.{AddrDependency, Dependency}
 import maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain
-import maf.modular.incremental.update.{UpdateIncrementalSchemeModFBigStepSemantics, IncrementalGlobalStoreWithUpdate, IncrementalModAnalysisWithUpdate, IncrementalModAnalysisWithUpdateTwoVersions, IncrementalUpdateDatastructures}
+import maf.modular.incremental.update.{IncrementalGlobalStoreWithUpdate, IncrementalModAnalysisWithUpdate, IncrementalModAnalysisWithUpdateTwoVersions, IncrementalUpdateDatastructures, UpdateIncrementalSchemeModFBigStepSemantics}
 import maf.modular.scheme.SchemeAddr
+import maf.util.Writer.close
 //import maf.cli.runnables.IncrementalRun.standardTimeout
 import maf.core.BasicEnvironment
 import maf.language.CScheme.*
@@ -126,8 +127,7 @@ object TwoSeperateVersionsAnalyse extends App:
           case _ =>
             println("old: " + v.toString + " " + k.toString())
             false).toString)
-
-      println("store reanalysis -> Update (subsumption): " + storeWithUpdate.forall((k, v) =>
+      storeWithUpdate.foreach((k, v) =>
         storeWithoutUpdate.get(k) match
           case Some(updatedValue) =>
             if !analysisWithUpdates.lattice.subsumes(updatedValue, v) then
@@ -135,7 +135,7 @@ object TwoSeperateVersionsAnalyse extends App:
             analysisWithUpdates.lattice.subsumes(updatedValue, v)
           case _ =>
             println("old: " + v.toString + " " + k.toString())
-            false).toString)
+            false)
 
       println("Dependencies with update: " + depsWithUpdate.toString)
       println("Dependencies new only   : " + depsWithoutUpdate.toString)
@@ -217,8 +217,8 @@ object TwoSeperateVersionsAnalyse extends App:
   end modfAnalysis
 
   val modConcbenchmarks: List[String] = List()
-//  val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/string.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
+//  val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/string.scm")
 
   val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 
