@@ -31,17 +31,21 @@ class IncrementalUpdateDatastructures {
   var allExpressionsInChange: Map[Expression, Expression] = Map()
   var allIfs: IfsList = List()
   var ifsWithMappings: Map[Identifier, Set[SchemeModFComponent]] = Map()
+  var allScopeChanges: ScopeChanges = Map()
 
   // Call this function when you want to update all the datastructures of an analysis
   // Arguments are an analysis and the expression that is being analysed
-  def changeDataStructures(a: IncrementalModAnalysis[Expression], exp: Expression, renamings: List[((Expression, Expression), Map[Identifier, Identifier])], ifs: IfsList = List(), scopeChanges: List[(Expression, Expression)] = List(), otherChanges: List[(Expression, Expression)] = List()): Boolean =
+  def changeDataStructures(a: IncrementalModAnalysis[Expression], exp: Expression, renamings: List[((Expression, Expression), Map[Identifier, Identifier])], ifs: IfsList = List(), scopeChanges: ScopeChanges = Map(), otherChanges: List[(Expression, Expression)] = List()): Boolean =
     val changedVarsSwapped = renamings.flatMap(e => e._2).toMap
-    changedVars = changedVarsSwapped.map(_.swap).toMap // Get all renamed vars
-    changedExpressions = renamings.map(e => e._1).appendedAll(scopeChanges).toMap // Get all expressions that have been changed
+    val scopeChangedVars = scopeChanges.map((k, v) => (k._2._1, v._2._1))
+    changedVars = changedVarsSwapped.map(_.swap).toMap ++ scopeChangedVars // Get all renamed vars
+    var scopeChangesExprs = scopeChanges.map((k, v) => (k._1, v._1))
+    changedExpressions = renamings.map(e => e._1).toMap ++ scopeChangesExprs// Get all expressions that have been changed
+    allScopeChanges = scopeChanges
 
     // get all expressions that exist within an old expression and in a new expression and zip them together to know what has changed to what
-    val allOldExps = changedExpressions.flatMap(e => findAllSubExps(e._1)).toList.appendedAll(otherChanges.map(_._1))
-    val allNewExps = changedExpressions.flatMap(e => findAllSubExps(e._2)).toList.appendedAll(otherChanges.map(_._2))
+    val allOldExps = changedExpressions.flatMap(e => findAllSubExps(e._1)).toList//.appendedAll(otherChanges.map(_._1))
+    val allNewExps = changedExpressions.flatMap(e => findAllSubExps(e._2)).toList//.appendedAll(otherChanges.map(_._2))
     allExpressionsInChange = allOldExps.zip(allNewExps).appendedAll(
       for
         oldExp <- otherChanges.map(_._1).flatMap(findAllSubExps)
@@ -81,27 +85,11 @@ class IncrementalUpdateDatastructures {
     updateMapping(a) // Update the store
     updateVisited(a) // Update visited
 
-  /*  scopeChanges.foreach(expr =>
-      a.mapping.get(expr) match
-        case comp: SchemeModFComponent.Main.type =>
-          comp
-        case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), ctx: _) =>
-          if !findAllSubExps(lam).contains(expr._2) then
-
-    )
-    */
-    var moved: Map[Expression, Set[SchemeModFComponent]] = scopeChanges.map(e => (e._2, Set())).toMap
+    var moved: Map[Expression, Set[SchemeModFComponent]] = scopeChangesExprs.map(e => (e._2, Set(): Set[SchemeModFComponent]))
     a.visited.foreach(comp => comp match
       case comp @ SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), ctx: _) =>
         val allSubs = findAllSubExps(lam)
-     /*   allSubs.foreach(sub =>
-          a.mapping.find(m => m._1.idn == sub.idn) match
-            case Some(map) =>
-              a.mapping = a.mapping - map._1
-              a.mapping = a.mapping + (sub -> a.mapping.getOrElse(sub, Set()) ++ Set(comp))
-            case _ =>
-      */
-        scopeChanges.foreach(exprs =>
+          scopeChangesExprs.foreach(exprs =>
           if allSubs.contains(exprs._2) then
             var toInsert = moved.getOrElse(exprs._2, Set()) ++ Set(comp)
             moved = moved + (exprs._2 -> toInsert)
@@ -415,6 +403,12 @@ class IncrementalUpdateDatastructures {
             ids.foreach(e =>
               val newAddr = maf.modular.scheme.VarAddr(e, None)
               newEnv = newEnv + (e.name -> newAddr))
+          case None =>
+        allScopeChanges.find(e => findAllSubExps(expr).exists(s => e._1._1.eql(s) || e._2._1.eql(s))) match
+          case Some(result) =>
+            result._2._2._2.foreach(e =>
+              val newAddr = maf.modular.scheme.VarAddr(e._2, None)
+                newEnv = newEnv + (e._1 -> newAddr))
           case None =>
       case None =>
         println(expr)

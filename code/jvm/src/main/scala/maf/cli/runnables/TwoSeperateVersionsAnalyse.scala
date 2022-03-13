@@ -38,7 +38,7 @@ object TwoSeperateVersionsAnalyse extends App:
 
     def baseUpdates(oldProgram: SchemeExp, newProgram: SchemeExp) = new ModAnalysis[SchemeExp](oldProgram)
       with StandardSchemeModFComponents
-      // with SchemeModFFullArgumentSensitivity
+      //with SchemeModFFullArgumentSensitivity
       //with SchemeModFCallSiteSensitivity
       //with SchemeModFFullArgumentCallSiteSensitivity
       with SchemeModFNoSensitivity
@@ -78,14 +78,10 @@ object TwoSeperateVersionsAnalyse extends App:
       println(program._1.prettyString())
       println(program._2.prettyString())
 
-      def globals(x: String): Boolean = x match
-        case "+" => true
-        case "-" => true
-        case "display" => true
-        case _   => false
 
       val analysisWithUpdates = baseUpdates(program._1, program._2)
       analysisWithUpdates.analyzeWithTimeout(timeout())
+      println(analysisWithUpdates.store)
       val beforeUpdateAnalysis = System.nanoTime
       analysisWithUpdates.version = New
       analysisWithUpdates.updateAnalysis(timeout(), true)
@@ -122,6 +118,16 @@ object TwoSeperateVersionsAnalyse extends App:
 
       println("store reanalysis -> Update (subsumption): " + storeWithoutUpdate.forall((k, v) =>
         storeWithUpdate.get(k) match
+          case Some(updatedValue) =>
+            if !analysisWithUpdates.lattice.subsumes(updatedValue, v) then
+              println("store r -> u " + k.toString() + " " + v.toString + " " + updatedValue.toString)
+            analysisWithUpdates.lattice.subsumes(updatedValue, v)
+          case _ =>
+            println("old: " + v.toString + " " + k.toString())
+            false).toString)
+
+      println("store reanalysis -> Update (subsumption): " + storeWithUpdate.forall((k, v) =>
+        storeWithoutUpdate.get(k) match
           case Some(updatedValue) =>
             if !analysisWithUpdates.lattice.subsumes(updatedValue, v) then
               println("store r -> u " + k.toString() + " " + v.toString + " " + updatedValue.toString)

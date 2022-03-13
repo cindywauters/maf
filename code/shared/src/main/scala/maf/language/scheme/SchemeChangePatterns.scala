@@ -15,7 +15,8 @@ type ReanalysisList     = List[(Option[Expression], Option[Expression])]
 type RenamingsList      = List[((Expression, Expression), (Boolean, Map[Identifier, Identifier]))]
 type IfsList            = List[((SchemeIf, SchemeIf),  List[Identifier], (Expression, Expression))]
 type BindingsWithScopes = Map[Expression, (Identifier, Map[String, Identifier])]
-type ScopeChanges       = Map[BindingsWithScopes, BindingsWithScopes]
+type BindingTuples      = (Expression, (Identifier, Map[String, Identifier]))
+type ScopeChanges       = Map[BindingTuples, BindingTuples]
 
 object SchemeChangePatterns:
 
@@ -231,11 +232,13 @@ object SchemeChangePatterns:
               val oldEnv = allOldScopes.get(deleted)
               val newEnv = allNewScopes.get(inserted)
               (oldEnv, newEnv) match
-                case (Some(oenv), Some(nenv)) =>
+                case (Some(oenv: (Identifier, Map[String, Identifier])), Some(nenv: (Identifier, Map[String, Identifier]))) =>
                   println("envs the same?")
+                  println(inserted.idn.toString + " " + deleted.idn.toString)
                   println(oenv)
                   println(nenv)
-                  println(oenv._2 == nenv._2)
+                  if oenv._2 == nenv._2 && oenv._1.name == nenv._1.name then
+                    scopeChanges = scopeChanges + ((deleted, oenv) -> (inserted, nenv))
                 case _ =>
                   println("not found: ")
                   println(deleted)
