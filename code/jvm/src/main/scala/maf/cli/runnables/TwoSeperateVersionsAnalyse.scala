@@ -167,10 +167,12 @@ object TwoSeperateVersionsAnalyse extends App:
               println(updatedValue)
               v.foreach(e => e match
                 case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+                  println("without")
                   println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
                 case _ =>)
               updatedValue.foreach(e => e match
                     case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+                      println("with")
                       println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
                     case _ =>)
             v.forall(elv => updatedValue.contains(elv))

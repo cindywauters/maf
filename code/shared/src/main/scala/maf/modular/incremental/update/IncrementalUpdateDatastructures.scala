@@ -64,9 +64,6 @@ class IncrementalUpdateDatastructures {
       findAllSubExps(oldIf.alt).zip(findAllSubExps(newIf.cons)).foreach(e => allExpressionsInChange = allExpressionsInChange + (e._1 -> e._2))
       allExpressionsInChange = allExpressionsInChange + (oldIf -> newIf))
 
-    println("mappings")
-    println(allExpressionsInChange)
-
     allIfs = ifs
 
      ifsWithMappings = ifs.map(i =>
@@ -86,6 +83,8 @@ class IncrementalUpdateDatastructures {
     updateMapping(a) // Update the store
     updateVisited(a) // Update visited
 
+    println("scope changes")
+    println(scopeChangesExprs)
     var moved: Map[Expression, Set[SchemeModFComponent]] = scopeChangesExprs.map(e => (e._2, Set(): Set[SchemeModFComponent]))
     a.visited.foreach(comp => comp match
       case comp @ SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), ctx: _) =>
@@ -94,30 +93,29 @@ class IncrementalUpdateDatastructures {
           if allSubs.contains(exprs._2) then
             var toInsert = moved.getOrElse(exprs._2, Set()) ++ Set(comp)
             moved = moved + (exprs._2 -> toInsert)
-            println("all subs")
-            println(allSubs)
             allSubs.filter(sub => a.mapping.contains(sub)).foreach(sub => moved = moved + (sub -> toInsert))
       )
       case comp: SchemeModFComponent.Main.type =>
     )
     moved.foreach(e =>
+     println("moved")
+     println(moved)
      var toInsert: Set[a.Component] = Set(a.initialComponent)
      if e._2.nonEmpty then
        toInsert = e._2.asInstanceOf[Set[a.Component]]
-     println("exprs")
-     println(findAllSubExps(e._1))
      if toInsert != a.mapping.get(e._1) then
        findAllSubExps(e._1).foreach(sub =>
-         a.mapping.find(m => m._1.idn == sub.idn && m != sub) match
+         a.mapping.find(m => m._1.idn == sub.idn) match
            case Some(map) =>
-             println("replacing")
+             println("removing")
              println(map._1)
-             a.mapping = a.mapping - map._1
+             println(sub)
+            // a.mapping = a.mapping - map._1
              a.mapping = a.mapping + (sub -> toInsert)
            case _ =>
          ))
-    println("moved")
-    println(moved)
+    println("all changes")
+    allExpressionsInChange.foreach(println)
     true
 
   // Find all the subexpressions of an expression, and their subexpressions.
@@ -397,9 +395,8 @@ class IncrementalUpdateDatastructures {
     allExpressionsInChange.find(changed => changed._1 == expr || changed._2 == expr) match
       case Some(exprs) =>
         varsToRemove = exprs._1.fv.diff(exprs._2.fv)
-        println("vars to remove")
+        println("to remove")
         println(varsToRemove)
-        println(expr)
         allIfs.find(e => findAllSubExps(expr).exists(s => e._1._1.eql(s) || e._1._2.eql(s))) match
           case Some((exprs, ids: List[Identifier], _)) =>
             ids.foreach(e =>
@@ -409,13 +406,11 @@ class IncrementalUpdateDatastructures {
         allScopeChanges.find(e => findAllSubExps(expr).exists(s => e._1._1.eql(s) || e._2._1.eql(s))) match
           case Some(result) =>
             result._2._2._2.foreach(e =>
-              val newAddr = maf.modular.scheme.VarAddr(e._2, None)
-                newEnv = newEnv + (e._1 -> newAddr))
+              if exprs._2.fv.contains(e._1) then
+                val newAddr = maf.modular.scheme.VarAddr(e._2, None)
+                  newEnv = newEnv + (e._1 -> newAddr))
           case None =>
       case None =>
-        println(expr)
-    println("oldenv")
-    println(oldEnv)
     //val prims = new SchemeLatticePrimitives[ModularSchemeLattice.L, SimpleAddr]
     oldEnv.content.foreach((k, v) =>
       v match
@@ -424,24 +419,20 @@ class IncrementalUpdateDatastructures {
           changedVars.find((k , v) => k.idn == oldIdn) match
             case Some(identifiers) =>
               val newVarAddr = getNewVarAddr(a, varAddr)
-              newEnv += (identifiers._2.name -> newVarAddr)
+              if !varsToRemove.contains(k) then
+                newEnv += (identifiers._2.name -> newVarAddr)
             case _ =>
               val newCtx = updateCtx(a, varAddr.ctx)
               val newVarAddr = varAddr.copy(ctx= newCtx) // bugfix for some context sensitive things, context might update even if the actual var addr does not
               if !varsToRemove.contains(k) then
-                println(k)
-                println(varsToRemove)
                 newEnv += (k -> newVarAddr)
         case _ =>
           if !varsToRemove.contains(k) then
-            println("here")
-            println(k)
             newEnv += (k -> v))
-    println("newenv")
-    println(newEnv)
-    buildNewExpr(expr).fv.foreach(fv => // TODO: Maybe move this higher?
+    buildNewExpr(expr).fv.foreach(fv =>
       if allPrimitives.contains(fv) then
         newEnv = newEnv + (fv -> PrmAddr(fv)))
+    println(newEnv)
     newEnv
 
   // Update context. This currently supports SchemeModFNoSensitivity, SchemeModFFullArgumentCallSiteSensitivity, SchemeModFCallSiteSensitivity and SchemeModFFullArgumentSensitivity
