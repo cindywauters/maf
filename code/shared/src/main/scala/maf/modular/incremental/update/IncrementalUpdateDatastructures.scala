@@ -38,7 +38,7 @@ class IncrementalUpdateDatastructures {
   // Arguments are an analysis and the expression that is being analysed
   def changeDataStructures(a: IncrementalModAnalysis[Expression], exp: Expression, renamings: List[((Expression, Expression), Map[Identifier, Identifier])], ifs: IfsList = List(), scopeChanges: ScopeChanges = Map(), otherChanges: List[(Expression, Expression)] = List()): Boolean =
     val changedVarsSwapped = renamings.flatMap(e => e._2).toMap
-    val scopeChangedVars = scopeChanges.map((k, v) => (k._2._1, v._2._1))
+    val scopeChangedVars = scopeChanges.flatMap((k, v) => List((k._2._1, v._2._1)).appendedAll(SchemeChangePatterns.findAllVarsInOrder(k._1).zip(SchemeChangePatterns.findAllVarsInOrder(v._1))))
     changedVars = changedVarsSwapped.map(_.swap).toMap ++ scopeChangedVars // Get all renamed vars
     var scopeChangesExprs = scopeChanges.map((k, v) => (k._1, v._1))
     changedExpressions = renamings.map(e => e._1).toMap ++ scopeChangesExprs// Get all expressions that have been changed
