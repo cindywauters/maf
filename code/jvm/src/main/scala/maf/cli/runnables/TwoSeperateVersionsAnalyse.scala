@@ -80,6 +80,8 @@ object TwoSeperateVersionsAnalyse extends App:
       println(program._1.prettyString())
       println(program._2.prettyString())
 
+      println(program._1.subexpressions)
+
 
       val analysisWithUpdates = baseUpdates(program._1, program._2)
       analysisWithUpdates.analyzeWithTimeout(timeout())

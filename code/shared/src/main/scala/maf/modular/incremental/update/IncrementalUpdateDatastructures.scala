@@ -33,16 +33,19 @@ class IncrementalUpdateDatastructures {
   var allIfs: IfsList = List()
   var ifsWithMappings: Map[Identifier, Set[SchemeModFComponent]] = Map()
   var allScopeChanges: ScopeChanges = Map()
+  var allExprs: List[Expression] = List()
 
   // Call this function when you want to update all the datastructures of an analysis
   // Arguments are an analysis and the expression that is being analysed
-  def changeDataStructures(a: IncrementalModAnalysis[Expression], exp: Expression, renamings: List[((Expression, Expression), Map[Identifier, Identifier])], ifs: IfsList = List(), scopeChanges: ScopeChanges = Map(), otherChanges: List[(Expression, Expression)] = List()): Boolean =
+  def changeDataStructures(a: IncrementalModAnalysis[Expression], exp: List[Expression], renamings: List[((Expression, Expression), Map[Identifier, Identifier])], ifs: IfsList = List(), scopeChanges: ScopeChanges = Map(), otherChanges: List[(Expression, Expression)] = List()): Boolean =
     val changedVarsSwapped = renamings.flatMap(e => e._2).toMap
     val scopeChangedVars = scopeChanges.flatMap((k, v) => List((k._2._1, v._2._1)).appendedAll(SchemeChangePatterns.findAllVarsInOrder(k._1).zip(SchemeChangePatterns.findAllVarsInOrder(v._1))))
     changedVars = changedVarsSwapped.map(_.swap).toMap ++ scopeChangedVars // Get all renamed vars
     var scopeChangesExprs = scopeChanges.map((k, v) => (k._1, v._1))
     changedExpressions = renamings.map(e => e._1).toMap ++ scopeChangesExprs// Get all expressions that have been changed
     allScopeChanges = scopeChanges
+
+    allExprs = exp
 
     // get all expressions that exist within an old expression and in a new expression and zip them together to know what has changed to what
     val allOldExps = changedExpressions.flatMap(e => findAllSubExps(e._1)).toList//.appendedAll(otherChanges.map(_._1))
@@ -260,6 +263,14 @@ class IncrementalUpdateDatastructures {
     var newCtx = updateCtx(a, addr.ctx)
     if changedVars contains addr.id then
       val newIdn = changedVars.getOrElse(addr.id, addr.id)
+      println("updating")
+      println(newIdn.idn)
+      println(allExprs(0).subexpressions)
+      println(allExprs(1).subexpressions)
+      if newCtx != null && allExprs.head.subexpressions.exists(e => e.idn == addr.idn) then
+        newCtx = Some(NoContext) // If something moved from toplevel to lower level (will not work for context sensitive)
+      else if allExprs.size > 1 && allExprs(1).subexpressions.exists(e => e.idn == addr.id) then
+        newCtx = None
       val newAddr = addr.copy(id = newIdn, ctx = newCtx)
       newAddr
     else

@@ -22,7 +22,7 @@ trait IncrementalModAnalysisWithUpdate[Expr <: Expression] extends IncrementalMo
         (this, notRenamedOld) match
           case (a: IncrementalModAnalysis[Expression], notRenamedOld: Set[Expr]) =>
             if renamed.nonEmpty then
-              update.changeDataStructures(a, program, renamed)
+              update.changeDataStructures(a, List(program), renamed)
             val affected = notRenamedOld.flatMap(e =>
               mapping.get(e) match
               case Some(comp) => comp

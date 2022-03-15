@@ -109,7 +109,7 @@ object UpdateDatastructures extends App:
       a match
         case a: IncrementalModAnalysis[Expression] =>
           val changedAndRenamings = SchemeChangePatterns.checkForRenamingParameter(text).filter(e => e._2._1).map(e => (e._1, e._2._2)).toList
-          update.changeDataStructures(a, text, changedAndRenamings)
+          update.changeDataStructures(a, List(text), changedAndRenamings)
       val timeUpdate = System.nanoTime - beforeUpdate
       val storeWithUpdate = a.store
       val depsWithUpdate = a.deps
