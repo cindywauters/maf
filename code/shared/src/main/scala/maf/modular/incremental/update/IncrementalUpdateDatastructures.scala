@@ -93,10 +93,12 @@ class IncrementalUpdateDatastructures {
       case comp @ SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), ctx: _) =>
         val allSubs = findAllSubExps(lam)
           scopeChangesExprs.foreach(exprs =>
+          println("moving fun: ")
+          println(exprs)
           if allSubs.contains(exprs._2) then
             var toInsert = moved.getOrElse(exprs._2, Set()) ++ Set(comp)
             moved = moved + (exprs._2 -> toInsert)
-            allSubs.filter(sub => a.mapping.contains(sub)).foreach(sub => moved = moved + (sub -> toInsert))
+           // allSubs.filter(sub => a.mapping.contains(sub)).foreach(sub => moved = moved + (sub -> toInsert))
       )
       case comp: SchemeModFComponent.Main.type =>
     )
@@ -263,10 +265,6 @@ class IncrementalUpdateDatastructures {
     var newCtx = updateCtx(a, addr.ctx)
     if changedVars contains addr.id then
       val newIdn = changedVars.getOrElse(addr.id, addr.id)
-      println("updating")
-      println(newIdn.idn)
-      println(allExprs(0).subexpressions)
-      println(allExprs(1).subexpressions)
       if newCtx != null && allExprs.head.subexpressions.exists(e => e.idn == addr.idn) then
         newCtx = Some(NoContext) // If something moved from toplevel to lower level (will not work for context sensitive)
       else if allExprs.size > 1 && allExprs(1).subexpressions.exists(e => e.idn == addr.id) then
