@@ -82,7 +82,6 @@ object TwoSeperateVersionsAnalyse extends App:
 
       println(program._1.subexpressions)
 
-
       val analysisWithUpdates = baseUpdates(program._1, program._2)
       analysisWithUpdates.analyzeWithTimeout(timeout())
       println(analysisWithUpdates.store)
@@ -221,6 +220,9 @@ object TwoSeperateVersionsAnalyse extends App:
   end modfAnalysis
 
   val modConcbenchmarks: List[String] = List()
+ // val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm", "test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
+ // val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/various/NoSensitivity/SICP-compiler.scm")
+
   val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
 //  val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/string.scm")
 

@@ -34,12 +34,14 @@ class IncrementalUpdateDatastructures {
   var ifsWithMappings: Map[Identifier, Set[SchemeModFComponent]] = Map()
   var allScopeChanges: ScopeChanges = Map()
   var allExprs: List[Expression] = List()
+  var cachedComponents: Map[Serializable, SchemeModFComponent] = Map()
 
   // Call this function when you want to update all the datastructures of an analysis
   // Arguments are an analysis and the expression that is being analysed
   def changeDataStructures(a: IncrementalModAnalysis[Expression], exp: List[Expression], renamings: List[((Expression, Expression), Map[Identifier, Identifier])], ifs: IfsList = List(), scopeChanges: ScopeChanges = Map(), otherChanges: List[(Expression, Expression)] = List()): Boolean =
     val changedVarsSwapped = renamings.flatMap(e => e._2).toMap
-    val scopeChangedVars = scopeChanges.flatMap((k, v) => List((k._2._1, v._2._1)).appendedAll(SchemeChangePatterns.findAllVarsInOrder(k._1).zip(SchemeChangePatterns.findAllVarsInOrder(v._1))))
+    val finder = new SchemeChangePatterns
+    val scopeChangedVars = scopeChanges.flatMap((k, v) => List((k._2._1, v._2._1)).appendedAll(finder.findAllVarsInOrder(k._1).zip(finder.findAllVarsInOrder(v._1))))
     changedVars = changedVarsSwapped.map(_.swap).toMap ++ scopeChangedVars // Get all renamed vars
     var scopeChangesExprs = scopeChanges.map((k, v) => (k._1, v._1))
     changedExpressions = renamings.map(e => e._1).toMap ++ scopeChangesExprs// Get all expressions that have been changed
@@ -86,15 +88,11 @@ class IncrementalUpdateDatastructures {
     updateMapping(a) // Update the store
     updateVisited(a) // Update visited
 
-    println("scope changes")
-    println(scopeChangesExprs)
     var moved: Map[Expression, Set[SchemeModFComponent]] = scopeChangesExprs.map(e => (e._2, Set(): Set[SchemeModFComponent]))
     a.visited.foreach(comp => comp match
       case comp @ SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), ctx: _) =>
         val allSubs = findAllSubExps(lam)
           scopeChangesExprs.foreach(exprs =>
-          println("moving fun: ")
-          println(exprs)
           if allSubs.contains(exprs._2) then
             var toInsert = moved.getOrElse(exprs._2, Set()) ++ Set(comp)
             moved = moved + (exprs._2 -> toInsert)
@@ -103,8 +101,6 @@ class IncrementalUpdateDatastructures {
       case comp: SchemeModFComponent.Main.type =>
     )
     moved.foreach(e =>
-     println("moved")
-     println(moved)
      var toInsert: Set[a.Component] = Set(a.initialComponent)
      if e._2.nonEmpty then
        toInsert = e._2.asInstanceOf[Set[a.Component]]
@@ -112,15 +108,10 @@ class IncrementalUpdateDatastructures {
        findAllSubExps(e._1).foreach(sub =>
          a.mapping.find(m => m._1.idn == sub.idn) match
            case Some(map) =>
-             println("removing")
-             println(map._1)
-             println(sub)
             // a.mapping = a.mapping - map._1
              a.mapping = a.mapping + (sub -> toInsert)
            case _ =>
          ))
-    println("all changes")
-    allExpressionsInChange.foreach(println)
     true
 
   // Find all the subexpressions of an expression, and their subexpressions.
@@ -265,9 +256,9 @@ class IncrementalUpdateDatastructures {
     var newCtx = updateCtx(a, addr.ctx)
     if changedVars contains addr.id then
       val newIdn = changedVars.getOrElse(addr.id, addr.id)
-      if newCtx != null && allExprs.head.subexpressions.exists(e => e.idn == addr.idn) then
+      if allExprs.size > 1 && newCtx != null && allExprs.head.subexpressions.exists(e => e.idn == addr.idn) && !allExprs(1).subexpressions.exists(e => e.idn == addr.idn) then
         newCtx = Some(NoContext) // If something moved from toplevel to lower level (will not work for context sensitive)
-      else if allExprs.size > 1 && allExprs(1).subexpressions.exists(e => e.idn == addr.id) then
+      else if allExprs.size > 1 && allExprs(1).subexpressions.exists(e => e.idn == addr.idn) then
         newCtx = None
       val newAddr = addr.copy(id = newIdn, ctx = newCtx)
       newAddr
@@ -288,7 +279,11 @@ class IncrementalUpdateDatastructures {
         addr
       case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
         val changeToLambda = allExpressionsInChange.get(lam)
-        val newCtx = updateCtx(a, oldCtx)
+        var newCtx = updateCtx(a, oldCtx)
+     /*   if newCtx != null && allExprs.head.subexpressions.exists(e => e.idn == addr.idn) then
+          newCtx = Some(NoContext) // If something moved from toplevel to lower level (will not work for context sensitive)
+        else if allExprs.size > 1 && allExprs(1).subexpressions.exists(e => e.idn == addr.idn) then
+          newCtx = None*/
         val newEnv = createNewEnvironment(lam, a, env)
         val newCmp = getNewComponent(a, SchemeModFComponent.Call((lam, BasicEnvironment[Address](newEnv)), newCtx))
         changeToLambda match
@@ -307,6 +302,11 @@ class IncrementalUpdateDatastructures {
   // In the case of a function call, only change the component if it exists within a changed expression (otherwise return the old component)
   // Also create a new environment making use of createNewEnvironment
   def getNewComponent(a: IncrementalModAnalysis[Expression], comp: Serializable): SchemeModFComponent =
+    cachedComponents.get(comp) match
+      case Some(newComp) =>
+       // println("get from cache")
+        return newComp
+      case _             =>
     comp match
       case comp: SchemeModFComponent.Main.type =>
         comp
@@ -317,6 +317,7 @@ class IncrementalUpdateDatastructures {
           case Some(lambda: SchemeLambdaExp) =>
             val newEnv = createNewEnvironment(lambda, a, env)
             val newCmp = SchemeModFComponent.Call(clo = (lambda, new BasicEnvironment[Address](newEnv)), ctx = newCtx)
+            cachedComponents = cachedComponents + (comp -> newCmp)
             newCmp
           case _ =>
             var newLam = lam
@@ -324,6 +325,7 @@ class IncrementalUpdateDatastructures {
               newLam = buildNewExpr(lam).asInstanceOf[lam.type]
             val newEnv = createNewEnvironment(lam, a, env)
             val newCmp = SchemeModFComponent.Call(clo = (newLam, new BasicEnvironment[Address](newEnv)), ctx = newCtx)
+            cachedComponents = cachedComponents + (comp -> newCmp)
             newCmp
 
 
@@ -401,11 +403,10 @@ class IncrementalUpdateDatastructures {
     var newEnv: Map[String, Address] = Map()
     //var changingIf = false
     var varsToRemove: Set[String] = Set()
-    allExpressionsInChange.find(changed => changed._1 == expr || changed._2 == expr) match
+    (allScopeChanges.map((k, v) => (k._1, v._1)) ++ allIfs.map(_._1).toMap).find(changed => changed._1 == expr || changed._2 == expr) match
       case Some(exprs) =>
         varsToRemove = exprs._1.fv.diff(exprs._2.fv)
-        println("to remove")
-        println(varsToRemove)
+        println("vars to remove")
         allIfs.find(e => findAllSubExps(expr).exists(s => e._1._1.eql(s) || e._1._2.eql(s))) match
           case Some((exprs, ids: List[Identifier], _)) =>
             ids.foreach(e =>
@@ -441,7 +442,6 @@ class IncrementalUpdateDatastructures {
     buildNewExpr(expr).fv.foreach(fv =>
       if allPrimitives.contains(fv) then
         newEnv = newEnv + (fv -> PrmAddr(fv)))
-    println(newEnv)
     newEnv
 
   // Update context. This currently supports SchemeModFNoSensitivity, SchemeModFFullArgumentCallSiteSensitivity, SchemeModFCallSiteSensitivity and SchemeModFFullArgumentSensitivity

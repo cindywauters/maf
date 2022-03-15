@@ -18,7 +18,17 @@ type BindingsWithScopes = Map[Expression, (Identifier, Map[String, Identifier])]
 type BindingTuples      = (Expression, (Identifier, Map[String, Identifier]))
 type ScopeChanges       = Map[BindingTuples, BindingTuples]
 
-object SchemeChangePatterns:
+class SchemeChangePatterns:
+
+  var reanalyse: ReanalysisList = List()
+  var rename: RenamingsList = List()
+  var needed_prims: List[Identifier] = List()
+  var ifs: IfsList = List()
+  var inserts: List[Expression] = List()
+  var deletes: List[Expression] = List()
+  var scopeChanges: ScopeChanges = Map()
+  var maybeReanalyse: Map[Expression, (Option[Expression], Option[Expression])] = Map()
+  var renamedBindingsIds: Map[Identifier, Identifier] = Map()
 
 // find all the changed expressions and create a set with all the old and new expressions
   def findAllChangedExpressions(expr: Expression): Set[ChangeExp[Expression]] = expr match
@@ -137,45 +147,74 @@ object SchemeChangePatterns:
           case _ => None
       case (e1: _, e2: _) => None
 
-  def findLowestChangedSubExpressions(old: Expression, nw: Expression): ReanalysisList =
-    if old.eql(nw) then
-      return List()
+  def findLowestChangedSubExpressions(old: Expression, nw: Expression): Unit =
     if old.subexpressions.isEmpty && nw.subexpressions.isEmpty then
-      return List((Some(old), Some(nw)))
+      reanalyse = reanalyse.::((Some(old), Some(nw)))
+    println("looking at")
+    println(old)
+    println(nw)
     (old, nw) match
+      case (ol: SchemeLettishExp, nl: SchemeLettishExp) if ol.idn == nl.idn =>
+        val renamed = checkRenamingsVariables(ol, nl)
+        if renamed._1 then
+          rename = rename.::((ol, nl), renamed)
+          return
       case (ol: SchemeLambda, nl: SchemeLambda) =>
-        if checkRenamingsVariables(ol, nl)._1 then
-          return List((Some(ol), Some(nl)))
+        val renamed = checkRenamingsVariables(ol, nl)
+        if renamed._1 then
+          rename = rename.::((ol, nl), renamed)
+          return
+      case (oe: Identifier, ne: Identifier) =>
+        if renamedBindingsIds.contains(oe) then
+          rename = rename.::((oe, ne), (true, Map(ne -> oe)))
+          return
+      case (oldIf: SchemeIf, newIf: SchemeIf) =>
+        val maybeSwapped = compareIfs(oldIf, newIf, needed_prims)
+        maybeSwapped match
+          case Some((added, conds)) =>
+            ifs = ifs.::((oldIf -> newIf), added, conds)
+          case None =>
+            if oldIf.eql(newIf) then
+              rename = rename.::((oldIf, newIf), (true, Map()))
+          return
       case _ =>
-    val differentOlds = old.subexpressions.filterNot(oe => nw.subexpressions.exists(ne => oe.idn == ne.idn))
-    val differentNews = nw.subexpressions.filterNot(ne => old.subexpressions.exists(oe => oe.idn == ne.idn))
-    val updated = old.subexpressions.filter(oe => nw.subexpressions.exists(ne => oe.idn == ne.idn && !oe.eql(ne)))
-      .flatMap(oe =>
-        nw.subexpressions.find(ne => oe.idn == ne.idn) match
-          case Some(ne) =>
-            if oe.subexpressions.exists(oe => ne.subexpressions.exists(ne => oe.idn == ne.idn)) then
-              findLowestChangedSubExpressions(oe, ne)
-            else
-              List((Some(oe), Some(ne))))
-    if differentOlds.nonEmpty || differentNews.nonEmpty then
-      updated.appendedAll(differentOlds.map(e => (Some(e), None))).appendedAll(differentNews.map(e => (None, Some(e)))).::((Some(old), Some(nw))) // Something is inserted or deleted so we want to return the encapsulating expression as well as the inserted/deleted thing
-    else
-      updated
+    var addToMaybe: List[Expression] = List()
+    old.subexpressions.foreach(oe =>
+      nw.subexpressions.find(ne => oe.idn == ne.idn) match
+        case Some(ne) =>
+          if oe.subexpressions.exists(oe => ne.subexpressions.exists(ne => oe.idn == ne.idn)) then
+            findLowestChangedSubExpressions(oe, ne)
+          else
+            reanalyse = reanalyse.::((Some(oe), Some(ne)))
+        case None =>
+          deletes = deletes.::(oe)
+          addToMaybe = addToMaybe.::(oe))
+    nw.subexpressions.foreach(ne =>
+      if !old.subexpressions.exists(oe => oe.idn == ne.idn) then
+        println("inserting here")
+        inserts = inserts.::(ne)
+        addToMaybe = addToMaybe.::(ne))
+    addToMaybe.foreach(maybe =>
+      maybeReanalyse = maybeReanalyse + (maybe -> (Some(old), Some(nw))))
+
 
   // Returns a list of expressions that needs to be reanalysed (old and new), and a list of tuples of expressions that are just renamings together with their mappings
   def comparePrograms(old: SchemeExp, nw: SchemeExp, analysis: Option[IncrementalModAnalysisWithUpdateTwoVersions[_]] = None): differentChanges =
-    var reanalyse: ReanalysisList = List()
-    var rename: RenamingsList = List()
-    var needed_prims: List[Identifier] = List()
-    var ifs: IfsList = List()
-    var inserts: List[Expression] = List()
-    var deletes: List[Expression] = List()
-    var scopeChanges: ScopeChanges = Map()
     lazy val allOldScopes = findLexicalScopes(old)
     lazy val allNewScopes = findLexicalScopes(nw)
     (old, nw) match
       case (oldlet: SchemeLettishExp, newlet: SchemeLettishExp) =>
+        var relatedBindings: Map[Expression, Expression] = Map()
         oldlet.bindings.foreach(oe =>
+          newlet.bindings.find(ne => (oe != ne) && (oe._2.idn == ne._2.idn)) match
+            case Some(ne) =>
+              val renamed = compareRenamingsBindings(oe._1, ne._1, oe._2, ne._2)
+              if renamed._1 then
+                rename = rename.::((oe._2, ne._2), renamed)
+                renamedBindingsIds = renamedBindingsIds + (oe._1 -> ne._1)
+              else
+                relatedBindings = relatedBindings + (oe._2 -> ne._2)
+            case _       =>
           if !newlet.bindings.exists(ne => oe._2.idn == ne._2.idn) then
             deletes = deletes.::(oe._2)
           if oe._1.idn.idn.tag != Position.noTag then
@@ -185,52 +224,20 @@ object SchemeChangePatterns:
             inserts = inserts.::(ne._2)
           if ne._1.idn.idn.tag != Position.noTag && !needed_prims.contains(ne._1) then
             needed_prims = needed_prims.::(ne._1))
-        val changedBindings  = oldlet.bindings.filter(oe =>
-          newlet.bindings.exists(ne => (oe != ne) && (oe._2.idn == ne._2.idn)))
-        val changedBindingsOldNew = changedBindings.map(oe =>
-          newlet.bindings.find(ne => (oe != ne) && (oe._2.idn == ne._2.idn)) match
-            case Some(x) => (oe, x))
-        val renamedBindings = changedBindingsOldNew.filter(e => compareRenamingsBindings(e._1._1, e._2._1, e._1._2, e._2._2)._1)
-        rename = rename.appendedAll(renamedBindings.map(e => ((e._1._2, e._2._2), (true, compareRenamingsBindings(e._1._1, e._2._1, e._1._2, e._2._2)._2))))
-        val changedBindingsBoth = oldlet.bindings.collect {
-          case oe if newlet.bindings.exists(ne => oe._2.idn == ne._2.idn) =>
-            newlet.bindings.find(ne => oe._2.idn == ne._2.idn) match
-              case Some(x) => (oe, x)
-        }
-        changedBindingsBoth.filterNot(e => renamedBindings.contains(e)).foreach(e =>
-          findLowestChangedSubExpressions(e._1._2, e._2._2).foreach(e => e match
-            case (Some(oe), None) =>
-              deletes = deletes.::(oe)
-            case (None, Some(ne)) =>
-              inserts = inserts.::(ne)
-            case (Some(oe), Some(ne)) => (oe, ne) match
-              case (oe: Identifier, ne: Identifier) =>
-                if renamedBindings.exists(e => e._1._1.name == oe.name && e._2._1.name == ne.name) then
-                  rename = rename.::((oe, ne), (true, Map(ne -> oe)))
-              case (oe: Identifier, _) => reanalyse = reanalyse.::((Some(oe), Some(ne)))
-              case (_, ne: Identifier) => reanalyse = reanalyse.::((Some(oe), Some(ne)))
-              // check for ifs
-              case (oldIf: SchemeIf, newIf: SchemeIf) =>
-                val maybeSwapped = compareIfs(oldIf, newIf, needed_prims)
-                maybeSwapped match
-                  case Some((added, conds)) =>
-                    ifs = ifs.::((oldIf -> newIf), added, conds)
-                  case None =>
-                    if oldIf.eql(newIf) then
-                      rename = rename.::((oldIf, newIf), (true, Map()))
-              case _ =>
-                val renamings = checkRenamingsVariables(oe, ne)
-                if renamings._1 then
-                  rename = rename.::((oe, ne), checkRenamingsVariables(oe, ne))
-                else
-                  reanalyse = reanalyse.::((Some(oe), Some(ne)))
-            case (Some(oe), None)    => reanalyse = reanalyse.::((Some(oe), None))))
+        println("related bindings")
+        println(relatedBindings.size)
+        relatedBindings.foreach(related =>
+          findLowestChangedSubExpressions(related._1, related._2))
         println("218")
         deletes.foreach(deleted =>
           inserts.find(i => i.eql(deleted)) match
             case Some(inserted) =>
               val oldEnv = allOldScopes.get(deleted)
               val newEnv = allNewScopes.get(inserted)
+              println("deleted:")
+              println(deleted)
+              println("inserted:")
+              println(inserted)
               (oldEnv, newEnv) match
                 case (Some(oenv: (Identifier, Map[String, Identifier])), Some(nenv: (Identifier, Map[String, Identifier]))) =>
                   println("envs the same?")
@@ -245,59 +252,37 @@ object SchemeChangePatterns:
                   println(inserted)
                   println(allOldScopes)
             case _ =>)
-           /*   val bindingsin: Map[String, Option[Identifier]] = findLatestInScope(inserted.fv.map(name => (name, None)).toMap, inserted, newlet.bindings)
-              var bindingsout: Map[String, Option[Identifier]] = Map()
-              analysis match
-                case Some(analysis) =>
-                  val relatedComponent = analysis.getMapping(deleted)
-                  if relatedComponent.size == 1 then
-                    println("has an environment")
-                    relatedComponent.foreach(comp =>
-                      comp match
-                        case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
-                          println(env.content)
-                          println(lam)
-                          env.content.foreach(e =>
-                            if deleted.fv.contains(e._1) then
-                              e._2 match
-                                case varAddr: maf.modular.scheme.VarAddr[_] =>
-                                 bindingsout = bindingsout + (e._1 -> Some(varAddr.id))
-                                case prmAddr: maf.modular.scheme.PrmAddr =>
-                                 bindingsout = bindingsout + (e._1 -> None)
-                                case _ => println(e._2.getClass))
-                        case _ =>)
-                case None           =>
-              if bindingsout.size != bindingsin.size then
-                println("has no (matching) environment")
-                 bindingsout = findLatestInScope(deleted.fv.map(name => (name, None)).toMap, deleted, oldlet.bindings)
-              if bindingsin == bindingsout then
-                println("moved scopes: ")
-                scopeChanges = scopeChanges.::(deleted, inserted)
-              else
-                println("different functions: ")
-              println(inserted.idn.toString + " " + deleted.idn.toString + " " + inserted.toString)
-              bindingsin.foreach(e => e._2 match
-                case Some(id) => print(id.idn.toString + " ")
-                case _ => print("None "))
-              println()
-              bindingsout.foreach(e => e._2 match
-                case Some(id) => print(id.idn.toString + " ")
-                case _ => print("None "))
-              println()
-            case _ =>)
-        allBindingsInprogram(oldlet).foreach(println)
-        println("oldscopes")
-        findLexicalScopes(oldlet, Map()).foreach(e =>
-          println(e))
-         // e._2._2.foreach(println))
-        println(findLexicalScopes(newlet, Map()))*/
+        println("maybes")
+        println(maybeReanalyse)
+        deletes.foreach(deleted =>
+          println("looking at deleted")
+          println(deleted)
+          if !scopeChanges.exists(s => s._1._1 == deleted) then
+            println(deleted)
+            maybeReanalyse.find(r => r._1.eql(deleted)) match
+              case Some(toReanalyse) => reanalyse = reanalyse.::(toReanalyse._2))
+        inserts.foreach(inserted =>
+          println("looking at inserted")
+          println(inserted)
+          if !scopeChanges.exists(s => s._2._1 == inserted) then
+            println(inserted)
+            maybeReanalyse.find(r => r._1.eql(inserted)) match
+              case Some(toReanalyse) => reanalyse = reanalyse.::(toReanalyse._2))
+        println("reanalyse")
+        println(reanalyse)
+        println("rename")
+        println(rename.size)
+        println("ifs")
+        println(ifs)
+        println("scope changes")
+        println(scopeChanges)
         differentChanges(reanalyse, rename, ifs, scopeChanges)
       case _ => differentChanges(reanalyse, rename, ifs, scopeChanges)
 
   var up = new IncrementalUpdateDatastructures
 
   @tailrec
-  def findEquivalent(expr: Expression, in: List[Expression]): Option[Expression] = in match
+  final def findEquivalent(expr: Expression, in: List[Expression]): Option[Expression] = in match
     case List() => None
     case first :: _ if first.idn == expr.idn && first.getClass == expr.getClass => Some(first)
     case first :: second :: rest if first.idn.idn.line <= expr.idn.idn.line && expr.idn.idn.line < second.idn.idn.line =>
@@ -351,9 +336,8 @@ object SchemeChangePatterns:
           Map()
 
 
-
   @tailrec
-  def findLatestInScope(toFind: Map[String, Option[Identifier]], expr: Expression, program: List[(Identifier, Expression)]): Map[String, Option[Identifier]] = program match
+  final def findLatestInScope(toFind: Map[String, Option[Identifier]], expr: Expression, program: List[(Identifier, Expression)]): Map[String, Option[Identifier]] = program match
     case List() =>
       toFind
     case (id, binding) :: rest if toFind.contains(id.name) =>

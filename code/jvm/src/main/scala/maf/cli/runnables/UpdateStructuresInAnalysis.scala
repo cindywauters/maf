@@ -64,7 +64,7 @@ object UpdateStructuresInAnalysis extends App:
     def baseNoUpdates(program: SchemeExp) = new ModAnalysis[SchemeExp](program)
       with StandardSchemeModFComponents
       //with SchemeModFFullArgumentSensitivity
-     // with SchemeModFCallSiteSensitivity
+      //with SchemeModFCallSiteSensitivity
       //with SchemeModFFullArgumentCallSiteSensitivity
       with SchemeModFNoSensitivity
       with SchemeModFSemanticsM
@@ -107,6 +107,14 @@ object UpdateStructuresInAnalysis extends App:
       // analysisWithoutUpdates.analyzeWithTimeout(timeout())
       // analysisWithoutUpdates.analyzeWithTimeout(timeout())
 
+      for (i <- 1 to 10) {
+        val analysisWithoutUpdates = baseNoUpdates(program)
+        val beforeAnalysis = System.nanoTime
+        analysisWithoutUpdates.version = New
+        analysisWithoutUpdates.analyzeWithTimeout(timeout())
+        val timeAnalysis = System.nanoTime - beforeAnalysis
+      }
+
       val analysisWithoutUpdates = baseNoUpdates(program)
       val beforeAnalysis = System.nanoTime
       analysisWithoutUpdates.version = New
@@ -145,7 +153,7 @@ object UpdateStructuresInAnalysis extends App:
       println("Time updating:                " + timeUpdateAnalysis)
 
 
-      println("Store with updating: " + storeWithUpdate.toString)
+      // println("Store with updating: " + storeWithUpdate.toString)
       //   println("Store with regular reanalysis: " + storeWithoutUpdate.toString)
 
 
@@ -189,7 +197,7 @@ object UpdateStructuresInAnalysis extends App:
 
       println()
 
-      println("Dependencies with updating: " + depsWithUpdate.toString)
+      //println("Dependencies with updating: " + depsWithUpdate.toString)
       //  println("Dependencies with regular reanalysis: " + depsWithoutUpdate.toString)
 
 
@@ -222,8 +230,8 @@ object UpdateStructuresInAnalysis extends App:
 
       println()
 
-      println("Mapping with updating: " + mappingWithUpdate.toString)
-      println("Mapping with regular reanalysis: " + mappingWithoutUpdate.toString)
+//      println("Mapping with updating: " + mappingWithUpdate.toString)
+//      println("Mapping with regular reanalysis: " + mappingWithoutUpdate.toString)
 
 
       println("Mapping reanalysis -> Update: " + mappingWithoutUpdate.forall((k, v) =>
@@ -420,11 +428,11 @@ object UpdateStructuresInAnalysis extends App:
   val modConcbenchmarks: List[String] = List()
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/testfile.scm")
  // val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/array1.scm")
- // val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm", "test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
+// val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm", "test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/symbols.scm")
-  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/various/NoSensitivity/SICP-compiler.scm")
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/array1.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/various/NoSensitivity/SICP-compiler.scm")
+  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/array1.scm")
   val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 
   modFbenchmarks.foreach(modfAnalysis(_, standardTimeout))

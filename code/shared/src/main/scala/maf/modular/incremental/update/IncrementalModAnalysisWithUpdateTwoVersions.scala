@@ -23,7 +23,7 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
   def updateAnalysis(timeout: Timeout.T, rename: Boolean): Unit =
     (program, secondProgram) match
       case (old: SchemeExp, nw: SchemeExp) =>
-        val changes = SchemeChangePatterns.comparePrograms(old, nw, Some(this))
+        val changes = finder.comparePrograms(old, nw, Some(this))
         changes.reanalyse.foreach(e => e match
           case (Some(oe), Some(ne)) => allChanges = allChanges + (oe -> ne)
           case (Some(oe), None)     => allDeletes = allDeletes.::(oe)
@@ -35,7 +35,7 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
             (lam, comp)
 
         }.toList
-        var affectedLambdasPairsIntermediate = SchemeChangePatterns.findEquivalentLambdas(affectedLambdas.map(_._1), secondProgram)
+        var affectedLambdasPairsIntermediate = finder.findEquivalentLambdas(affectedLambdas.map(_._1), secondProgram)
      /*   affectedLambdasPairsIntermediate.foreach(e =>
           println(e._1)
           println(e._2))*/
@@ -63,7 +63,7 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
           case _ => Set(initialComponent)
         )
         mapping = mapping + (secondProgram -> Set(initialComponent))
-       // affected.foreach(addToWorkList)
+        affected.foreach(addToWorkList)
       //  addToWorkList(initialComponent)
         println(changes.scopeChanges)
     analyzeWithTimeout(timeout)

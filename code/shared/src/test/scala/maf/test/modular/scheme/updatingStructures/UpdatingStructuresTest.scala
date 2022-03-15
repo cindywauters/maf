@@ -146,7 +146,8 @@ class UpdatingStructuresTest extends AnyPropSpec:
     var update = new IncrementalUpdateDatastructures
     analysisToUpdate match
       case analysis: IncrementalModAnalysis[Expression] =>
-        val changedAndRenamings = SchemeChangePatterns.checkForRenamingParameter(program).filter(e => e._2._1).map(e => (e._1, e._2._2)).toList
+        val finder = new SchemeChangePatterns
+        val changedAndRenamings = finder.checkForRenamingParameter(program).filter(e => e._2._1).map(e => (e._1, e._2._2)).toList
         update.changeDataStructures(analysis, List(program), changedAndRenamings)
 
     val analysisNew = a.deepCopy()
