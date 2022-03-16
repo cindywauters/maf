@@ -153,9 +153,6 @@ class SchemeChangePatterns:
   def findLowestChangedSubExpressions(old: Expression, nw: Expression): Unit =
     if old.subexpressions.isEmpty && nw.subexpressions.isEmpty then
       reanalyse = reanalyse.::((Some(old), Some(nw)))
-    println("looking at")
-    println(old)
-    println(nw)
     (old, nw) match
       case (oe: Identifier, ne: Identifier) =>
         if renamedBindingsIds.contains(oe) then
@@ -174,7 +171,6 @@ class SchemeChangePatterns:
       case (ol: SchemeLettishExp, nl: SchemeLettishExp) =>
         val renamed = checkRenamingsVariables(ol, nl)
         if renamed._1 then
-          println("renamed")
           rename = rename.::((ol, nl), renamed)
           return
         else if ol.subexpressions.forall(o => !nl.subexpressions.exists(n => o.idn == n.idn)) then
@@ -186,7 +182,6 @@ class SchemeChangePatterns:
       case (ol: SchemeLambda, nl: SchemeLambda) =>
         val renamed = checkRenamingsVariables(ol, nl)
         if renamed._1 then
-          println("renamed")
           rename = rename.::((ol, nl), renamed)
           return
         else if ol.subexpressions.forall(o => !nl.subexpressions.exists(n => o.idn == n.idn)) then
@@ -216,9 +211,6 @@ class SchemeChangePatterns:
           addToMaybe = addToMaybe.::(oe))
     nw.subexpressions.foreach(ne =>
       if !old.subexpressions.exists(oe => oe.idn == ne.idn) then
-        println("inserting here")
-        println(nw)
-        println(old)
         inserts = inserts.::(ne)
         addToMaybe = addToMaybe.::(ne))
     addToMaybe.foreach(maybe =>
@@ -254,58 +246,35 @@ class SchemeChangePatterns:
             inserts = inserts.::(ne._2)
           if ne._1.idn.idn.tag != Position.noTag && !needed_prims.contains(ne._1) then
             needed_prims = needed_prims.::(ne._1))
-        println("related bindings")
-        println(relatedBindings.size)
         relatedBindings.foreach(related =>
           findLowestChangedSubExpressions(related._1, related._2))
-        println("218")
         deletes.foreach(deleted =>
           inserts.find(i => i.eql(deleted)) match
             case Some(inserted) =>
               val oldEnv = allOldScopes.get(deleted)
               val newEnv = allNewScopes.get(inserted)
-              println("deleted:")
-              println(deleted)
-              println("inserted:")
-              println(inserted)
               (oldEnv, newEnv) match
                 case (Some(oenv: (Identifier, Map[String, Identifier])), Some(nenv: (Identifier, Map[String, Identifier]))) =>
-                  println("envs the same?")
-                  println(inserted.idn.toString + " " + deleted.idn.toString)
-                  println(oenv)
-                  println(nenv)
                   if oenv._2 == nenv._2 && oenv._1.name == nenv._1.name then
                     scopeChanges = scopeChanges + ((deleted, oenv) -> (inserted, nenv))
                 case _ =>
-                  println("not found: ")
-                  println(deleted)
-                  println(inserted)
-                  println(allOldScopes)
             case _ =>)
-        println("maybes")
-        println(maybeReanalyse)
         deletes.foreach(deleted =>
-          println("looking at deleted")
-          println(deleted)
           if !scopeChanges.exists(s => s._1._1 == deleted) then
-            println(deleted)
             maybeReanalyse.find(r => r._1.eql(deleted)) match
               case Some(toReanalyse) => reanalyse = reanalyse.::(toReanalyse._2))
         inserts.foreach(inserted =>
-          println("looking at inserted")
-          println(inserted)
           if !scopeChanges.exists(s => s._2._1 == inserted) then
-            println(inserted)
             maybeReanalyse.find(r => r._1.eql(inserted)) match
               case Some(toReanalyse) => reanalyse = reanalyse.::(toReanalyse._2))
-        println("reanalyse")
+       /* println("reanalyse")
         reanalyse.foreach(println)
         println("rename")
         rename.foreach(println)
         println("ifs")
         println(ifs)
         println("scope changes")
-        println(scopeChanges)
+        println(scopeChanges)*/
         differentChanges(reanalyse, rename, ifs, scopeChanges)
       case _ => differentChanges(reanalyse, rename, ifs, scopeChanges)
 

@@ -26,8 +26,6 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
       case (old: SchemeExp, nw: SchemeExp) =>
         val time = System.nanoTime()
         val changes = finder.comparePrograms(old, nw, Some(this))
-        println("time")
-        println(System.nanoTime() - time)
         changes.reanalyse.foreach(e => e match
           case (Some(oe), Some(ne)) => allChanges = allChanges + (oe -> ne)
           case (Some(oe), None)     => allDeletes = allDeletes.::(oe)
@@ -55,17 +53,12 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
 
             )
         )
-        println("ALL CHANGES")
-        println(allChanges)
         if rename then
           this match
             case a: IncrementalModAnalysis[Expression] =>
               if changes.renamings.nonEmpty || changes.ifs.nonEmpty || changes.scopeChanges.nonEmpty then
                 val renamed = changes.renamings.map(e => (e._1, e._2._2))//.toSet
-                val newTime = System.nanoTime()
                 update.changeDataStructures(a, List(program, secondProgram), renamed, changes.ifs, changes.scopeChanges, affectedLambdasPairs)
-                println("time updating in")
-                println(System.nanoTime() - newTime)
           affectedAll = changes.reanalyse
         var affected = affectedAll.flatMap(e => e match
           case (Some(old: Expr), Some(nw: Expr)) =>
@@ -78,8 +71,6 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
         )
         mapping = mapping + (secondProgram -> Set(initialComponent))
         affected.foreach(addToWorkList)
-        println("worklist")
-        println(workList)
-        addToWorkList(initialComponent)
+       // addToWorkList(initialComponent)
         println(changes.scopeChanges)
     analyzeWithTimeout(timeout)

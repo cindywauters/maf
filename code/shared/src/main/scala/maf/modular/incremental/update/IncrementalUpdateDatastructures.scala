@@ -49,15 +49,19 @@ class IncrementalUpdateDatastructures {
 
     allExprs = exp
 
+    println("52")
+    println(changedExpressions.flatMap(e => findAllSubExps(e._1)))
+    println(changedExpressions.flatMap(e => findAllSubExps(e._2)))
+
     // get all expressions that exist within an old expression and in a new expression and zip them together to know what has changed to what
     val allOldExps = changedExpressions.flatMap(e => findAllSubExps(e._1)).toList//.appendedAll(otherChanges.map(_._1))
     val allNewExps = changedExpressions.flatMap(e => findAllSubExps(e._2)).toList//.appendedAll(otherChanges.map(_._2))
-    allExpressionsInChange = allOldExps.zip(allNewExps).appendedAll(
-      for
-        oldExp <- otherChanges.map(_._1).flatMap(findAllSubExps)
-        newExp <- otherChanges.map(_._2).flatMap(findAllSubExps)
-        if oldExp.idn == newExp.idn && oldExp.getClass == newExp.getClass && oldExp != newExp && oldExp.height == newExp.height
-      yield (oldExp, newExp)).toMap
+    allExpressionsInChange = allOldExps.zip(allNewExps).toMap
+    (for
+      oldExp <- otherChanges.map(_._1).flatMap(findAllSubExps)
+      newExp <- otherChanges.map(_._2).flatMap(findAllSubExps)
+      if oldExp.idn == newExp.idn && oldExp.getClass == newExp.getClass && oldExp != newExp && oldExp.height == newExp.height
+    yield (oldExp, newExp)).foreach(e => allExpressionsInChange + (e._1 -> e._2))
 
     ifs.foreach(e =>
       val oldIf = e._1._1
@@ -112,7 +116,7 @@ class IncrementalUpdateDatastructures {
              a.mapping = a.mapping + (sub -> toInsert)
            case _ =>
          ))
-    println("all expressions")
+    println("all changes")
     allExpressionsInChange.foreach(println)
     true
 
@@ -213,9 +217,9 @@ class IncrementalUpdateDatastructures {
             if !newValue.equals(oldValue) then
               a.mapping = a.mapping + (oldKey -> newValue)
           else
-            println("removing")
-            println(oldKey.idn)
-            println(newKey.idn)
+            println("removing/adding")
+            println(oldKey)
+            println(newKey)
             println(oldValue)
             println(newValue)
             a.mapping = a.mapping - oldKey
@@ -415,7 +419,6 @@ class IncrementalUpdateDatastructures {
     (allScopeChanges.map((k, v) => (k._1, v._1)) ++ allIfs.map(_._1).toMap).find(changed => changed._1 == expr || changed._2 == expr) match
       case Some(exprs) =>
         varsToRemove = exprs._1.fv.diff(exprs._2.fv)
-        println("vars to remove")
         allIfs.find(e => findAllSubExps(expr).exists(s => e._1._1.eql(s) || e._1._2.eql(s))) match
           case Some((exprs, ids: List[Identifier], _)) =>
             ids.foreach(e =>

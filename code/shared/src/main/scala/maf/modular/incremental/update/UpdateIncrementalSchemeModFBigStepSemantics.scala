@@ -16,7 +16,6 @@ trait UpdateIncrementalSchemeModFBigStepSemantics extends IncrementalSchemeModFB
         registerComponent(e, component)
         super.eval(e)
       case e if version == New =>
-        println("ALL CHANGES")
         allChanges.get(e) match
           case Some(newexp: SchemeExp) =>
             println("some")
