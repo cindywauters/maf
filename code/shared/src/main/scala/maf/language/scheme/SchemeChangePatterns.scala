@@ -147,6 +147,9 @@ class SchemeChangePatterns:
           case _ => None
       case (e1: _, e2: _) => None
 
+  def checkPossibilityRenaming(oe: Expression, ne: Expression): Boolean =
+    oe.getClass == ne.getClass && oe.subexpressions.size == ne.subexpressions.size && oe.height == ne.height
+
   def findLowestChangedSubExpressions(old: Expression, nw: Expression): Unit =
     if old.subexpressions.isEmpty && nw.subexpressions.isEmpty then
       reanalyse = reanalyse.::((Some(old), Some(nw)))
@@ -154,16 +157,6 @@ class SchemeChangePatterns:
     println(old)
     println(nw)
     (old, nw) match
-      case (ol: SchemeLettishExp, nl: SchemeLettishExp) if ol.idn == nl.idn =>
-        val renamed = checkRenamingsVariables(ol, nl)
-        if renamed._1 then
-          rename = rename.::((ol, nl), renamed)
-          return
-      case (ol: SchemeLambda, nl: SchemeLambda) =>
-        val renamed = checkRenamingsVariables(ol, nl)
-        if renamed._1 then
-          rename = rename.::((ol, nl), renamed)
-          return
       case (oe: Identifier, ne: Identifier) =>
         if renamedBindingsIds.contains(oe) then
           rename = rename.::((oe, ne), (true, Map(ne -> oe)))
@@ -177,10 +170,28 @@ class SchemeChangePatterns:
             if oldIf.eql(newIf) then
               rename = rename.::((oldIf, newIf), (true, Map()))
           return
+      case (ol: SchemeLettishExp, nl: SchemeLettishExp) if ol.idn == nl.idn =>
+        val renamed = checkRenamingsVariables(ol, nl)
+        if renamed._1 then
+          println("renamed")
+          rename = rename.::((ol, nl), renamed)
+          return
+     /*   else if renamed._1 then
+          ol.body.zip(nl.body).foreach(b => findLowestChangedSubExpressions(b._1, b._2))
+          return*/
+      case (ol: SchemeLambda, nl: SchemeLambda) =>
+        val renamed = checkRenamingsVariables(ol, nl)
+        if renamed._1 then
+          println("renamed")
+          rename = rename.::((ol, nl), renamed)
+          return
+       /* else if renamed._1 then
+          ol.body.zip(nl.body).foreach(b => findLowestChangedSubExpressions(b._1, b._2))
+          return */
       case _ =>
     var addToMaybe: List[Expression] = List()
     old.subexpressions.foreach(oe =>
-      nw.subexpressions.find(ne => oe.idn == ne.idn) match
+      nw.subexpressions.find(ne => oe.idn == ne.idn || oe.eql(ne)) match
         case Some(ne) =>
           if oe.subexpressions.exists(oe => ne.subexpressions.exists(ne => oe.idn == ne.idn)) then
             findLowestChangedSubExpressions(oe, ne)
@@ -192,6 +203,8 @@ class SchemeChangePatterns:
     nw.subexpressions.foreach(ne =>
       if !old.subexpressions.exists(oe => oe.idn == ne.idn) then
         println("inserting here")
+        println(nw)
+        println(old)
         inserts = inserts.::(ne)
         addToMaybe = addToMaybe.::(ne))
     addToMaybe.foreach(maybe =>
@@ -208,10 +221,13 @@ class SchemeChangePatterns:
         oldlet.bindings.foreach(oe =>
           newlet.bindings.find(ne => (oe != ne) && (oe._2.idn == ne._2.idn)) match
             case Some(ne) =>
-              val renamed = compareRenamingsBindings(oe._1, ne._1, oe._2, ne._2)
-              if renamed._1 then
-                rename = rename.::((oe._2, ne._2), renamed)
-                renamedBindingsIds = renamedBindingsIds + (oe._1 -> ne._1)
+              if oe._1.name != ne._1.name then
+                val renamed = compareRenamingsBindings(oe._1, ne._1, oe._2, ne._2)
+                if renamed._1 then
+                  rename = rename.::((oe._2, ne._2), renamed)
+                  renamedBindingsIds = renamedBindingsIds + (oe._1 -> ne._1)
+                else
+                  relatedBindings = relatedBindings + (oe._2 -> ne._2)
               else
                 relatedBindings = relatedBindings + (oe._2 -> ne._2)
             case _       =>
@@ -269,7 +285,7 @@ class SchemeChangePatterns:
             maybeReanalyse.find(r => r._1.eql(inserted)) match
               case Some(toReanalyse) => reanalyse = reanalyse.::(toReanalyse._2))
         println("reanalyse")
-        println(reanalyse)
+        println(reanalyse.size)
         println("rename")
         println(rename.size)
         println("ifs")

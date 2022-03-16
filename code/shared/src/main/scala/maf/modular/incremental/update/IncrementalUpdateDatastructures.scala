@@ -56,7 +56,7 @@ class IncrementalUpdateDatastructures {
       for
         oldExp <- otherChanges.map(_._1).flatMap(findAllSubExps)
         newExp <- otherChanges.map(_._2).flatMap(findAllSubExps)
-        if oldExp.idn == newExp.idn && oldExp.getClass == newExp.getClass && oldExp != newExp
+        if oldExp.idn == newExp.idn && oldExp.getClass == newExp.getClass && oldExp != newExp && oldExp.height == newExp.height
       yield (oldExp, newExp)).toMap
 
     ifs.foreach(e =>
@@ -112,6 +112,8 @@ class IncrementalUpdateDatastructures {
              a.mapping = a.mapping + (sub -> toInsert)
            case _ =>
          ))
+    println("all expressions")
+    allExpressionsInChange.foreach(println)
     true
 
   // Find all the subexpressions of an expression, and their subexpressions.
@@ -132,13 +134,15 @@ class IncrementalUpdateDatastructures {
   // insertInStore will handle cases where oldKey == newKey and/or oldValue == newValue
   def updateStore(a: IncrementalGlobalStore[Expression]): Unit =
     a.store.foreach((oldKey, oldValue) =>
-      val newValue = getNewValues(a, oldValue)
       oldKey match
         case key: VarAddr =>
+          val newValue = getNewValues(a, oldValue)
           insertInStore(a, key, getNewVarAddr(a, key), oldValue, newValue)
         case key: RetAddr =>
+          val newValue = getNewValues(a, oldValue)
           insertInStore(a, key, getNewRetAddr(a, key), oldValue, newValue)
         case key: PtrAddr =>
+          val newValue = getNewValues(a, oldValue)
           insertInStore(a, key, getNewPointerAddr(a, key), oldValue, newValue)
         case _ =>
     )
@@ -209,6 +213,11 @@ class IncrementalUpdateDatastructures {
             if !newValue.equals(oldValue) then
               a.mapping = a.mapping + (oldKey -> newValue)
           else
+            println("removing")
+            println(oldKey)
+            println(newKey)
+            println(oldValue)
+            println(newValue)
             a.mapping = a.mapping - oldKey
             a.mapping = a.mapping + (newKey -> newValue)
     )

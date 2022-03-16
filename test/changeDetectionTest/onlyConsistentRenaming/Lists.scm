@@ -1,7 +1,5 @@
 (define test-with-cons
-  (<change>
-   (cons 5 (lambda (a) a))
-   (cons 5 (lambda (b) b))))
+   (cons 5 (<change> (lambda (a) a) (lambda (b) b))))
 
 test-with-cons
 
@@ -42,9 +40,7 @@ test-with-cons
 (test-vec-in-cons2 5)
 
 (define (test-with-list)
-  (<change>
-   (list 1 (lambda (a) a))
-   (list 1 (lambda (b) b))))
+   (list 1 (<change> (lambda (a) a)  (lambda (b) b))))
 
 (test-with-list)
 
