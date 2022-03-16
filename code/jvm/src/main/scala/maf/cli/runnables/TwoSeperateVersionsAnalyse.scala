@@ -53,7 +53,15 @@ object TwoSeperateVersionsAnalyse extends App:
       var configuration: IncrementalConfiguration = noOptimisations
       override def intraAnalysis(
                                   cmp: Component
-                                ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis    }
+                                ) = new IntraAnalysis(cmp) with UpdateIncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis // {
+   /*     override protected def eval(exp: SchemeExp): EvalM[Value] =
+          if version == New then
+            println("intra")
+            println(exp)
+            println(allChanges)
+          super.eval(exp)
+      } */
+      }
 
     def baseUpdatesChange(program: SchemeExp) = new ModAnalysis[SchemeExp](program)
       with StandardSchemeModFComponents

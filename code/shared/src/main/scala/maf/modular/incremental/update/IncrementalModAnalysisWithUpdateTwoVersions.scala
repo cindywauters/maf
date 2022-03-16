@@ -34,24 +34,29 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
           case _ =>
         )
         var affectedAll = changes.reanalyse.appendedAll(changes.renamings.map(_._1)).appendedAll(changes.ifs.map(_._1._1))
-        var affectedLambdas = visited.collect {
-          case comp @ SchemeModFComponent.Call((lam: Expr, env: BasicEnvironment[_]), oldCtx: _) if lam.idn.idn.tag == Position.noTag=>
+        val affectedLambdas: Map[Expr, Component] = visited.collect {
+          case comp@SchemeModFComponent.Call((lam: Expr, env: BasicEnvironment[_]), oldCtx: _) if lam.idn.idn.tag == Position.noTag =>
             (lam, comp)
-
-        }.toList
-        var affectedLambdasPairsIntermediate = finder.findEquivalentLambdas(affectedLambdas.map(_._1), secondProgram)
+        }.toMap
+        var affectedLambdasPairsIntermediate = finder.findEquivalentLambdas(affectedLambdas.keys.toList, secondProgram)
      /*   affectedLambdasPairsIntermediate.foreach(e =>
           println(e._1)
           println(e._2))*/
         var affectedLambdasPairs: List[(Expression, Expression)] = List()
         affectedLambdasPairsIntermediate.foreach(e => e match
-          case (expr: Expression, Some(other: Expression)) if expr != other && !changes.reanalyse.exists(e => e._1.contains(expr)) =>
+          case (expr: Expr, Some(other: Expression)) if expr != other && !changes.reanalyse.exists(e => e._1.contains(expr)) =>
+            allChanges = allChanges + (expr -> other)
             affectedLambdasPairs = affectedLambdasPairs.::(expr, other)
-          case (expr: Expression, _) =>
-        /*    println(mapping.get(expr.asInstanceOf[Expr]))
-            mapping.get(expr.asInstanceOf[Expr]).foreach(addToWorkList)
-            affectedLambdas.filter(e => e._1 == expr).foreach(e => addToWorkList(e._2))*/
+          case (expr: Expr, _) =>
+           // mapping.get(expr).foreach(e => addToWorkList(e._2))
+            affectedLambdas.get(expr).foreach(e => e match
+              case SchemeModFComponent.Call((lam: Expr, _), _)  =>
+                mapping.get(lam).foreach(addToWorkList)
+
+            )
         )
+        println("ALL CHANGES")
+        println(allChanges)
         if rename then
           this match
             case a: IncrementalModAnalysis[Expression] =>
@@ -73,6 +78,8 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
         )
         mapping = mapping + (secondProgram -> Set(initialComponent))
         affected.foreach(addToWorkList)
+        println("worklist")
+        println(workList)
         addToWorkList(initialComponent)
         println(changes.scopeChanges)
     analyzeWithTimeout(timeout)

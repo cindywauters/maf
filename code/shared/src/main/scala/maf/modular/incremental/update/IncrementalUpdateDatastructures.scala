@@ -214,8 +214,8 @@ class IncrementalUpdateDatastructures {
               a.mapping = a.mapping + (oldKey -> newValue)
           else
             println("removing")
-            println(oldKey)
-            println(newKey)
+            println(oldKey.idn)
+            println(newKey.idn)
             println(oldValue)
             println(newValue)
             a.mapping = a.mapping - oldKey
