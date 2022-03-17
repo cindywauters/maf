@@ -49,10 +49,6 @@ class IncrementalUpdateDatastructures {
 
     allExprs = exp
 
-    println("52")
-    println(changedExpressions.flatMap(e => findAllSubExps(e._1)))
-    println(changedExpressions.flatMap(e => findAllSubExps(e._2)))
-
     // get all expressions that exist within an old expression and in a new expression and zip them together to know what has changed to what
     val allOldExps = changedExpressions.flatMap(e => findAllSubExps(e._1)).toList//.appendedAll(otherChanges.map(_._1))
     val allNewExps = changedExpressions.flatMap(e => findAllSubExps(e._2)).toList//.appendedAll(otherChanges.map(_._2))
@@ -116,8 +112,6 @@ class IncrementalUpdateDatastructures {
              a.mapping = a.mapping + (sub -> toInsert)
            case _ =>
          ))
-    println("all changes")
-    allExpressionsInChange.foreach(println)
     true
 
   // Find all the subexpressions of an expression, and their subexpressions.
@@ -217,11 +211,6 @@ class IncrementalUpdateDatastructures {
             if !newValue.equals(oldValue) then
               a.mapping = a.mapping + (oldKey -> newValue)
           else
-            println("removing/adding")
-            println(oldKey)
-            println(newKey)
-            println(oldValue)
-            println(newValue)
             a.mapping = a.mapping - oldKey
             a.mapping = a.mapping + (newKey -> newValue)
     )
@@ -419,6 +408,9 @@ class IncrementalUpdateDatastructures {
     (allScopeChanges.map((k, v) => (k._1, v._1)) ++ allIfs.map(_._1).toMap).find(changed => changed._1 == expr || changed._2 == expr) match
       case Some(exprs) =>
         varsToRemove = exprs._1.fv.diff(exprs._2.fv)
+        buildNewExpr(expr).fv.foreach(fv =>
+          if allPrimitives.contains(fv) then
+            newEnv = newEnv + (fv -> PrmAddr(fv)))
         allIfs.find(e => findAllSubExps(expr).exists(s => e._1._1.eql(s) || e._1._2.eql(s))) match
           case Some((exprs, ids: List[Identifier], _)) =>
             ids.foreach(e =>
@@ -451,9 +443,6 @@ class IncrementalUpdateDatastructures {
         case _ =>
           if !varsToRemove.contains(k) then
             newEnv += (k -> v))
-    buildNewExpr(expr).fv.foreach(fv =>
-      if allPrimitives.contains(fv) then
-        newEnv = newEnv + (fv -> PrmAddr(fv)))
     newEnv
 
   // Update context. This currently supports SchemeModFNoSensitivity, SchemeModFFullArgumentCallSiteSensitivity, SchemeModFCallSiteSensitivity and SchemeModFFullArgumentSensitivity
