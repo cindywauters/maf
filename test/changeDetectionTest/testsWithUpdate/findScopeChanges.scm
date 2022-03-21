@@ -1,9 +1,9 @@
-(define (test x)
+(define (test n)
   (<update>
     (if (> n 2)
         n
         (display n))
-    (if (=< n 2)
+    (if (<= n 2)
         (display n)
         n)))
 

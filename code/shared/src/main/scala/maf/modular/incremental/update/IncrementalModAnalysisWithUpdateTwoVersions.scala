@@ -40,6 +40,8 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
      /*   affectedLambdasPairsIntermediate.foreach(e =>
           println(e._1)
           println(e._2))*/
+        println("equivanent lambdas")
+        println(affectedLambdasPairsIntermediate)
         var affectedLambdasPairs: List[(Expression, Expression)] = List()
         affectedLambdasPairsIntermediate.foreach(e => e match
           case (expr: Expr, Some(other: Expression)) if expr != other && !changes.reanalyse.exists(e => e._1.contains(expr)) =>

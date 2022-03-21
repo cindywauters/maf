@@ -59,6 +59,9 @@ class IncrementalUpdateDatastructures {
       if oldExp.idn == newExp.idn && oldExp.getClass == newExp.getClass && oldExp != newExp && oldExp.height == newExp.height
     yield (oldExp, newExp)).foreach(e => allExpressionsInChange + (e._1 -> e._2))
 
+    println("all expressions")
+    allExpressionsInChange.foreach(println)
+
     ifs.foreach(e =>
       val oldIf = e._1._1
     // val oldIfCondSubs = findAllSubExps(oldIf.cond)
@@ -405,7 +408,8 @@ class IncrementalUpdateDatastructures {
     var newEnv: Map[String, Address] = Map()
     //var changingIf = false
     var varsToRemove: Set[String] = Set()
-    (allScopeChanges.map((k, v) => (k._1, v._1)) ++ allIfs.map(_._1).toMap).find(changed => changed._1 == expr || changed._2 == expr) match
+    var subExprs = findAllSubExps(expr)
+    (allScopeChanges.map((k, v) => (k._1, v._1)) ++ allIfs.map(_._1).toMap).find(changed => subExprs.contains(changed._1) || subExprs.contains(changed._2)) match
       case Some(exprs) =>
         varsToRemove = exprs._1.fv.diff(exprs._2.fv)
         buildNewExpr(expr).fv.foreach(fv =>
