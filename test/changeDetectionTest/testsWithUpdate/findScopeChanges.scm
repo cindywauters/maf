@@ -1,10 +1,10 @@
-(<insert> (define f (lambda (x) (display x))))
+(define (test x)
+  (<update>
+    (if (> n 2)
+        n
+        (display n))
+    (if (=< n 2)
+        (display n)
+        n)))
 
-(define (g y)
-    (let* ((<delete> (f (lambda (x) (display x)))))
-        (f y)))
-
-(g 5)
-
-
-
+(test 5)

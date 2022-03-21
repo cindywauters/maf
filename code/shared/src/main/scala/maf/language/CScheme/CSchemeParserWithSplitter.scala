@@ -24,5 +24,8 @@ object CSchemeParserWithSplitter:
   /** Parse a program, add its prelude and undefine it */
   def parseProgram(prg: String, tag: PTag = noTag): (SchemeExp, SchemeExp) =
     val parsed = parse(prg, tag)
-    (undefine(SchemePrelude.addPrelude(parsed._1)), undefine(SchemePrelude.addPrelude(parsed._2)))
+    val parsedFull = CSchemeParser.parse(prg, tag)
+    val preludeFull = SchemePrelude.addPrelude(parsedFull)
+    val prelude = preludeFull.take(preludeFull.size - parsedFull.size)
+    (undefine(prelude.appendedAll(parsed._1)), undefine(prelude.appendedAll(parsed._2)))
 

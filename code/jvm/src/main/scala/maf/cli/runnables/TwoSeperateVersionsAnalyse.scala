@@ -235,7 +235,7 @@ object TwoSeperateVersionsAnalyse extends App:
  // val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/various/NoSensitivity/SICP-compiler.scm")
 
   val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
-//  val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/NoSensitivity/earley.scm")
+ // val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/array1.scm")
 
   val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 

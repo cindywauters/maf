@@ -116,15 +116,19 @@ class SchemeChangePatterns:
         (oldFun.f, newFun.f) match
           case (SchemeVar(oldId), _) if oldId.name == "not" =>
             if comparePartialCondAndBranches(oldFun.args, List(newFun), oldIf.cons, oldIf.alt, newIf.cons, newIf.alt) then
+              println("119")
               Some(List(), (oldFun.args.head, newFun))
             else None
           case (_, SchemeVar(newId)) if newId.name == "not" =>
             if comparePartialCondAndBranches(List(oldFun), newFun.args, oldIf.cons, oldIf.alt, newIf.cons, newIf.alt) then
+              println("124")
               Some(prims.filter(e => e.name == "not"), (oldFun, newFun.args.head))
             else None
           case (SchemeVar(oldId), SchemeVar(newId)) =>
             if oldId.name == "<=" && newId.name == ">"|| oldId.name == ">" && newId.name == "<=" || oldId.name == ">=" && newId.name == "<" || oldId.name == "<" && newId.name == ">=" then
               if comparePartialCondAndBranches(oldFun.args, newFun.args, oldIf.cons, oldIf.alt, newIf.cons, newIf.alt) then
+                println(prims)
+                println(newId.name)
                 return Some(prims.filter(e => e.name == newId.name), (oldFun, newFun))
             None
           case (_, _) =>
@@ -134,6 +138,7 @@ class SchemeChangePatterns:
           case SchemeVar(newId) =>
             if newId.name == "not" then
               if comparePartialCondAndBranches(List(oldVal), newFun.args, oldIf.cons, oldIf.alt, newIf.cons, newIf.alt) then
+                println("139")
                 return Some(prims.filter(e => e.name == "not"), (oldVal, newFun.args.head))
             None
           case _ => None
@@ -142,6 +147,7 @@ class SchemeChangePatterns:
           case SchemeVar(oldId) =>
             if oldId.name == "not" then
               if comparePartialCondAndBranches(oldFun.args, List(newVal), oldIf.cons, oldIf.alt, newIf.cons, newIf.alt) then
+                println("148")
                 return Some(List(), (oldFun.args.head, newVal))
             None
           case _ => None
@@ -261,20 +267,22 @@ class SchemeChangePatterns:
             case _ =>)
         deletes.foreach(deleted =>
           if !scopeChanges.exists(s => s._1._1 == deleted) then
+            println(deleted)
             maybeReanalyse.find(r => r._1.eql(deleted)) match
               case Some(toReanalyse) => reanalyse = reanalyse.::(toReanalyse._2))
         inserts.foreach(inserted =>
           if !scopeChanges.exists(s => s._2._1 == inserted) then
+            println(inserted)
             maybeReanalyse.find(r => r._1.eql(inserted)) match
               case Some(toReanalyse) => reanalyse = reanalyse.::(toReanalyse._2))
-       /* println("reanalyse")
+        println("reanalyse")
         reanalyse.foreach(println)
         println("rename")
         rename.foreach(println)
         println("ifs")
         println(ifs)
         println("scope changes")
-        println(scopeChanges)*/
+        println(scopeChanges)
         differentChanges(reanalyse, rename, ifs, scopeChanges)
       case _ => differentChanges(reanalyse, rename, ifs, scopeChanges)
 
