@@ -1,11 +1,11 @@
 package maf.modular.incremental.update
 
-import maf.core.{BasicEnvironment, Expression, Identifier, Position}
+import maf.core.{Address, BasicEnvironment, Expression, Identifier, Position}
 import maf.language.change.CodeVersion.{New, Old}
 import maf.language.scheme.{SchemeChangePatterns, SchemeExp, SchemeLambda, SchemeLambdaExp, SchemeLetrec}
 import maf.modular.incremental.IncrementalModAnalysis
-import maf.modular.scheme.modf
-import maf.modular.scheme.modf.SchemeModFComponent
+import maf.modular.scheme.{PrmAddr, modf}
+import maf.modular.scheme.modf.{NoContext, SchemeModFComponent}
 import maf.util.benchmarks.Timeout
 
 import scala.::
@@ -23,7 +23,7 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
 
   def updateAnalysis(timeout: Timeout.T, rename: Boolean): Unit =
     version = New
-    var initialEnv: Map[String, (Identifier, SchemeLambdaExp)] = Map()
+    var initialEnv: Map[String, (Identifier, SchemeExp)] = Map()
     program match
       case letrec: SchemeLetrec =>
         println("28")
@@ -80,6 +80,23 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
               changes.ifs.foreach(e =>
                 e._2.foreach(id =>
                   if !namesVisited.contains(id.name) then
+                    initialEnv.get(id.name) match
+                      case Some((id: Identifier, lam: SchemeLambdaExp)) =>
+                        val newEnv = BasicEnvironment[Address](lam.fv.map(fv =>
+                          initialEnv.get(fv) match
+                            case Some((idfv: Identifier, _)) =>
+                              (fv, maf.modular.scheme.VarAddr(idfv, None))
+                            case _ =>
+                              (fv, PrmAddr(fv))
+                        ).toMap)
+                     //   val newEnv = BasicEnvironment[Address](initialEnv.filter((k, v) => lam.fv.contains(k)).map((k, v) => (k, v._1)))
+                        val newComponent = SchemeModFComponent.Call((lam, newEnv), NoContext)
+                        visited = visited + newComponent.asInstanceOf[Component]
+                        addToWorkList(newComponent.asInstanceOf[Component])
+                        println(initialEnv.get(id.name))
+
+                      case _ =>
+
                     println()
                   //  val neededLam: SchemeLambdaExp = program
                     //modf.SchemeModFComponent.call((e.))
