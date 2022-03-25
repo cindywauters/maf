@@ -54,6 +54,13 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
               case _ =>
             (lam, comp)
         }.toMap
+        visited.foreach(v => v match
+          case comp@SchemeModFComponent.Call((lam: Expr, env: BasicEnvironment[_]), oldCtx: _) if lam.idn.idn.tag != Position.noTag =>
+            lam.name match
+              case Some(name) => namesVisited = namesVisited.::(name)
+              case _ =>
+          case _ =>
+        )
         var affectedLambdasPairsIntermediate = finder.findEquivalentLambdas(affectedLambdas.keys.toList, secondProgram)
      /*   affectedLambdasPairsIntermediate.foreach(e =>
           println(e._1)
@@ -61,10 +68,14 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
         println("equivanent lambdas")
         println(affectedLambdasPairsIntermediate)
         var affectedLambdasPairs: List[(Expression, Expression)] = List()
+        var componentsWithAddedIfs: List[SchemeModFComponent] = List()
         affectedLambdasPairsIntermediate.foreach(e => e match
           case (expr: Expr, Some(other: Expression)) if expr != other && !changes.reanalyse.exists(e => e._1.contains(expr)) =>
             allChanges = allChanges + (expr -> other)
             affectedLambdasPairs = affectedLambdasPairs.::(expr, other)
+            if !expr.fv.contains("not") && other.fv.contains("not") then
+              affectedLambdas.get(expr) match
+                case Some(comp) => componentsWithAddedIfs = componentsWithAddedIfs.::(comp.asInstanceOf[SchemeModFComponent])
           case (expr: Expr, _) =>
            // mapping.get(expr).foreach(e => addToWorkList(e._2))
             affectedLambdas.get(expr).foreach(e => e match
@@ -116,9 +127,12 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
               )*/
               if changes.renamings.nonEmpty || changes.ifs.nonEmpty || changes.scopeChanges.nonEmpty then
                 val renamed = changes.renamings.map(e => (e._1, e._2._2))//.toSet
+                println("all names ")
+                println(namesVisited)
                 this match
-                  case withStore: IncrementalGlobalStoreWithUpdate[Expr] =>
-                    update.insertNotComponent(withStore, initialEnv)
+                  case withStore: IncrementalGlobalStoreWithUpdate[Expr] =>// if !namesVisited.contains("not") =>
+                    update.insertNotComponent(withStore, initialEnv, componentsWithAddedIfs)
+                  case _ =>
                 update.changeDataStructures(a, List(program, secondProgram), renamed, changes.ifs, changes.scopeChanges, affectedLambdasPairs)
           affectedAll = changes.reanalyse
         var affected = affectedAll.flatMap(e => e match

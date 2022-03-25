@@ -76,14 +76,14 @@ class IncrementalUpdateDatastructures {
 
     allIfs = ifs
 
-    /* ifsWithMappings = ifs.map(i =>
+     ifsWithMappings = ifs.map(i =>
       a.mapping.get(i._3._1) match
         case Some(mapping: Set[SchemeModFComponent]) =>
           i._1._2.cond match
             case cond: SchemeFuncall =>
               a.mapping += (cond -> mapping)
               a.mapping += (cond.f -> mapping)
-          (i._2.head, mapping)).toMap*/
+          (i._2.head, mapping)).toMap
 
     a match
       case analysis: IncrementalGlobalStore[Expression] => // Update the store
@@ -256,11 +256,11 @@ class IncrementalUpdateDatastructures {
       a.deps = a.deps + (newKey -> newValue)
 
 
-  def insertNotComponent(a: IncrementalGlobalStore[Expression], initialEnv: Map[String, (Identifier, Expression)]): Unit =
+  def insertNotComponent(a: IncrementalGlobalStore[Expression], initialEnv: Map[String, (Identifier, Expression)], componentsWithAddedNot: List[SchemeModFComponent]): Unit =
     println("256")
     initialEnv.get("not") match
       case Some((id: Identifier, lam: SchemeLambdaExp)) =>
-        println(lam.idn)
+        println(id.idn)
         lam.args.foreach(s => println(s.idn))
         val newEnv = BasicEnvironment[Address](lam.fv.map(fv =>
           initialEnv.get(fv) match
@@ -271,11 +271,34 @@ class IncrementalUpdateDatastructures {
         ).toMap)
         val notComponent = SchemeModFComponent.Call((lam, newEnv), NoContext).asInstanceOf[a.Component]
         // val notL = IncrementalSchemeTypeDomain.modularLattice.bool(boolLattice.Top)
-        val boolValue = IncrementalSchemeTypeDomain.modularLattice.AnnotatedElements(List(IncrementalSchemeTypeDomain.modularLattice.Bool(ConstantPropagation.Top)), Set()).asInstanceOf[a.Value]
-        a.visited = a.visited + notComponent
-        a.store = a.store + (maf.modular.ReturnAddr(idn = lam.subexpressions.last.idn, cmp = notComponent) -> boolValue)
-        lam.args.foreach(arg =>
-          a.store = a.store + (maf.modular.scheme.VarAddr(arg, Some(NoContext)) -> boolValue)
+        var boolValueReturn = IncrementalSchemeTypeDomain.modularLattice.AnnotatedElements(List(IncrementalSchemeTypeDomain.modularLattice.Bool(ConstantPropagation.Top)), Set()).asInstanceOf[a.Value]
+        var boolValueVarAddr = boolValueReturn
+        val notReturn = maf.modular.ReturnAddr(idn = lam.subexpressions.last.idn, cmp = notComponent)
+        val notVarAddrs = lam.args.map(arg => maf.modular.scheme.VarAddr(arg, Some(NoContext)))
+        if a.visited.contains(notComponent) then
+          a.store.get(notVarAddrs.head) match
+            case Some(value) =>
+              boolValueVarAddr = a.lattice.join(boolValueVarAddr, value)
+            case _           =>
+        else
+          a.visited = a.visited + notComponent
+        a.store = a.store + (notReturn -> boolValueReturn)
+        a.deps.get(AddrDependency(notReturn)) match
+          case Some(deps) => a.deps = a.deps + (AddrDependency(notReturn) -> (deps ++ componentsWithAddedNot.map(e => e.asInstanceOf[a.Component])))
+          case _          => a.deps = a.deps + (AddrDependency(notReturn) ->  componentsWithAddedNot.map(e => e.asInstanceOf[a.Component]).toSet)
+        val varAddrNotItself = maf.modular.scheme.VarAddr(id, None)
+        a.deps.get(AddrDependency(varAddrNotItself)) match
+          case Some(deps) => a.deps = a.deps + (AddrDependency(varAddrNotItself) -> (deps ++ componentsWithAddedNot.map(e => e.asInstanceOf[a.Component])))
+          case _          => a.deps = a.deps + (AddrDependency(varAddrNotItself) ->  componentsWithAddedNot.map(e => e.asInstanceOf[a.Component]).toSet)
+        notVarAddrs.foreach(addr =>
+          a.store = a.store + (addr -> boolValueVarAddr)
+          a.deps.get(AddrDependency(addr)) match
+            case Some(deps) => a.deps = a.deps + (AddrDependency(addr) -> (deps + notComponent))
+            case _          => a.deps = a.deps + (AddrDependency(addr) -> Set(notComponent))
+        )
+        a.mapping = a.mapping + (lam -> Set(a.initialComponent))
+        findAllSubExps(lam).drop(1).foreach(sub =>
+          a.mapping = a.mapping + (sub -> Set(notComponent))
         )
 
   // A variable address can only change if the variable exists somewhere in the changed expression

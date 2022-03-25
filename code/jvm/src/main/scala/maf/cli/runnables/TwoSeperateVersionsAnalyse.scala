@@ -95,6 +95,7 @@ object TwoSeperateVersionsAnalyse extends App:
       val analysisWithUpdates = baseUpdates(program._1, program._2)
       analysisWithUpdates.analyzeWithTimeout(timeout())
       println(analysisWithUpdates.mapping)
+      println(analysisWithUpdates.store)
       val beforeUpdateAnalysis = System.nanoTime
       analysisWithUpdates.version = New
       analysisWithUpdates.updateAnalysis(timeout(), true)
@@ -164,7 +165,10 @@ object TwoSeperateVersionsAnalyse extends App:
                 case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
                   println(lam.toString + " " + env.toString + " " + oldCtx.toString)  )
             v.forall(elv => updatedValue.contains(elv))
-          case _ => false).toString)
+          case _ =>
+            println("doesnt exist: ")
+            println(k)
+            false).toString)
 
       println("Mapping with update : " + mappingWithUpdate.toString)
       println("Mapping new only    : " + mappingWithoutUpdate.toString)
