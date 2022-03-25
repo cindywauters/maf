@@ -8,6 +8,7 @@ import maf.language.scheme.interpreter.BaseSchemeInterpreter
 import maf.language.scheme.interpreter.ConcreteValues.AddrInfo.VarAddr
 import maf.language.scheme.interpreter.ConcreteValues.Value.Clo
 import maf.language.scheme.interpreter.ConcreteValues.{Addr, AddrInfo}
+import maf.lattice.ConstantPropagation
 import maf.language.scheme.lattices.{ModularSchemeLattice, SchemeLattice, SchemeOp}
 import maf.lattice.interfaces.*
 import maf.modular.{AddrDependency, ReturnAddr}
@@ -17,6 +18,7 @@ import maf.modular.incremental.{IncrementalGlobalStore, IncrementalModAnalysis}
 import maf.modular.scheme.SchemeTypeDomain.primitives.allPrimitives
 import maf.modular.scheme.modf.{NoContext, SchemeModFComponent}
 import maf.modular.scheme.{ModularSchemeLatticeWrapper, PrmAddr, SchemeAddr}
+import maf.language.scheme.primitives.SchemePrelude
 
 
 class IncrementalUpdateDatastructures {
@@ -74,14 +76,14 @@ class IncrementalUpdateDatastructures {
 
     allIfs = ifs
 
-     ifsWithMappings = ifs.map(i =>
+    /* ifsWithMappings = ifs.map(i =>
       a.mapping.get(i._3._1) match
         case Some(mapping: Set[SchemeModFComponent]) =>
           i._1._2.cond match
             case cond: SchemeFuncall =>
               a.mapping += (cond -> mapping)
               a.mapping += (cond.f -> mapping)
-          (i._2.head, mapping)).toMap
+          (i._2.head, mapping)).toMap*/
 
     a match
       case analysis: IncrementalGlobalStore[Expression] => // Update the store
@@ -254,6 +256,28 @@ class IncrementalUpdateDatastructures {
       a.deps = a.deps + (newKey -> newValue)
 
 
+  def insertNotComponent(a: IncrementalGlobalStore[Expression], initialEnv: Map[String, (Identifier, Expression)]): Unit =
+    println("256")
+    initialEnv.get("not") match
+      case Some((id: Identifier, lam: SchemeLambdaExp)) =>
+        println(lam.idn)
+        lam.args.foreach(s => println(s.idn))
+        val newEnv = BasicEnvironment[Address](lam.fv.map(fv =>
+          initialEnv.get(fv) match
+            case Some((idfv: Identifier, _)) =>
+              (fv, maf.modular.scheme.VarAddr(idfv, None))
+            case _ =>
+              (fv, PrmAddr(fv))
+        ).toMap)
+        val notComponent = SchemeModFComponent.Call((lam, newEnv), NoContext).asInstanceOf[a.Component]
+        // val notL = IncrementalSchemeTypeDomain.modularLattice.bool(boolLattice.Top)
+        val boolValue = IncrementalSchemeTypeDomain.modularLattice.AnnotatedElements(List(IncrementalSchemeTypeDomain.modularLattice.Bool(ConstantPropagation.Top)), Set()).asInstanceOf[a.Value]
+        a.visited = a.visited + notComponent
+        a.store = a.store + (maf.modular.ReturnAddr(idn = lam.subexpressions.last.idn, cmp = notComponent) -> boolValue)
+        lam.args.foreach(arg =>
+          a.store = a.store + (maf.modular.scheme.VarAddr(arg, Some(NoContext)) -> boolValue)
+        )
+
   // A variable address can only change if the variable exists somewhere in the changed expression
   // In this case, get what the variable has changed into and use that to create the new address
   // Otherwise, just return the old address
@@ -398,7 +422,14 @@ class IncrementalUpdateDatastructures {
         val newcar = getNewValues(a, cons.car).asInstanceOf[cons.car.type]
         val newcdr = getNewValues(a, cons.cdr).asInstanceOf[cons.cdr.type]
         IncrementalSchemeTypeDomain.modularLattice.Cons(newcar, newcdr)
+      case bool: IncrementalSchemeTypeDomain.modularLattice.Bool =>
+        println("BBOL")
+        println(bool.b.getClass)
+        println(value)
+        bool
       case _ =>
+        println("VALUE")
+        println(value.getClass)
         value
 
   // To create an new enviroment, loop over the old enviroment

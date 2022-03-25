@@ -91,8 +91,8 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
                         ).toMap)
                      //   val newEnv = BasicEnvironment[Address](initialEnv.filter((k, v) => lam.fv.contains(k)).map((k, v) => (k, v._1)))
                         val newComponent = SchemeModFComponent.Call((lam, newEnv), NoContext)
-                        visited = visited + newComponent.asInstanceOf[Component]
-                        addToWorkList(newComponent.asInstanceOf[Component])
+                     //   visited = visited + newComponent.asInstanceOf[Component]
+                    //    addToWorkList(newComponent.asInstanceOf[Component])
                         println(initialEnv.get(id.name))
 
                       case _ =>
@@ -116,6 +116,9 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
               )*/
               if changes.renamings.nonEmpty || changes.ifs.nonEmpty || changes.scopeChanges.nonEmpty then
                 val renamed = changes.renamings.map(e => (e._1, e._2._2))//.toSet
+                this match
+                  case withStore: IncrementalGlobalStoreWithUpdate[Expr] =>
+                    update.insertNotComponent(withStore, initialEnv)
                 update.changeDataStructures(a, List(program, secondProgram), renamed, changes.ifs, changes.scopeChanges, affectedLambdasPairs)
           affectedAll = changes.reanalyse
         var affected = affectedAll.flatMap(e => e match

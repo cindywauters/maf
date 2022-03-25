@@ -3,7 +3,7 @@ package maf.cli.runnables
 import maf.bench.scheme.SchemeBenchmarkPrograms
 import maf.core.Expression
 import maf.language.scheme.SchemeCodeChange
-import maf.modular.{AddrDependency, Dependency}
+import maf.modular.{AddrDependency, Dependency, ReturnAddr}
 import maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain
 import maf.modular.incremental.update.{IncrementalGlobalStoreWithUpdate, IncrementalModAnalysisWithUpdate, IncrementalModAnalysisWithUpdateTwoVersions, IncrementalUpdateDatastructures, UpdateIncrementalSchemeModFBigStepSemantics}
 import maf.modular.scheme.SchemeAddr
@@ -136,16 +136,17 @@ object TwoSeperateVersionsAnalyse extends App:
               println("store r -> u " + k.toString() + " " + v.toString + " " + updatedValue.toString)
             analysisWithUpdates.lattice.subsumes(updatedValue, v)
           case _ =>
-            println("old: " + v.toString + " " + k.toString())
+            println("old: " + v.hashCode().toString + " " + k.toString())
             false).toString)
-      storeWithUpdate.foreach((k, v) =>
+      println("all missing: ")
+      storeWithoutUpdate.foreach((k, v) =>
         storeWithoutUpdate.get(k) match
           case Some(updatedValue) =>
             if !analysisWithUpdates.lattice.subsumes(updatedValue, v) then
               println("store r -> u " + k.toString() + " " + v.toString + " " + updatedValue.toString)
             analysisWithUpdates.lattice.subsumes(updatedValue, v)
           case _ =>
-            println("old: " + v.toString + " " + k.toString())
+            println("old: " + v.hashCode().toString + " " + k.toString())
             false)
 
       println("Dependencies with update: " + depsWithUpdate.toString)
