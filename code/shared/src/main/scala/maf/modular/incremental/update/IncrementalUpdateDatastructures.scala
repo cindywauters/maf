@@ -255,10 +255,8 @@ class IncrementalUpdateDatastructures {
       a.deps = a.deps - oldKey
       a.deps = a.deps + (newKey -> newValue)
 
-
-  def insertNotComponent(a: IncrementalGlobalStore[Expression], initialEnv: Map[String, (Identifier, Expression)], componentsWithAddedNot: List[SchemeModFComponent]): Unit =
-    println("256")
-    initialEnv.get("not") match
+  def insertAComponent(name: String, a: IncrementalGlobalStore[Expression], initialEnv: Map[String, (Identifier, Expression)], componentsWithAddedNot: List[SchemeModFComponent]): Unit =
+    initialEnv.get(name) match
       case Some((id: Identifier, lam: SchemeLambdaExp)) =>
         println(id.idn)
         lam.args.foreach(s => println(s.idn))

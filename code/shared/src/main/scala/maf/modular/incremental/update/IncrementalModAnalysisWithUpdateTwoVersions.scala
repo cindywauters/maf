@@ -68,14 +68,19 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
         println("equivanent lambdas")
         println(affectedLambdasPairsIntermediate)
         var affectedLambdasPairs: List[(Expression, Expression)] = List()
-        var componentsWithAddedIfs: List[SchemeModFComponent] = List()
+        var componentsWithAddedNots: List[SchemeModFComponent] = List()
+        var componentsWithAddedBigger: List[SchemeModFComponent] = List()
         affectedLambdasPairsIntermediate.foreach(e => e match
           case (expr: Expr, Some(other: Expression)) if expr != other && !changes.reanalyse.exists(e => e._1.contains(expr)) =>
             allChanges = allChanges + (expr -> other)
             affectedLambdasPairs = affectedLambdasPairs.::(expr, other)
             if !expr.fv.contains("not") && other.fv.contains("not") then
               affectedLambdas.get(expr) match
-                case Some(comp) => componentsWithAddedIfs = componentsWithAddedIfs.::(comp.asInstanceOf[SchemeModFComponent])
+                case Some(comp) => componentsWithAddedNots = componentsWithAddedNots.::(comp.asInstanceOf[SchemeModFComponent])
+                case _          =>
+            if !expr.fv.contains(">") && other.fv.contains(">") then
+              affectedLambdas.get(expr) match
+                case Some(comp) => componentsWithAddedBigger = componentsWithAddedBigger.::(comp.asInstanceOf[SchemeModFComponent])
           case (expr: Expr, _) =>
            // mapping.get(expr).foreach(e => addToWorkList(e._2))
             affectedLambdas.get(expr).foreach(e => e match
@@ -131,7 +136,8 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
                 println(namesVisited)
                 this match
                   case withStore: IncrementalGlobalStoreWithUpdate[Expr] =>// if !namesVisited.contains("not") =>
-                    update.insertNotComponent(withStore, initialEnv, componentsWithAddedIfs)
+                    update.insertAComponent("not", withStore, initialEnv, componentsWithAddedNots)
+                    update.insertAComponent(">", withStore, initialEnv, componentsWithAddedBigger)
                   case _ =>
                 update.changeDataStructures(a, List(program, secondProgram), renamed, changes.ifs, changes.scopeChanges, affectedLambdasPairs)
           affectedAll = changes.reanalyse

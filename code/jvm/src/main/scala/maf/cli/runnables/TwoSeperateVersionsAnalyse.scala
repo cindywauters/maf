@@ -137,7 +137,7 @@ object TwoSeperateVersionsAnalyse extends App:
               println("store r -> u " + k.toString() + " " + v.toString + " " + updatedValue.toString)
             analysisWithUpdates.lattice.subsumes(updatedValue, v)
           case _ =>
-            println("old: " + v.hashCode().toString + " " + k.toString())
+            println("old: " + v.toString + " " + k.toString())
             false).toString)
       println("all missing: ")
       storeWithoutUpdate.foreach((k, v) =>
@@ -147,7 +147,7 @@ object TwoSeperateVersionsAnalyse extends App:
               println("store r -> u " + k.toString() + " " + v.toString + " " + updatedValue.toString)
             analysisWithUpdates.lattice.subsumes(updatedValue, v)
           case _ =>
-            println("old: " + v.hashCode().toString + " " + k.toString())
+            println("old: " + v.toString + " " + k.toString())
             false)
 
       println("Dependencies with update: " + depsWithUpdate.toString)

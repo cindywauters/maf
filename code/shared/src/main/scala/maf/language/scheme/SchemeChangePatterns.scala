@@ -266,6 +266,7 @@ class SchemeChangePatterns:
                 case _ =>
             case _ =>)
         deletes.foreach(deleted =>
+          // TODO swap around (so scopeChanges might be evaluated later due to its lazyness)
           if !scopeChanges.exists(s => s._1._1 == deleted) then
             println(deleted)
             maybeReanalyse.find(r => r._1.eql(deleted)) match
