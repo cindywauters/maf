@@ -272,7 +272,7 @@ class IncrementalUpdateDatastructures {
             case _ =>
               (fv, PrmAddr(fv))
         ).toMap)
-        val notComponent = SchemeModFComponent.Call((lam, newEnv), NoContext).asInstanceOf[a.Component]
+        val component = SchemeModFComponent.Call((lam, newEnv), NoContext).asInstanceOf[a.Component]
         // val notL = IncrementalSchemeTypeDomain.modularLattice.bool(boolLattice.Top)
         var boolValueReturn = IncrementalSchemeTypeDomain.modularLattice.AnnotatedElements(List(IncrementalSchemeTypeDomain.modularLattice.Bool(ConstantPropagation.Top)), Set()).asInstanceOf[a.Value]
         var valueVarAddr =
@@ -280,15 +280,40 @@ class IncrementalUpdateDatastructures {
             boolValueReturn
           else
             IncrementalSchemeTypeDomain.modularLattice.AnnotatedElements(List(IncrementalSchemeTypeDomain.modularLattice.Int(Type.Top)), Set()).asInstanceOf[a.Value]
-        val notReturn = maf.modular.ReturnAddr(idn = lam.body.head.idn, cmp = notComponent)
-        val notVarAddrs = lam.args.map(arg => maf.modular.scheme.VarAddr(arg, Some(NoContext)))
-        if a.visited.contains(notComponent) then
+        val notReturn = maf.modular.ReturnAddr(idn = lam.body.head.idn, cmp = component)
+        var notVarAddrs = lam.args.map(arg => maf.modular.scheme.VarAddr(arg, Some(NoContext)))//.appendedAll(newEnv.content.values)
+        newEnv.content.values.foreach(addr => addr match
+          case valAddr @ maf.modular.scheme.VarAddr(vr, ctx) =>
+            initialEnv.get(vr.name) match
+              case Some((idnew: Identifier, lamnew: SchemeLambdaExp)) =>
+                val envForComp = BasicEnvironment[Address](lamnew.fv.map(fv =>
+                  println("ALL FVS")
+                  println(fv)
+                  initialEnv.get(fv) match
+                    case Some((idfv: Identifier, _)) =>
+                      val valAddr = maf.modular.scheme.VarAddr(idfv, None)
+                      a.deps.get(AddrDependency(valAddr)) match
+                        case Some(deps) => a.deps = a.deps + (AddrDependency(valAddr) -> (deps + component))
+                        case _          => a.deps = a.deps + (AddrDependency(valAddr) -> Set(component))
+                      (fv, valAddr)
+                    case _ =>
+                      (fv, PrmAddr(fv))).toMap)
+                  val retAddr = ReturnAddr(SchemeModFComponent.Call((lamnew, envForComp), NoContext), lamnew.body.head.idn)
+                  a.deps.get(AddrDependency(retAddr)) match
+                    case Some(deps) => a.deps = a.deps + (AddrDependency(retAddr) -> (deps + component))
+                    case _          => a.deps = a.deps + (AddrDependency(retAddr) -> Set(component))
+              case _ =>
+            a.deps.get(AddrDependency(valAddr)) match
+              case Some(deps) => a.deps = a.deps + (AddrDependency(valAddr) -> (deps + component))
+              case _          => a.deps = a.deps + (AddrDependency(valAddr) -> Set(component))
+          case _ =>)
+        if a.visited.contains(component) then
           a.store.get(notVarAddrs.head) match
             case Some(value) =>
               valueVarAddr = a.lattice.join(valueVarAddr, value)
             case _           =>
         else
-          a.visited = a.visited + notComponent
+          a.visited = a.visited + component
         a.store = a.store + (notReturn -> boolValueReturn)
         a.deps.get(AddrDependency(notReturn)) match
           case Some(deps) => a.deps = a.deps + (AddrDependency(notReturn) -> (deps ++ componentsWithAddedNot.map(e => e.asInstanceOf[a.Component])))
@@ -300,12 +325,20 @@ class IncrementalUpdateDatastructures {
         notVarAddrs.foreach(addr =>
           a.store = a.store + (addr -> valueVarAddr)
           a.deps.get(AddrDependency(addr)) match
-            case Some(deps) => a.deps = a.deps + (AddrDependency(addr) -> (deps + notComponent))
-            case _          => a.deps = a.deps + (AddrDependency(addr) -> Set(notComponent))
+            case Some(deps) => a.deps = a.deps + (AddrDependency(addr) -> (deps + component))
+            case _          => a.deps = a.deps + (AddrDependency(addr) -> Set(component))
         )
+     /*   if name == ">" then
+          initialEnv.get("not") match
+            case Some((idnot, lamnot: SchemeLambda)) =>
+              val notComponent = SchemeModFComponent.Call((lamnot, BasicEnvironment[Address](Map())), NoContext).asInstanceOf[a.Component]
+              a.deps.get(AddrDependency(ReturnAddr(notComponent, lamnot.body.head.idn))) match
+                case Some(deps) => a.deps = a.deps + (AddrDependency(ReturnAddr(notComponent, lamnot.body.head.idn)) -> (deps + component))
+*/
+
         a.mapping = a.mapping + (lam -> Set(a.initialComponent))
         findAllSubExps(lam).drop(1).foreach(sub =>
-          a.mapping = a.mapping + (sub -> Set(notComponent))
+          a.mapping = a.mapping + (sub -> Set(component))
         )
 
   // A variable address can only change if the variable exists somewhere in the changed expression
