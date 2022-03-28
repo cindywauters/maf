@@ -10,6 +10,7 @@ import maf.language.scheme.interpreter.ConcreteValues.Value.Clo
 import maf.language.scheme.interpreter.ConcreteValues.{Addr, AddrInfo}
 import maf.lattice.ConstantPropagation
 import maf.language.scheme.lattices.{ModularSchemeLattice, SchemeLattice, SchemeOp}
+import maf.lattice.Type
 import maf.lattice.interfaces.*
 import maf.modular.{AddrDependency, ReturnAddr}
 import maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain.modularLattice.incrementalSchemeLattice
@@ -258,8 +259,12 @@ class IncrementalUpdateDatastructures {
   def insertAComponent(name: String, a: IncrementalGlobalStore[Expression], initialEnv: Map[String, (Identifier, Expression)], componentsWithAddedNot: List[SchemeModFComponent]): Unit =
     initialEnv.get(name) match
       case Some((id: Identifier, lam: SchemeLambdaExp)) =>
+        println("ARGS")
+        println(lam)
+        println(lam.subexpressions)
         println(id.idn)
-        lam.args.foreach(s => println(s.idn))
+    //    lam.args.foreach(s => println(s.idn))
+        lam.subexpressions.foreach(s => println(s.idn))
         val newEnv = BasicEnvironment[Address](lam.fv.map(fv =>
           initialEnv.get(fv) match
             case Some((idfv: Identifier, _)) =>
@@ -270,13 +275,17 @@ class IncrementalUpdateDatastructures {
         val notComponent = SchemeModFComponent.Call((lam, newEnv), NoContext).asInstanceOf[a.Component]
         // val notL = IncrementalSchemeTypeDomain.modularLattice.bool(boolLattice.Top)
         var boolValueReturn = IncrementalSchemeTypeDomain.modularLattice.AnnotatedElements(List(IncrementalSchemeTypeDomain.modularLattice.Bool(ConstantPropagation.Top)), Set()).asInstanceOf[a.Value]
-        var boolValueVarAddr = boolValueReturn
-        val notReturn = maf.modular.ReturnAddr(idn = lam.subexpressions.last.idn, cmp = notComponent)
+        var valueVarAddr =
+          if name == "not" then
+            boolValueReturn
+          else
+            IncrementalSchemeTypeDomain.modularLattice.AnnotatedElements(List(IncrementalSchemeTypeDomain.modularLattice.Int(Type.Top)), Set()).asInstanceOf[a.Value]
+        val notReturn = maf.modular.ReturnAddr(idn = lam.body.head.idn, cmp = notComponent)
         val notVarAddrs = lam.args.map(arg => maf.modular.scheme.VarAddr(arg, Some(NoContext)))
         if a.visited.contains(notComponent) then
           a.store.get(notVarAddrs.head) match
             case Some(value) =>
-              boolValueVarAddr = a.lattice.join(boolValueVarAddr, value)
+              valueVarAddr = a.lattice.join(valueVarAddr, value)
             case _           =>
         else
           a.visited = a.visited + notComponent
@@ -289,7 +298,7 @@ class IncrementalUpdateDatastructures {
           case Some(deps) => a.deps = a.deps + (AddrDependency(varAddrNotItself) -> (deps ++ componentsWithAddedNot.map(e => e.asInstanceOf[a.Component])))
           case _          => a.deps = a.deps + (AddrDependency(varAddrNotItself) ->  componentsWithAddedNot.map(e => e.asInstanceOf[a.Component]).toSet)
         notVarAddrs.foreach(addr =>
-          a.store = a.store + (addr -> boolValueVarAddr)
+          a.store = a.store + (addr -> valueVarAddr)
           a.deps.get(AddrDependency(addr)) match
             case Some(deps) => a.deps = a.deps + (AddrDependency(addr) -> (deps + notComponent))
             case _          => a.deps = a.deps + (AddrDependency(addr) -> Set(notComponent))
@@ -443,11 +452,11 @@ class IncrementalUpdateDatastructures {
         val newcar = getNewValues(a, cons.car).asInstanceOf[cons.car.type]
         val newcdr = getNewValues(a, cons.cdr).asInstanceOf[cons.cdr.type]
         IncrementalSchemeTypeDomain.modularLattice.Cons(newcar, newcdr)
-      case bool: IncrementalSchemeTypeDomain.modularLattice.Bool =>
-        println("BBOL")
-        println(bool.b.getClass)
-        println(value)
-        bool
+      case int: IncrementalSchemeTypeDomain.modularLattice.Int =>
+        println("Int")
+        println(int.i)
+        println(int.i.getClass)
+        int
       case _ =>
         println("VALUE")
         println(value.getClass)

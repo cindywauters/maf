@@ -141,7 +141,7 @@ object TwoSeperateVersionsAnalyse extends App:
             false).toString)
       println("all missing: ")
       storeWithoutUpdate.foreach((k, v) =>
-        storeWithoutUpdate.get(k) match
+        storeWithUpdate.get(k) match
           case Some(updatedValue) =>
             if !analysisWithUpdates.lattice.subsumes(updatedValue, v) then
               println("store r -> u " + k.toString() + " " + v.toString + " " + updatedValue.toString)

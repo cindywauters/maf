@@ -8,5 +8,4 @@
          (display n))))
 
 (test 5)
-(test #f)
 (display 6)
