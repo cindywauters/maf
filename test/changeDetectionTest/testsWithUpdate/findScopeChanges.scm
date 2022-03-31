@@ -1,11 +1,10 @@
-(define (test n)
-  (<update>
-    (if  (<= n 2)
-        (display n)
-        n)
-    (if (> n 2)
-         n
-         (display n))))
+(<delete> (define rec-fun (lambda (x)
+    (if (< x 0)
+         x
+         (rec-fun (- x 1))))))
 
-(test 5)
-(display 6)
+(define (g y)
+    (letrec ((<insert> (rec-fun (lambda (x) (if (< x 0) x (rec-fun (- x 1)))))))
+     (rec-fun y)))
+
+(g 5)

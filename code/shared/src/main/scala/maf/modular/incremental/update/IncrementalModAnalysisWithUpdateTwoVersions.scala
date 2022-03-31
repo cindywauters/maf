@@ -134,11 +134,11 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
                 val renamed = changes.renamings.map(e => (e._1, e._2._2))//.toSet
                 println("all names ")
                 println(namesVisited)
-                this match
+                /*this match
                   case withStore: IncrementalGlobalStoreWithUpdate[Expr] =>// if !namesVisited.contains("not") =>
                     update.insertAComponent("not", withStore, initialEnv, componentsWithAddedNots)
                     update.insertAComponent(">", withStore, initialEnv, componentsWithAddedBigger)
-                  case _ =>
+                  case _ =>*/
                 update.changeDataStructures(a, List(program, secondProgram), renamed, changes.ifs, changes.scopeChanges, affectedLambdasPairs)
           affectedAll = changes.reanalyse
         var affected = affectedAll.flatMap(e => e match
@@ -155,4 +155,4 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
         println(workList)
        // addToWorkList(initialComponent)
         println(changes.scopeChanges)
-    analyzeWithTimeout(timeout)
+    //analyzeWithTimeout(timeout)

@@ -77,7 +77,7 @@ class IncrementalUpdateDatastructures {
 
     allIfs = ifs
 
-     ifsWithMappings = ifs.map(i =>
+     ifsWithMappings = ifs.filter(i => i._2.nonEmpty).map(i =>
       a.mapping.get(i._3._1) match
         case Some(mapping: Set[SchemeModFComponent]) =>
           i._1._2.cond match

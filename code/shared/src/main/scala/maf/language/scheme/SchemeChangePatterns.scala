@@ -133,22 +133,22 @@ class SchemeChangePatterns:
             None
           case (_, _) =>
             None
-      case (oldVal: SchemeValue, newFun: SchemeFuncall) =>
-        newFun.f match
-          case SchemeVar(newId) =>
-            if newId.name == "not" then
-              if comparePartialCondAndBranches(List(oldVal), newFun.args, oldIf.cons, oldIf.alt, newIf.cons, newIf.alt) then
-                println("139")
-                return Some(prims.filter(e => e.name == "not"), (oldVal, newFun.args.head))
-            None
-          case _ => None
-      case (oldFun: SchemeFuncall, newVal: SchemeValue) =>
+      case (oldFun: SchemeFuncall, newVal: _) =>
         oldFun.f match
           case SchemeVar(oldId) =>
             if oldId.name == "not" then
               if comparePartialCondAndBranches(oldFun.args, List(newVal), oldIf.cons, oldIf.alt, newIf.cons, newIf.alt) then
                 println("148")
                 return Some(List(), (oldFun.args.head, newVal))
+            None
+          case _ => None
+      case (oldVal: _, newFun: SchemeFuncall) =>
+        newFun.f match
+          case SchemeVar(newId) =>
+            if newId.name == "not" then
+              if comparePartialCondAndBranches(List(oldVal), newFun.args, oldIf.cons, oldIf.alt, newIf.cons, newIf.alt) then
+                println("139")
+                return Some(prims.filter(e => e.name == "not"), (oldVal, newFun.args.head))
             None
           case _ => None
       case (e1: _, e2: _) => None
@@ -261,12 +261,16 @@ class SchemeChangePatterns:
               val newEnv = allNewScopes.get(inserted)
               (oldEnv, newEnv) match
                 case (Some(oenv: (Identifier, Map[String, Identifier])), Some(nenv: (Identifier, Map[String, Identifier]))) =>
-                  if oenv._2 == nenv._2 && oenv._1.name == nenv._1.name then
+                  var oenvOnly = oenv._2
+                  var nenvOnly = nenv._2
+                  if oenvOnly.get(oenv._1.name).contains(oenv._1) && nenvOnly.get(nenv._1.name).contains(nenv._1) then // recursive case
+                    oenvOnly = oenvOnly.filter((k, v) => k != oenv._1.name)
+                    nenvOnly = nenvOnly.filter((k, v) => k != nenv._1.name)
+                  if oenvOnly == nenvOnly && oenv._1.name == nenv._1.name then
                     scopeChanges = scopeChanges + ((deleted, oenv) -> (inserted, nenv))
                 case _ =>
             case _ =>)
         deletes.foreach(deleted =>
-          // TODO swap around (so scopeChanges might be evaluated later due to its lazyness)
           if !scopeChanges.exists(s => s._1._1 == deleted) then
             println(deleted)
             maybeReanalyse.find(r => r._1.eql(deleted)) match
@@ -278,6 +282,7 @@ class SchemeChangePatterns:
               case Some(toReanalyse) => reanalyse = reanalyse.::(toReanalyse._2))
         println("reanalyse")
         reanalyse.foreach(println)
+        println(reanalyse.size)
         println("rename")
         rename.foreach(println)
         println("ifs")
