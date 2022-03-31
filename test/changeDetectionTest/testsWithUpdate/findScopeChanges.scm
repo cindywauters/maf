@@ -1,10 +1,10 @@
-(<delete> (define rec-fun (lambda (x)
+(<insert> (define rec-fun (lambda (x)
     (if (< x 0)
          x
          (rec-fun (- x 1))))))
 
 (define (g y)
-    (letrec ((<insert> (rec-fun (lambda (x) (if (< x 0) x (rec-fun (- x 1)))))))
+    (letrec ((<delete> (rec-fun (lambda (x) (if (< x 0) x (rec-fun (- x 1)))))))
      (rec-fun y)))
 
 (g 5)

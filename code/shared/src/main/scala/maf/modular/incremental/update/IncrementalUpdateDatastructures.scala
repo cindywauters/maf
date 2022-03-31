@@ -56,11 +56,14 @@ class IncrementalUpdateDatastructures {
     val allOldExps = changedExpressions.flatMap(e => findAllSubExps(e._1)).toList//.appendedAll(otherChanges.map(_._1))
     val allNewExps = changedExpressions.flatMap(e => findAllSubExps(e._2)).toList//.appendedAll(otherChanges.map(_._2))
     allExpressionsInChange = allOldExps.zip(allNewExps).toMap
+    println("other changes")
+    println(otherChanges.map(_._1).flatMap(findAllSubExps).head.height)
+    println(otherChanges.map(_._2).flatMap(findAllSubExps).head.height)
     (for
       oldExp <- otherChanges.map(_._1).flatMap(findAllSubExps)
       newExp <- otherChanges.map(_._2).flatMap(findAllSubExps)
-      if oldExp.idn == newExp.idn && oldExp.getClass == newExp.getClass && oldExp != newExp && oldExp.height == newExp.height
-    yield (oldExp, newExp)).foreach(e => allExpressionsInChange + (e._1 -> e._2))
+      if oldExp.idn == newExp.idn && oldExp.getClass == newExp.getClass && oldExp != newExp
+    yield (oldExp, newExp)).foreach(e => allExpressionsInChange = allExpressionsInChange + (e._1 -> e._2))
 
     println("all expressions")
     allExpressionsInChange.foreach(println)
@@ -503,7 +506,9 @@ class IncrementalUpdateDatastructures {
     //var changingIf = false
     var varsToRemove: Set[String] = Set()
     var subExprs = findAllSubExps(expr)
-    (allScopeChanges.map((k, v) => (k._1, v._1)) ++ allIfs.map(_._1).toMap).find(changed => subExprs.contains(changed._1) || subExprs.contains(changed._2)) match
+    //(allScopeChanges.map((k, v) => (k._1, v._1)) ++ allIfs.map(_._1).toMap).find(changed => subExprs.contains(changed._1) || subExprs.contains(changed._2)) match
+    //TODO there's probably a more efficient way to do this (allScopechanges + allIfs + allOtherChanges for example)
+    allExpressionsInChange.find(changed => subExprs.contains(changed._1) || subExprs.contains(changed._2)) match
       case Some(exprs) =>
         varsToRemove = exprs._1.fv.diff(exprs._2.fv)
         buildNewExpr(expr).fv.foreach(fv =>
