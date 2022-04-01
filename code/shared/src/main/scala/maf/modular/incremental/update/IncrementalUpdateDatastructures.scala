@@ -47,12 +47,13 @@ class IncrementalUpdateDatastructures {
     val finder = new SchemeChangePatterns
     val scopeChangedVars = scopeChanges.flatMap((k, v) => List((k._2._1, v._2._1)).appendedAll(finder.findAllVarsInOrder(k._1).zip(finder.findAllVarsInOrder(v._1))))
     changedVars = changedVarsSwapped.map(_.swap).toMap ++ scopeChangedVars // Get all renamed vars
-    var scopeChangesExprs = scopeChanges.map((k, v) => (k._1, v._1))
-    changedExpressions = renamings.map(e => e._1).toMap ++ scopeChangesExprs// Get all expressions that have been changed
+    var scopeChangesExprs: List[Expression] = scopeChanges.map((k, v) => (k._1, v._1)).flatMap(e => findAllSubExps(e._2)).collect {
+      case e: SchemeLambdaExp => e.asInstanceOf[Expression]
+    }.toList
+    changedExpressions = renamings.map(e => e._1).toMap ++ scopeChanges.map((k, v) => (k._1, v._1)) // TODO fix this (same as above) // Get all expressions that have been changed
     allScopeChanges = scopeChanges
 
     allExprs = exp
-
 
     // get all expressions that exist within an old expression and in a new expression and zip them together to know what has changed to what
     val allOldExps = changedExpressions.flatMap(e => findAllSubExps(e._1)).toList//.appendedAll(otherChanges.map(_._1))
@@ -62,10 +63,11 @@ class IncrementalUpdateDatastructures {
     val allSubsOtherNew = otherChanges.map(_._2).flatMap(findAllSubExps)
     equivalentLambdas = otherChanges.toMap
     (for
-      oldExp <- otherChanges.map(_._1).flatMap(findAllSubExps)
-      newExp <- otherChanges.map(_._2).flatMap(findAllSubExps)
-      if oldExp.idn == newExp.idn && oldExp.getClass == newExp.getClass && !allSubsOtherNew.contains(oldExp)
+      oldExp <- allSubsOtherOld
+      newExp <- allSubsOtherNew
+      if oldExp.idn == newExp.idn && oldExp.getClass == newExp.getClass && !allSubsOtherNew.contains(oldExp)// && (if oldExp.idn == NoCodeIdentity && oldExp.subexpressions.nonEmpty && newExp.subexpressions.nonEmpty then if oldExp.subexpressions.head.idn == newExp.subexpressions.head.idn then true else false else false)
     yield (oldExp, newExp)).foreach(e => allExpressionsInChange = allExpressionsInChange + (e._1 -> e._2))
+    
 
     ifs.foreach(e =>
       val oldIf = e._1._1
@@ -97,17 +99,19 @@ class IncrementalUpdateDatastructures {
     updateVisited(a) // Update visited
 
     // Find which component the expression has moved to/ in which ones it belongs. Also keep track of where it no longer belongs
-    var moved: Map[Expression, Set[SchemeModFComponent]] = scopeChangesExprs.map(e => (e._2, Set(): Set[SchemeModFComponent]))
+    var moved: Map[Expression, Set[SchemeModFComponent]] = scopeChangesExprs.map(e => (e, Set(): Set[SchemeModFComponent])).toMap//.flatMap(e => findAllSubExps(e._2)).collect {
+    //  case e: SchemeLambdaExp => (e, Set(): Set[SchemeModFComponent])
+   // }.toMap//.map(e => (e, Set(): Set[SchemeModFComponent]))
     a.visited.foreach(comp => comp match
       case comp @ SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), ctx: _) =>
         val allSubs = findAllSubExps(lam)
-          scopeChangesExprs.foreach(exprs =>
-          if allSubs.contains(exprs._2) then
-            var allSubsExpr = findAllSubExps(exprs._2)
-            if lam == exprs._2 then
-              allSubsExpr = allSubsExpr.tail
+        scopeChangesExprs.foreach(expr =>
+          if lam.equals(expr) then //allSubs.contains(exprs._2) then
+            var allSubsExpr = findAllSubExps(expr).tail
             allSubsExpr.foreach(e =>
               moved = moved + (e -> (moved.getOrElse(e, Set()) ++ Set(comp))))
+          else if allSubs.contains(expr) then
+              moved = moved + (expr -> (moved.getOrElse(expr, Set()) ++ Set(comp)))
            // allSubs.filter(sub => a.mapping.contains(sub)).foreach(sub => moved = moved + (sub -> toInsert))
       )
       case comp: SchemeModFComponent.Main.type =>
@@ -116,7 +120,7 @@ class IncrementalUpdateDatastructures {
      var toInsert: Set[a.Component] = Set(a.initialComponent)
      if e._2.nonEmpty then
        toInsert = e._2.asInstanceOf[Set[a.Component]]
-     if toInsert != a.mapping.get(e._1) then
+     if !a.mapping.get(e._1).contains(toInsert) then
        a.mapping.find(m => m._1.idn == e._1.idn) match
          case Some(map) =>
             // a.mapping = a.mapping - map._1

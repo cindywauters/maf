@@ -159,68 +159,71 @@ class SchemeChangePatterns:
   def findLowestChangedSubExpressions(old: Expression, nw: Expression): Unit =
     if old.subexpressions.isEmpty && nw.subexpressions.isEmpty then
       reanalyse = reanalyse.::((Some(old), Some(nw)))
-    (old, nw) match
-      case (oe: Identifier, ne: Identifier) =>
-        if renamedBindingsIds.contains(oe) then
-          rename = rename.::((oe, ne), (true, Map(ne -> oe)))
-          return
-      case (oldIf: SchemeIf, newIf: SchemeIf) =>
-        val maybeSwapped = compareIfs(oldIf, newIf, needed_prims)
-        maybeSwapped match
-          case Some((added, conds)) =>
-            ifs = ifs.::((oldIf -> newIf), added, conds)
+    if old == nw then
+      return
+    else
+      (old, nw) match
+        case (oe: Identifier, ne: Identifier) =>
+          if renamedBindingsIds.contains(oe) then
+            rename = rename.::((oe, ne), (true, Map(ne -> oe)))
             return
-          case None =>
-            if oldIf.eql(newIf) then
-              rename = rename.::((oldIf, newIf), (true, Map()))
+        case (oldIf: SchemeIf, newIf: SchemeIf) =>
+          val maybeSwapped = compareIfs(oldIf, newIf, needed_prims)
+          maybeSwapped match
+            case Some((added, conds)) =>
+              ifs = ifs.::((oldIf -> newIf), added, conds)
               return
-      case (ol: SchemeLettishExp, nl: SchemeLettishExp) =>
-        val renamed = checkRenamingsVariables(ol, nl)
-        if renamed._1 then
-          rename = rename.::((ol, nl), renamed)
-          return
-        else if ol.subexpressions.forall(o => !nl.subexpressions.exists(n => o.idn == n.idn)) then
-          reanalyse = reanalyse.::(Some(ol), Some(nl))
-          return
+            case None =>
+              if oldIf.eql(newIf) then
+                rename = rename.::((oldIf, newIf), (true, Map()))
+                return
+        case (ol: SchemeLettishExp, nl: SchemeLettishExp) =>
+          val renamed = checkRenamingsVariables(ol, nl)
+          if renamed._1 then
+            rename = rename.::((ol, nl), renamed)
+            return
+          else if ol.subexpressions.forall(o => !nl.subexpressions.exists(n => o.idn == n.idn)) then
+            reanalyse = reanalyse.::(Some(ol), Some(nl))
+            return
      /*   else if renamed._1 then
           ol.body.zip(nl.body).foreach(b => findLowestChangedSubExpressions(b._1, b._2))
           return*/
-      case (ol: SchemeLambda, nl: SchemeLambda) =>
-        val renamed = checkRenamingsVariables(ol, nl)
-        if renamed._1 then
-          rename = rename.::((ol, nl), renamed)
-          return
-        else if ol.subexpressions.forall(o => !nl.subexpressions.exists(n => o.idn == n.idn)) then
-          reanalyse = reanalyse.::(Some(ol), Some(nl))
-          return
+        case (ol: SchemeLambda, nl: SchemeLambda) =>
+          val renamed = checkRenamingsVariables(ol, nl)
+          if renamed._1 then
+            rename = rename.::((ol, nl), renamed)
+            return
+          else if ol.subexpressions.forall(o => !nl.subexpressions.exists(n => o.idn == n.idn)) then
+            reanalyse = reanalyse.::(Some(ol), Some(nl))
+            return
        /* else if renamed._1 then
           ol.body.zip(nl.body).foreach(b => findLowestChangedSubExpressions(b._1, b._2))
           return */
-      case (oldexp: SchemeExp, newexp: SchemeExp) if oldexp.subexpressions.forall(o => !newexp.subexpressions.exists(n => o.idn == n.idn))  =>
-        reanalyse = reanalyse.::(Some(oldexp), Some(newexp))
-        return
-      case _ =>
-    var addToMaybe: List[Expression] = List()
-    old.subexpressions.foreach(oe =>
-      nw.subexpressions.find(ne => oe.idn == ne.idn) match
-        case Some(ne) =>
-          if oe.subexpressions.exists(oe => ne.subexpressions.exists(ne => oe.idn == ne.idn)) then
-            findLowestChangedSubExpressions(oe, ne)
-          else if oe != ne then
-            findLowestChangedSubExpressions(oe, ne)
+        case (oldexp: SchemeExp, newexp: SchemeExp) if oldexp.subexpressions.forall(o => !newexp.subexpressions.exists(n => o.idn == n.idn))  =>
+          reanalyse = reanalyse.::(Some(oldexp), Some(newexp))
+          return
+        case _ =>
+      var addToMaybe: List[Expression] = List()
+      old.subexpressions.foreach(oe =>
+        nw.subexpressions.find(ne => oe.idn == ne.idn) match
+          case Some(ne) =>
+            if oe.subexpressions.exists(oe => ne.subexpressions.exists(ne => oe.idn == ne.idn)) then
+              findLowestChangedSubExpressions(oe, ne)
+            else if oe != ne then
+              findLowestChangedSubExpressions(oe, ne)
           /*  println("adding to reanalysis")
             println(oe.idn)
             println(ne.idn)
             reanalyse = reanalyse.::((Some(oe), Some(ne)))*/
-        case None =>
-          deletes = deletes.::(oe)
-          addToMaybe = addToMaybe.::(oe))
-    nw.subexpressions.foreach(ne =>
-      if !old.subexpressions.exists(oe => oe.idn == ne.idn) then
-        inserts = inserts.::(ne)
-        addToMaybe = addToMaybe.::(ne))
-    addToMaybe.foreach(maybe =>
-      maybeReanalyse = maybeReanalyse + (maybe -> (Some(old), Some(nw))))
+          case None =>
+            deletes = deletes.::(oe)
+            addToMaybe = addToMaybe.::(oe))
+      nw.subexpressions.foreach(ne =>
+        if !old.subexpressions.exists(oe => oe.idn == ne.idn) then
+          inserts = inserts.::(ne)
+          addToMaybe = addToMaybe.::(ne))
+      addToMaybe.foreach(maybe =>
+        maybeReanalyse = maybeReanalyse + (maybe -> (Some(old), Some(nw))))
 
 
   // Returns a list of expressions that needs to be reanalysed (old and new), and a list of tuples of expressions that are just renamings together with their mappings
@@ -231,7 +234,7 @@ class SchemeChangePatterns:
       case (oldlet: SchemeLettishExp, newlet: SchemeLettishExp) =>
         var relatedBindings: Map[Expression, Expression] = Map()
         oldlet.bindings.foreach(oe =>
-          newlet.bindings.find(ne => (oe != ne) && (oe._2.idn == ne._2.idn)) match
+          newlet.bindings.find(ne => (oe != ne) && (oe._2.idn == ne._2.idn) && oe._2.idn != NoCodeIdentity) match
             case Some(ne) =>
               if oe._1.name != ne._1.name then
                 val renamed = compareRenamingsBindings(oe._1, ne._1, oe._2, ne._2)
@@ -284,7 +287,7 @@ class SchemeChangePatterns:
         reanalyse.foreach(println)
         println(reanalyse.size)
         println("rename")
-        rename.foreach(println)
+        println(rename)
         println("ifs")
         println(ifs)
         println("scope changes")

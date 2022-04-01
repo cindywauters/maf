@@ -94,8 +94,6 @@ object TwoSeperateVersionsAnalyse extends App:
       for(i <- 1 to 10){
         val analysisWithUpdates = baseUpdates(program._1, program._2)
         analysisWithUpdates.analyzeWithTimeout(timeout())
-        println(analysisWithUpdates.mapping)
-        println(analysisWithUpdates.store)
         val beforeUpdateAnalysis = System.nanoTime
         analysisWithUpdates.version = New
         analysisWithUpdates.updateAnalysis(timeout(), true)
@@ -104,8 +102,8 @@ object TwoSeperateVersionsAnalyse extends App:
 
       val analysisWithUpdates = baseUpdates(program._1, program._2)
       analysisWithUpdates.analyzeWithTimeout(timeout())
-      println(analysisWithUpdates.mapping)
-      println(analysisWithUpdates.store)
+   //   println(analysisWithUpdates.mapping)
+   //   println(analysisWithUpdates.store)
       val beforeUpdateAnalysis = System.nanoTime
       analysisWithUpdates.version = New
       analysisWithUpdates.updateAnalysis(timeout(), true)
@@ -120,9 +118,9 @@ object TwoSeperateVersionsAnalyse extends App:
 
 
       val analysisWithoutUpdates = baseUpdates(program._1, program._2)
-      println(analysisWithoutUpdates.store)
-      println(analysisWithoutUpdates.mainBody)
-      println(analysisWithoutUpdates.secondMainBody)
+   //   println(analysisWithoutUpdates.store)
+   //   println(analysisWithoutUpdates.mainBody)
+   //   println(analysisWithoutUpdates.secondMainBody)
       val beforeNewAnalysis = System.nanoTime
       analysisWithoutUpdates.version = New
       analysisWithoutUpdates.analyzeWithTimeout(timeout())
@@ -137,8 +135,8 @@ object TwoSeperateVersionsAnalyse extends App:
       println("Time updating:                    " + timeUpdateAnalysis)
       println("Time analysis new:                " + timeNewAnalysis)
 
-      println("Store with update: " + storeWithUpdate.toString)
-      println("Store new only   : " + storeWithoutUpdate.toString)
+     // println("Store with update: " + storeWithUpdate.toString)
+     // println("Store new only   : " + storeWithoutUpdate.toString)
 
       println("store reanalysis -> Update (subsumption): " + storeWithoutUpdate.forall((k, v) =>
         storeWithUpdate.get(k) match
@@ -160,8 +158,8 @@ object TwoSeperateVersionsAnalyse extends App:
             println("old: " + v.toString + " " + k.toString())
             false)
 
-      println("Dependencies with update: " + depsWithUpdate.toString)
-      println("Dependencies new only   : " + depsWithoutUpdate.toString)
+    //  println("Dependencies with update: " + depsWithUpdate.toString)
+    //  println("Dependencies new only   : " + depsWithoutUpdate.toString)
 
       println("Dependencies reanalysis -> Update (subsumption): " + depsWithoutUpdate.forall((k, v) =>
         depsWithUpdate.get(k) match
@@ -180,8 +178,8 @@ object TwoSeperateVersionsAnalyse extends App:
             println(k)
             false).toString)
 
-      println("Mapping with update : " + mappingWithUpdate.toString)
-      println("Mapping new only    : " + mappingWithoutUpdate.toString)
+    //  println("Mapping with update : " + mappingWithUpdate.toString)
+    //  println("Mapping new only    : " + mappingWithoutUpdate.toString)
 
       println(mappingWithoutUpdate.size)
       println("Mapping reanalysis -> Update (subsumption): " + mappingWithoutUpdate.forall((k, v) =>
@@ -218,7 +216,7 @@ object TwoSeperateVersionsAnalyse extends App:
              case _ =>*/
           visitedWithUpdate.contains(e)).toString)
 
-    visitedWithUpdate.foreach(e => e match
+   /* visitedWithUpdate.foreach(e => e match
       case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
         println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
         println(lam.fv)
@@ -229,7 +227,7 @@ object TwoSeperateVersionsAnalyse extends App:
         case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
           println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
         case _ =>
-      )
+      )*/
 
 
       println(storeWithUpdate.size + " (" + storeWithoutUpdate.size + ")")
