@@ -91,6 +91,16 @@ object TwoSeperateVersionsAnalyse extends App:
       println(program._1.subexpressions)
 
 
+      for(i <- 1 to 10){
+        val analysisWithUpdates = baseUpdates(program._1, program._2)
+        analysisWithUpdates.analyzeWithTimeout(timeout())
+        println(analysisWithUpdates.mapping)
+        println(analysisWithUpdates.store)
+        val beforeUpdateAnalysis = System.nanoTime
+        analysisWithUpdates.version = New
+        analysisWithUpdates.updateAnalysis(timeout(), true)
+        val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
+      }
 
       val analysisWithUpdates = baseUpdates(program._1, program._2)
       analysisWithUpdates.analyzeWithTimeout(timeout())
