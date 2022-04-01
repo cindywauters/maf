@@ -512,10 +512,11 @@ class IncrementalUpdateDatastructures {
     println(eqlLam)
     val subsOld = findAllSubExps(eqlLam._1)
     val subsNew = findAllSubExps(eqlLam._2)
+    varsToRemove = eqlLam._1.fv.diff(eqlLam._2.fv)
     if eqlLam._1 != eqlLam._2 then
-      allScopeChanges.find(changed => subsOld.contains(changed._1._1) && !subsNew.contains(changed._1._2)) match
+      allScopeChanges.find(changed => subsOld.contains(changed._1._1) && !subsNew.contains(changed._2._1)) match
         case Some(oldScope, newScope) =>
-          varsToRemove = eqlLam._1.fv.diff(eqlLam._2.fv)
+          //varsToRemove = eqlLam._1.fv.diff(eqlLam._2.fv)
           //TODO what if someone moved a function down within the same scope?
           if allExprs.size > 1 && allExprs(1).subexpressions.contains(newScope._1) then
             newEnv = newEnv + (newScope._2._1.name ->  maf.modular.scheme.VarAddr(newScope._2._1, None))
@@ -523,11 +524,22 @@ class IncrementalUpdateDatastructures {
             newEnv = newEnv + (newScope._2._1.name ->  maf.modular.scheme.VarAddr(newScope._2._1, Some(NoContext)))
         case _ =>
 
-     /* allScopeChanges.find(changed => !subsOld.contains(changed._1._1) && subsNew.contains(changed._1._2)) match
+      allScopeChanges.find(changed => !subsOld.contains(changed._1._1) && subsNew.contains(changed._2._1)) match
         case Some(oldScope, newScope) =>
+          eqlLam._2.fv.foreach(fv =>
+            if allPrimitives.contains(fv) then
+              newEnv = newEnv + (fv -> PrmAddr(fv))
+            else
+              newScope._2._2.get(fv) match
+                case Some(identifier) =>
+                  if allExprs.size > 1 && allExprs(1).subexpressions.contains(identifier) then
+                    newEnv = newEnv + (newScope._2._1.name ->  maf.modular.scheme.VarAddr(identifier, None))
+                  else
+                    newEnv = newEnv + (newScope._2._1.name ->  maf.modular.scheme.VarAddr(identifier, Some(NoContext)))
+                case _ =>)
+          println(newScope._2._2.getClass)
           println("inserted!")
         case _ =>
-          println("not inserted?")*/
 
    // (allScopeChanges.map((k, v) => (k._1, v._1)) ++ allIfs.map(_._1).toMap).find(changed => subsOld.contains(changed._1) || subsNew.contains(changed._2)) match
      // case Some(exprs) =>
