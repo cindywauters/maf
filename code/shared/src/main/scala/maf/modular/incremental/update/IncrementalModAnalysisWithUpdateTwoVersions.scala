@@ -155,4 +155,4 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
         println(workList)
        // addToWorkList(initialComponent)
         println(changes.scopeChanges)
-    //analyzeWithTimeout(timeout)
+    analyzeWithTimeout(timeout)

@@ -553,7 +553,7 @@ class IncrementalUpdateDatastructures {
               val newVarAddr = getNewVarAddr(a, varAddr)
               newEnv += (identifiers._2.name -> newVarAddr)
             case _ =>
-              val newCtx = if allExprs(1).subexpressions.exists(s => s.idn == varAddr.idn) then
+              val newCtx = if allExprs.size > 1 &&  allExprs(1).subexpressions.exists(s => s.idn == varAddr.idn) then
                 None
               else
                 updateCtx(a, varAddr.ctx)
