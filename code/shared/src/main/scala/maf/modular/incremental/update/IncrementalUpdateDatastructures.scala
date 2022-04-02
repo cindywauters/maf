@@ -66,6 +66,9 @@ class IncrementalUpdateDatastructures {
  //   val allSubsOtherNew = otherChanges.map(_._2).flatMap(findAllSubExps)
     equivalentLambdas = otherChanges.toMap
 
+    println("ALL EXPRESSIONS IN CHANGE")
+    allExpressionsInChange.foreach(println)
+
    /* (for
       oldExp <- allSubsOtherOld
       newExp <- allSubsOtherNew
@@ -94,13 +97,14 @@ class IncrementalUpdateDatastructures {
               a.mapping += (cond.f -> mapping)
           (i._2.head, mapping)).toMap
 
-    a match
-      case analysis: IncrementalGlobalStore[Expression] => // Update the store
-        updateStore(analysis)
-      case _ =>
-    updateDependencies(a) // Update the dependencies
-    updateMapping(a) // Update the store
-    updateVisited(a) // Update visited
+    if renamings.nonEmpty || ifs.nonEmpty || scopeChanges.nonEmpty then
+     a match
+        case analysis: IncrementalGlobalStore[Expression] => // Update the store
+          updateStore(analysis)
+        case _ =>
+     updateDependencies(a) // Update the dependencies
+     updateMapping(a) // Update the store
+     updateVisited(a) // Update visited
 
     // Find which component the expression has moved to/ in which ones it belongs. Also keep track of where it no longer belongs
     var moved: Map[Expression, Set[SchemeModFComponent]] = scopeChangesExprs.map(e => (e, Set(): Set[SchemeModFComponent])).toMap//.flatMap(e => findAllSubExps(e._2)).collect {
@@ -525,7 +529,6 @@ class IncrementalUpdateDatastructures {
             case None =>
               println(eqlLam._2)
               println(fv)
-              println()
               throw new RuntimeException("please provide correct scopes to the environment builder"))
     newEnv
   // To create an new enviroment, loop over the old enviroment

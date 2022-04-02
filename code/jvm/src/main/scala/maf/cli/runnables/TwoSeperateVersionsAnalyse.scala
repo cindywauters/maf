@@ -192,25 +192,27 @@ object TwoSeperateVersionsAnalyse extends App:
       println("Visited with update : " + visitedWithUpdate.toString)
       println("Visited new only    : " + visitedWithoutUpdate.toString)
       println("Visited reanalysis -> Update (subsumption): " + visitedWithoutUpdate.forall(e =>
-       /*    println(e)
+          /* println(e)
            e match
              case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
               println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
              case _ =>*/
-          visitedWithUpdate.contains(e)).toString)
+           visitedWithUpdate.contains(e)).toString)
 
-   /* visitedWithUpdate.foreach(e => e match
+    visitedWithUpdate.foreach(e => e match
       case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
         println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
         println(lam.fv)
       case _ =>
     )
 
+    println()
+
     visitedWithoutUpdate.foreach(e => e match
         case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
           println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
         case _ =>
-      )*/
+      )
 
 
       println(storeWithUpdate.size + " (" + storeWithoutUpdate.size + ")")

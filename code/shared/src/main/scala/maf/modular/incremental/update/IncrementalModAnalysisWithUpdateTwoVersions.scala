@@ -31,11 +31,6 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
           (e._1.name, (e._1, e._2))
         ).toMap
     println(initialEnv)
-    //program match
-      //case let: SchemeLetrec =>
-       // .eval(let.bindings.head._2)
-
-    //println(let)
     (program, secondProgram) match
       case (old: SchemeExp, nw: SchemeExp) =>
         val time = System.nanoTime()
@@ -45,7 +40,7 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
           case (Some(oe), None)     => allDeletes = allDeletes.::(oe)
           case _ =>
         )
-        var affectedAll = changes.reanalyse.appendedAll(changes.renamings.map(_._1)).appendedAll(changes.ifs.map(_._1._1))
+        var affectedAll = changes.reanalyse.appendedAll(changes.renamings.map(_._1)).appendedAll(changes.ifs.map(_._1._1)).appendedAll(changes.scopeChanges.map(_._1._1))
         var namesVisited: List[String] = List()
         val affectedLambdas: Map[Expr, Component] = visited.collect {
           case comp@SchemeModFComponent.Call((lam: Expr, env: BasicEnvironment[_]), oldCtx: _) if lam.idn.idn.tag == Position.noTag =>
@@ -63,7 +58,7 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
         )
         var affectedLambdasPairsIntermediate = finder.findEquivalentLambdas(affectedLambdas.keys.toList, secondProgram)
         println("equivanent lambdas")
-        println(affectedLambdasPairsIntermediate)
+        affectedLambdasPairsIntermediate.foreach(println)
         println("ALL LEXICAL SCOPES")
         finder.findLexicalScopes(secondProgram, Map()).foreach(println)
         var affectedLambdasPairs: List[(Expression, Expression)] = List()
@@ -73,19 +68,19 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
           case (expr: Expr, Some(other: Expression)) if expr != other && !changes.reanalyse.exists(e => e._1.contains(expr)) =>
             allChanges = allChanges + (expr -> other)
             affectedLambdasPairs = affectedLambdasPairs.::(expr, other)
-            if !expr.fv.contains("not") && other.fv.contains("not") then
+           /* if !expr.fv.contains("not") && other.fv.contains("not") then
               affectedLambdas.get(expr) match
                 case Some(comp) => componentsWithAddedNots = componentsWithAddedNots.::(comp.asInstanceOf[SchemeModFComponent])
                 case _          =>
             if !expr.fv.contains(">") && other.fv.contains(">") then
               affectedLambdas.get(expr) match
-                case Some(comp) => componentsWithAddedBigger = componentsWithAddedBigger.::(comp.asInstanceOf[SchemeModFComponent])
+                case Some(comp) => componentsWithAddedBigger = componentsWithAddedBigger.::(comp.asInstanceOf[SchemeModFComponent]) */
           case (expr: Expr, _) =>
-            affectedLambdas.get(expr).foreach(e => e match
+            /*affectedLambdas.get(expr).foreach(e => e match
               case SchemeModFComponent.Call((lam: Expr, _), _)  =>
-                mapping.get(lam).foreach(addToWorkList)
+                mapping.get(lam).foreach(addToWorkList)*/
 
-            )
+           // )
         )
         if rename then
           this match
@@ -116,13 +111,24 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
             case a: IncrementalModAnalysis[Expression] =>
               update.changeDataStructures(a, List(program, secondProgram), List(), List(), Map(), affectedLambdasPairs, changes.allLexicalEnvs)
         var affected = affectedAll.flatMap(e => e match
-          case (Some(old: Expr), Some(nw: Expr)) =>
-            (mapping.get(old), mapping.get(nw)) match
+          case (Some(oldExpr: Expr), Some(nwExpr: Expr)) =>
+            (mapping.get(oldExpr), mapping.get(nwExpr)) match
               case (Some(compold), _) =>
                 compold
+              case (_, Some(compNew)) =>
+                compNew
               case _ =>
                 Set(initialComponent)
-          case _ => Set(initialComponent)
+          case (oldExpr: Expr, nwExpr: Expr) =>
+            (mapping.get(oldExpr), mapping.get(nwExpr)) match
+              case (Some(compold), _) =>
+                compold
+              case (_, Some(compNew)) =>
+                compNew
+              case _ =>
+                Set(initialComponent)
+          /*case _ =>
+            Set(initialComponent)*/
         )
         mapping = mapping + (secondProgram -> Set(initialComponent))
         affected.foreach(addToWorkList)
