@@ -149,6 +149,16 @@ class IncrementalAnalysisUpdateSplitVersions extends AnyPropSpec:
     assert(depsNw.size <= depsU.size, "The incremental analysis update has more dependencies than the regular incremental analysis.")
     assert(checkSubsumptionSetOfDependencies(nwOnly, updates), "The dependencies of the incremental update does not subsume the dependencies of the incremental analysis with updates.")
 
+    val mappingsNw = nwOnly.mapping
+    val mappingsUpdate = updates.mapping
+    assert(mappingsNw.size <= mappingsUpdate.size, "The incremental analysis update has more mappings than the regular incremental analysis.")
+    assert(mappingsNw.forall((k, v) =>
+      mappingsUpdate.get(k) match
+        case Some(updatedValue) =>
+          v.forall(elv => updatedValue.contains(elv.asInstanceOf[updates.Component]))
+        case _ =>
+          false), "The mappings of incremental update does not subsume the mappings of the analysis of the new version only")
+
     // Check store.
     (nwOnly, updates) match
       case (a: IncrementalGlobalStore[SchemeExp], u: IncrementalGlobalStoreWithUpdate[SchemeExp]) =>
