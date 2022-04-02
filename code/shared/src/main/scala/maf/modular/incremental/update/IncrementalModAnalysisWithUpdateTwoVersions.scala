@@ -40,7 +40,7 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
           case (Some(oe), None)     => allDeletes = allDeletes.::(oe)
           case _ =>
         )
-        var affectedAll = changes.reanalyse.appendedAll(changes.renamings.map(_._1)).appendedAll(changes.ifs.map(_._1._1)).appendedAll(changes.scopeChanges.map(_._1._1))
+        var affectedAll = changes.reanalyse.appendedAll(changes.renamings.map(_._1)).appendedAll(changes.ifs.map(_._1._1)).appendedAll(changes.scopeChanges.map((k, v) => (k._1, v._1)))
         var namesVisited: List[String] = List()
         val affectedLambdas: Map[Expr, Component] = visited.collect {
           case comp@SchemeModFComponent.Call((lam: Expr, env: BasicEnvironment[_]), oldCtx: _) if lam.idn.idn.tag == Position.noTag =>
@@ -57,10 +57,6 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
           case _ =>
         )
         var affectedLambdasPairsIntermediate = finder.findEquivalentLambdas(affectedLambdas.keys.toList, secondProgram)
-        println("equivanent lambdas")
-        affectedLambdasPairsIntermediate.foreach(println)
-        println("ALL LEXICAL SCOPES")
-        finder.findLexicalScopes(secondProgram, Map()).foreach(println)
         var affectedLambdasPairs: List[(Expression, Expression)] = List()
         var componentsWithAddedNots: List[SchemeModFComponent] = List()
         var componentsWithAddedBigger: List[SchemeModFComponent] = List()

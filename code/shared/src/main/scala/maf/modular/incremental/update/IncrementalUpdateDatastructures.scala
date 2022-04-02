@@ -67,7 +67,7 @@ class IncrementalUpdateDatastructures {
     equivalentLambdas = otherChanges.toMap
 
     println("ALL EXPRESSIONS IN CHANGE")
-    allExpressionsInChange.foreach(println)
+    otherChanges.foreach(println)
 
    /* (for
       oldExp <- allSubsOtherOld
@@ -98,13 +98,13 @@ class IncrementalUpdateDatastructures {
           (i._2.head, mapping)).toMap
 
     if renamings.nonEmpty || ifs.nonEmpty || scopeChanges.nonEmpty then
-     a match
+      a match
         case analysis: IncrementalGlobalStore[Expression] => // Update the store
           updateStore(analysis)
         case _ =>
-     updateDependencies(a) // Update the dependencies
-     updateMapping(a) // Update the store
-     updateVisited(a) // Update visited
+    updateDependencies(a) // Update the dependencies
+    updateMapping(a) // Update the store
+    updateVisited(a) // Update visited
 
     // Find which component the expression has moved to/ in which ones it belongs. Also keep track of where it no longer belongs
     var moved: Map[Expression, Set[SchemeModFComponent]] = scopeChangesExprs.map(e => (e, Set(): Set[SchemeModFComponent])).toMap//.flatMap(e => findAllSubExps(e._2)).collect {
