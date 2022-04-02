@@ -41,7 +41,7 @@ object TwoSeperateVersionsAnalyse extends App:
       with StandardSchemeModFComponents
       //with SchemeModFFullArgumentSensitivity
       //with SchemeModFCallSiteSensitivity
-      //with SchemeModFFullArgumentCallSiteSensitivity
+     // with SchemeModFFullArgumentCallSiteSensitivity
       with SchemeModFNoSensitivity
       with SchemeModFSemanticsUpdate
       with LIFOWorklistAlgorithm[SchemeExp]
@@ -63,23 +63,6 @@ object TwoSeperateVersionsAnalyse extends App:
       } */
       }
 
-    def baseUpdatesChange(program: SchemeExp) = new ModAnalysis[SchemeExp](program)
-      with StandardSchemeModFComponents
-      with SchemeModFFullArgumentSensitivity
-      // with SchemeModFCallSiteSensitivity
-      //  with SchemeModFFullArgumentCallSiteSensitivity
-     // with SchemeModFNoSensitivity
-      with SchemeModFSemanticsM
-      with LIFOWorklistAlgorithm[SchemeExp]
-      with IncrementalSchemeModFBigStepSemantics
-      with IncrementalSchemeTypeDomain
-      with IncrementalGlobalStoreWithUpdate[SchemeExp]
-    {
-      var configuration: IncrementalConfiguration = noOptimisations
-      override def intraAnalysis(
-                                  cmp: Component
-                                ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis
-    }
 
     try {
       println(s"***** $bench *****")
@@ -96,7 +79,7 @@ object TwoSeperateVersionsAnalyse extends App:
         analysisWithUpdates.analyzeWithTimeout(timeout())
         val beforeUpdateAnalysis = System.nanoTime
         analysisWithUpdates.version = New
-        analysisWithUpdates.updateAnalysis(timeout(), true)
+        analysisWithUpdates.updateAnalysis(timeout(), false)
         val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
       }
 
@@ -106,7 +89,7 @@ object TwoSeperateVersionsAnalyse extends App:
    //   println(analysisWithUpdates.store)
       val beforeUpdateAnalysis = System.nanoTime
       analysisWithUpdates.version = New
-      analysisWithUpdates.updateAnalysis(timeout(), true)
+      analysisWithUpdates.updateAnalysis(timeout(), false)
       val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
 
       val storeWithUpdate = analysisWithUpdates.store
@@ -247,8 +230,8 @@ object TwoSeperateVersionsAnalyse extends App:
   // val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm", "test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
  // val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/various/NoSensitivity/SICP-compiler.scm")
 
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
- // val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/array1.scm")
+ // val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/array1.scm")
 
   val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 

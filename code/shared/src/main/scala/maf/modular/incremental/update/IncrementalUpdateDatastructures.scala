@@ -39,10 +39,11 @@ class IncrementalUpdateDatastructures {
   var allExprs: List[Expression] = List()
   var cachedComponents: Map[Serializable, SchemeModFComponent] = Map()
   var equivalentLambdas: Map[Expression, Expression] = Map()
+  var allNewLexicalEnvs: BindingsWithScopes = Map()
 
   // Call this function when you want to update all the datastructures of an analysis
   // Arguments are an analysis and the expression that is being analysed
-  def changeDataStructures(a: IncrementalModAnalysis[Expression], exp: List[Expression], renamings: List[((Expression, Expression), Map[Identifier, Identifier])], ifs: IfsList = List(), scopeChanges: ScopeChanges = Map(), otherChanges: List[(Expression, Expression)] = List()): Boolean =
+  def changeDataStructures(a: IncrementalModAnalysis[Expression], exp: List[Expression], renamings: List[((Expression, Expression), Map[Identifier, Identifier])], ifs: IfsList = List(), scopeChanges: ScopeChanges = Map(), otherChanges: List[(Expression, Expression)] = List(), allLexicalEnvs: BindingsWithScopes = Map()): Boolean =
     val changedVarsSwapped = renamings.flatMap(e => e._2).toMap
     val finder = new SchemeChangePatterns
     val scopeChangedVars = scopeChanges.flatMap((k, v) => List((k._2._1, v._2._1)).appendedAll(finder.findAllVarsInOrder(k._1).zip(finder.findAllVarsInOrder(v._1))))
@@ -53,20 +54,23 @@ class IncrementalUpdateDatastructures {
     changedExpressions = renamings.map(e => e._1).toMap ++ scopeChanges.map((k, v) => (k._1, v._1)) // TODO fix this (same as above) // Get all expressions that have been changed
     allScopeChanges = scopeChanges
 
+    allNewLexicalEnvs = allLexicalEnvs
+
     allExprs = exp
 
     // get all expressions that exist within an old expression and in a new expression and zip them together to know what has changed to what
     val allOldExps = changedExpressions.flatMap(e => findAllSubExps(e._1)).toList//.appendedAll(otherChanges.map(_._1))
     val allNewExps = changedExpressions.flatMap(e => findAllSubExps(e._2)).toList//.appendedAll(otherChanges.map(_._2))
-    allExpressionsInChange = allOldExps.zip(allNewExps).toMap
-    val allSubsOtherOld = otherChanges.map(_._1).flatMap(findAllSubExps)
-    val allSubsOtherNew = otherChanges.map(_._2).flatMap(findAllSubExps)
+    allExpressionsInChange = allOldExps.zip(allNewExps).appendedAll(otherChanges).toMap
+ //   val allSubsOtherOld = otherChanges.map(_._1).flatMap(findAllSubExps)
+ //   val allSubsOtherNew = otherChanges.map(_._2).flatMap(findAllSubExps)
     equivalentLambdas = otherChanges.toMap
-    (for
+
+   /* (for
       oldExp <- allSubsOtherOld
       newExp <- allSubsOtherNew
       if oldExp.idn == newExp.idn && oldExp.getClass == newExp.getClass && !allSubsOtherNew.contains(oldExp)// && (if oldExp.idn == NoCodeIdentity && oldExp.subexpressions.nonEmpty && newExp.subexpressions.nonEmpty then if oldExp.subexpressions.head.idn == newExp.subexpressions.head.idn then true else false else false)
-    yield (oldExp, newExp)).foreach(e => allExpressionsInChange = allExpressionsInChange + (e._1 -> e._2))
+    yield (oldExp, newExp)).foreach(e => allExpressionsInChange = allExpressionsInChange + (e._1 -> e._2))*/
     
 
     ifs.foreach(e =>
@@ -488,10 +492,46 @@ class IncrementalUpdateDatastructures {
       case _ =>
         value
 
+
+  def createNewEnvironment(expr: SchemeLambdaExp, a: IncrementalModAnalysis[Expression], oldEnv: maf.core.BasicEnvironment[_]): Map[String, Address] =
+    val eqlLam = equivalentLambdas.find(l => l._1 == expr || l._2 == expr).getOrElse((expr, expr)).asInstanceOf[(SchemeExp, SchemeExp)]
+    var newEnv: Map[String, Address] = Map()
+    val newEnvIds: (Identifier, Map[String, Identifier]) = allNewLexicalEnvs.getOrElse(eqlLam._2, (Identifier("", NoCodeIdentity), Map()))
+    eqlLam._2.fv.foreach(fv =>
+      if allPrimitives.contains(fv) && !newEnvIds._2.contains(fv) then
+        newEnv = newEnv + (fv -> PrmAddr(fv))
+      else oldEnv.content.get(fv) match
+        case Some(varAddr: VarAddr) =>
+          val oldIdn = varAddr.idn
+          changedVars.find((k , v) => k.idn == oldIdn) match
+            case Some(identifiers) =>
+              val newVarAddr = getNewVarAddr(a, varAddr)
+                newEnv += (identifiers._2.name -> newVarAddr)
+            case _ =>
+              val newCtx = if allExprs.size > 1 &&  allExprs(1).subexpressions.exists(s => s.idn == varAddr.idn) then
+                None
+              else
+                updateCtx(a, varAddr.ctx)
+              val newVarAddr = varAddr.copy(ctx= newCtx) // bugfix for some context sensitive things, context might update even if the actual var addr does not
+                newEnv = newEnv + (fv -> newVarAddr)
+        case None =>
+          newEnvIds._2.get(fv) match
+            case Some(identifier: Identifier) =>
+              val newCtx = if allExprs.size > 1 &&  allExprs(1).subexpressions.exists(s => s.idn == identifier.idn) then
+                None
+              else
+                Some(NoContext)
+              newEnv = newEnv + (fv -> maf.modular.scheme.VarAddr(identifier, newCtx))
+            case None =>
+              println(eqlLam._2)
+              println(fv)
+              println()
+              throw new RuntimeException("please provide correct scopes to the environment builder"))
+    newEnv
   // To create an new enviroment, loop over the old enviroment
   // If a variable did not change, it can be added to the new environment
   // If it did change, the variable that it changed into needs to be added to the environment
-  def createNewEnvironment(expr: SchemeLambdaExp, a: IncrementalModAnalysis[Expression], oldEnv: maf.core.BasicEnvironment[_]): Map[String, Address] =
+  /*def createNewEnvironment(expr: SchemeLambdaExp, a: IncrementalModAnalysis[Expression], oldEnv: maf.core.BasicEnvironment[_]): Map[String, Address] =
     var newEnv: Map[String, Address] = Map()
     //var changingIf = false
     val eqlLam = equivalentLambdas.find(l => l._1 == expr || l._2 == expr).getOrElse((expr, expr)).asInstanceOf[(SchemeExp, SchemeExp)]
@@ -561,7 +601,7 @@ class IncrementalUpdateDatastructures {
               newEnv += (k -> newVarAddr)
         case _ =>
           newEnv += (k -> v))
-    newEnv
+    newEnv*/
 
   // Update context. This currently supports SchemeModFNoSensitivity, SchemeModFFullArgumentCallSiteSensitivity, SchemeModFCallSiteSensitivity and SchemeModFFullArgumentSensitivity
   // Context can either be Some(context), None or just a context alone, and of type ArgContext, CallSiteContext or ArgCallSiteContext
