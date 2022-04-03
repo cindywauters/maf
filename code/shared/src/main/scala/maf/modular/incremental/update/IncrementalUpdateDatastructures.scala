@@ -459,20 +459,21 @@ class IncrementalUpdateDatastructures {
     value match
       case clos : IncrementalSchemeTypeDomain.modularLattice.Clo =>
         var newClos: Set[IncrementalSchemeTypeDomain.modularLattice.schemeLattice.Closure] = clos.closures.map(closure =>
-          allExpressionsInChange.get(closure._1) match // check if lambda is in a change expression
-           case Some(lambda: SchemeLambdaExp) =>
+          if !equivalentLambdas.contains(closure._1) then allExpressionsInChange.get(closure._1) match // check if lambda is in a change expression
+            case Some(lambda: SchemeLambdaExp) =>
              closure._2 match // update the environment of the lambda if it needs changing
                 case env : maf.core.BasicEnvironment[_] =>
                   var newEnv = createNewEnvironment(closure._1, a, env)
                   (lambda, new BasicEnvironment[Address](newEnv).restrictTo(lambda.fv))
-           case _ =>
+            case _ =>
               var nwLam = closure._1
               if findAllSubExps(nwLam).exists(e => allExpressionsInChange.contains(e)) then
                 nwLam = buildNewExpr(nwLam).asInstanceOf[closure._1.type]
               closure._2 match // update the environment of the lambda if it needs changing
                 case env : maf.core.BasicEnvironment[_] =>
                   val newEnv = createNewEnvironment(closure._1, a, env)
-                  (nwLam, new BasicEnvironment[Address](newEnv).restrictTo(nwLam.fv)))
+                  (nwLam, new BasicEnvironment[Address](newEnv).restrictTo(nwLam.fv))
+          else closure)
         IncrementalSchemeTypeDomain.modularLattice.Clo(newClos)
       case vector: IncrementalSchemeTypeDomain.modularLattice.Vec =>
         val newElementsVector = vector.elements.map((k, vecelem) =>

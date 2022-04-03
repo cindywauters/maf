@@ -1,14 +1,9 @@
-(define create-x (<change>
- (lambda (n)
-  (define result (make-vector n 0))
+(define create-x
+ (lambda (<update> n n1)
+  (define result (make-vector (<update> n n1) 0))
   (do ((i 0 (+ i 1)))
-      ((>= i n) result)
-    (vector-set! result i i)))
-  (lambda (n1)
-      (define result (make-vector n1 0))
-      (do ((i 0 (+ i 1)))
-          ((>= i n1) result)
-        (vector-set! result i i)))))
+      ((>= i (<update> n n1)) result)
+    (vector-set! result i i))))
 
 
 (define (create-y x)
