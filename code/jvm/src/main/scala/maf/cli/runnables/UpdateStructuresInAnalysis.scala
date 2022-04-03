@@ -89,7 +89,8 @@ object UpdateStructuresInAnalysis extends App:
       with LIFOWorklistAlgorithm[SchemeExp]
       with IncrementalSchemeModFBigStepSemantics
       with IncrementalSchemeTypeDomain
-      with IncrementalGlobalStoreWithUpdate[SchemeExp]
+      with IncrementalGlobalStore[SchemeExp]
+     // with IncrementalGlobalStoreWithUpdate[SchemeExp]
     {
       var configuration: IncrementalConfiguration = noOptimisations
       override def intraAnalysis(
@@ -115,6 +116,20 @@ object UpdateStructuresInAnalysis extends App:
         val timeAnalysis = System.nanoTime - beforeAnalysis
       }*/
 
+
+      val analysisWithUpdates = baseUpdates(program)
+      analysisWithUpdates.analyzeWithTimeout(timeout())
+      println(analysisWithUpdates.mapping)
+      val beforeUpdateAnalysis = System.nanoTime
+      analysisWithUpdates.updateAnalysis(timeout())
+      val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
+
+      val storeWithUpdate = analysisWithUpdates.store
+      val depsWithUpdate = analysisWithUpdates.deps
+      val mappingWithUpdate = analysisWithUpdates.mapping
+      val visitedWithUpdate = analysisWithUpdates.visited
+
+      println("updating done")
       val analysisWithoutUpdates = baseNoUpdates(program)
       val beforeAnalysis = System.nanoTime
       analysisWithoutUpdates.version = New
@@ -135,20 +150,6 @@ object UpdateStructuresInAnalysis extends App:
           case _ =>)
 
       println("first analysis done")
-
-      val analysisWithUpdates = baseUpdates(program)
-      analysisWithUpdates.analyzeWithTimeout(timeout())
-      println(analysisWithUpdates.mapping)
-      val beforeUpdateAnalysis = System.nanoTime
-      analysisWithUpdates.updateAnalysis(timeout())
-      val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
-
-      val storeWithUpdate = analysisWithUpdates.store
-      val depsWithUpdate = analysisWithUpdates.deps
-      val mappingWithUpdate = analysisWithUpdates.mapping
-      val visitedWithUpdate = analysisWithUpdates.visited
-
-      println("updating done")
 
       println("Time incremental analysis:    " + timeAnalysis)
       println("Time updating:                " + timeUpdateAnalysis)

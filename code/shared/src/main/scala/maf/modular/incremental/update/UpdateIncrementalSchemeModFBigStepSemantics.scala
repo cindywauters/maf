@@ -16,6 +16,13 @@ trait UpdateIncrementalSchemeModFBigStepSemantics extends IncrementalSchemeModFB
         registerComponent(e, component)
         super.eval(e)
       case e if version == New =>
+        println(component)
+        component match
+          case SchemeModFComponent.Call((lam, env), ctx) =>
+            println(lam.idn)
+            println(e)
+          case _ =>
+            println(e)
         allChanges.get(e) match
           case Some(newexp: SchemeExp) =>
             println("some")

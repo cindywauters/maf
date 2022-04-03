@@ -525,15 +525,7 @@
                                 (states (vector-ref parse 7))
                                 (parsed? (vector-ref parse 8)))
                            (parsed? nt i j nts enders states))))
-(<insert> (define parse->trees (lambda (parse nt i j)
-                       (let* ((nts (vector-ref parse 0))
-                              (enders (vector-ref parse 2))
-                              (steps (vector-ref parse 4))
-                              (names (vector-ref parse 5))
-                              (toks (vector-ref parse 6))
-                              (states (vector-ref parse 7))
-                              (deriv-trees* (vector-ref parse 9)))
-                         (deriv-trees* nt i j nts enders steps names toks states)))))
+
 (define parse->nb-trees (lambda (parse nt i j)
                           (let* ((nts (vector-ref parse 0))
                                  (enders (vector-ref parse 2))
@@ -543,7 +535,7 @@
                                  (nb-deriv-trees* (vector-ref parse 10)))
                             (nb-deriv-trees* nt i j nts enders steps toks states))))
 (define test (lambda ()
-               (let ((<delete> (parse->trees (lambda (parse nt i j)
+               (let ((parse->trees (lambda (parse nt i j)
                                             (let* ((nts (vector-ref parse 0))
                                                    (enders (vector-ref parse 2))
                                                    (steps (vector-ref parse 4))
@@ -551,7 +543,7 @@
                                                    (toks (vector-ref parse 6))
                                                    (states (vector-ref parse 7))
                                                    (deriv-trees* (vector-ref parse 9)))
-                                              (deriv-trees* nt i j nts enders steps names toks states)))))
+                                              (deriv-trees* nt i j nts enders steps names toks states))))
                (p (make-parser
                          (cons
                           (cons

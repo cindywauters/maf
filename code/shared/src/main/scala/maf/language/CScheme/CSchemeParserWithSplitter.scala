@@ -13,6 +13,7 @@ object CSchemeParserWithSplitter:
   /** Parse a string representing a CScheme program. */
   def parse(s: String, tag: PTag = noTag): (List[SchemeExp], List[SchemeExp]) =
     val bothVersions = SExpParser.parse(s, tag).map(ExtractOldNew.getOldNewVersions)
+    println(bothVersions)
     val oldVersion = bothVersions.map(_._1).filter(e => e match
       case SExpTombstone(_) => false
       case _ => true).map(CSchemeParser.compile)
@@ -24,8 +25,10 @@ object CSchemeParserWithSplitter:
   /** Parse a program, add its prelude and undefine it */
   def parseProgram(prg: String, tag: PTag = noTag): (SchemeExp, SchemeExp) =
     val parsed = parse(prg, tag)
-    val parsedFull = CSchemeParser.parse(prg, tag)
-    val preludeFull = SchemePrelude.addPrelude(parsedFull)
-    val prelude = preludeFull.take(preludeFull.size - parsedFull.size)
+    val preludeoneFull = SchemePrelude.addPrelude(parsed._1)
+    val preludetwoFull = SchemePrelude.addPrelude(parsed._2)
+    val preludeOne = preludeoneFull.take(preludeoneFull.size - parsed._1.size).toSet
+    val preludeTwo = preludetwoFull.take(preludetwoFull.size - parsed._2.size).toSet
+    val prelude = (preludeOne ++ preludeTwo).toList
     (undefine(prelude.appendedAll(parsed._1)), undefine(prelude.appendedAll(parsed._2)))
 

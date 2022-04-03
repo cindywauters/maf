@@ -42,13 +42,13 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
         )
         var affectedAll = changes.reanalyse.appendedAll(changes.renamings.map(_._1)).appendedAll(changes.ifs.map(_._1._1)).appendedAll(changes.scopeChanges.map((k, v) => (k._1, v._1)))
         var namesVisited: List[String] = List()
-        val affectedLambdas: Map[Expr, Component] = visited.collect {
+        val affectedLambdas: List[Expr] = visited.collect {
           case comp@SchemeModFComponent.Call((lam: Expr, env: BasicEnvironment[_]), oldCtx: _) if lam.idn.idn.tag == Position.noTag =>
             lam.name match
               case Some(name) => namesVisited = namesVisited.::(name)
               case _ =>
-            (lam, comp)
-        }.toMap
+            lam
+        }.toList
         visited.foreach(v => v match
           case comp@SchemeModFComponent.Call((lam: Expr, env: BasicEnvironment[_]), oldCtx: _) if lam.idn.idn.tag != Position.noTag =>
             lam.name match
@@ -56,7 +56,7 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
               case _ =>
           case _ =>
         )
-        var affectedLambdasPairsIntermediate = finder.findEquivalentLambdas(affectedLambdas.keys.toList, secondProgram)
+        var affectedLambdasPairsIntermediate = finder.findEquivalentLambdas(affectedLambdas, secondProgram)
         var affectedLambdasPairs: List[(Expression, Expression)] = List()
         var componentsWithAddedNots: List[SchemeModFComponent] = List()
         var componentsWithAddedBigger: List[SchemeModFComponent] = List()
@@ -72,9 +72,10 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
               affectedLambdas.get(expr) match
                 case Some(comp) => componentsWithAddedBigger = componentsWithAddedBigger.::(comp.asInstanceOf[SchemeModFComponent]) */
           case (expr: Expr, _) =>
-            /*affectedLambdas.get(expr).foreach(e => e match
+           /* affectedLambdas.get(expr).foreach(e => e match
               case SchemeModFComponent.Call((lam: Expr, _), _)  =>
-                mapping.get(lam).foreach(addToWorkList)*/
+                mapping.get(lam).foreach(addToWorkList)
+            )*/
 
            // )
         )
@@ -106,7 +107,7 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
           this match
             case a: IncrementalModAnalysis[Expression] =>
               update.changeDataStructures(a, List(program, secondProgram), List(), List(), Map(), affectedLambdasPairs, changes.allLexicalEnvs)
-        var affected = affectedAll.flatMap(e => e match
+        var affected = affectedAll.appendedAll(affectedLambdasPairsIntermediate.filter((l1, l2) => l2 == None)).flatMap(e => e match
           case (Some(oldExpr: Expr), Some(nwExpr: Expr)) =>
             (mapping.get(oldExpr), mapping.get(nwExpr)) match
               case (Some(compold), _) =>
@@ -121,6 +122,12 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
                 compold
               case (_, Some(compNew)) =>
                 compNew
+              case _ =>
+                Set(initialComponent)
+          case (oldExpr: Expr, None) =>
+            mapping.get(oldExpr) match
+              case Some(compold) =>
+                compold
               case _ =>
                 Set(initialComponent)
           /*case _ =>

@@ -67,7 +67,7 @@ class IncrementalUpdateDatastructures {
     equivalentLambdas = otherChanges.toMap
 
     println("ALL EXPRESSIONS IN CHANGE")
-    otherChanges.foreach(println)
+    allExpressionsInChange.foreach(println)
 
    /* (for
       oldExp <- allSubsOtherOld
@@ -97,11 +97,9 @@ class IncrementalUpdateDatastructures {
               a.mapping += (cond.f -> mapping)
           (i._2.head, mapping)).toMap
 
-    if renamings.nonEmpty || ifs.nonEmpty || scopeChanges.nonEmpty then
-      a match
-        case analysis: IncrementalGlobalStore[Expression] => // Update the store
-          updateStore(analysis)
-        case _ =>
+    a match
+      case analysis: IncrementalGlobalStore[Expression] => // Update the store
+        updateStore(analysis)
     updateDependencies(a) // Update the dependencies
     updateMapping(a) // Update the store
     updateVisited(a) // Update visited
@@ -462,20 +460,19 @@ class IncrementalUpdateDatastructures {
       case clos : IncrementalSchemeTypeDomain.modularLattice.Clo =>
         var newClos: Set[IncrementalSchemeTypeDomain.modularLattice.schemeLattice.Closure] = clos.closures.map(closure =>
           allExpressionsInChange.get(closure._1) match // check if lambda is in a change expression
-            case Some(lambda: SchemeLambdaExp) =>
-              closure._2 match // update the environment of the lambda if it needs changing
+           case Some(lambda: SchemeLambdaExp) =>
+             closure._2 match // update the environment of the lambda if it needs changing
                 case env : maf.core.BasicEnvironment[_] =>
                   var newEnv = createNewEnvironment(closure._1, a, env)
                   (lambda, new BasicEnvironment[Address](newEnv).restrictTo(lambda.fv))
-            case _ =>
+           case _ =>
               var nwLam = closure._1
               if findAllSubExps(nwLam).exists(e => allExpressionsInChange.contains(e)) then
                 nwLam = buildNewExpr(nwLam).asInstanceOf[closure._1.type]
               closure._2 match // update the environment of the lambda if it needs changing
                 case env : maf.core.BasicEnvironment[_] =>
                   val newEnv = createNewEnvironment(closure._1, a, env)
-                  (nwLam, new BasicEnvironment[Address](newEnv).restrictTo(nwLam.fv))
-        )
+                  (nwLam, new BasicEnvironment[Address](newEnv).restrictTo(nwLam.fv)))
         IncrementalSchemeTypeDomain.modularLattice.Clo(newClos)
       case vector: IncrementalSchemeTypeDomain.modularLattice.Vec =>
         val newElementsVector = vector.elements.map((k, vecelem) =>
