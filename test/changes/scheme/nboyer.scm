@@ -690,18 +690,21 @@
                             n)
                       (trans-of-implies1 (- n 1))))))
 
-  (define (term-equal? x y)
-    (<change> ; <=======================================================================================================
+  (define term-equal?
+  (<change>
+   (lambda (x y)
+     ; <=======================================================================================================
       (cond ((pair? x)
              (and (pair? y)
                   (symbol-record-equal? (car x) (car y))
                   (term-args-equal? (cdr x) (cdr y))))
-            (else (equal? x y)))
+            (else (equal? x y))))
+   (lambda (x y)
       (or (and (pair? x)
           (pair? y)
           (and (pair? y)
                (symbol-record-equal? (car x) (car y))
-               (term-args-equal? (cdr x) (cdr y)))))))
+               (term-args-equal? (cdr x) (cdr y))))))))
 
   (define (term-args-equal? lst1 lst2)
     (cond ((null? lst1)

@@ -21,6 +21,8 @@ import maf.modular.scheme.modf.{NoContext, SchemeModFComponent}
 import maf.modular.scheme.{ModularSchemeLatticeWrapper, PrmAddr, SchemeAddr}
 import maf.language.scheme.primitives.SchemePrelude
 
+import scala.collection.mutable
+
 
 class IncrementalUpdateDatastructures {
 
@@ -40,10 +42,12 @@ class IncrementalUpdateDatastructures {
   var cachedComponents: Map[Serializable, SchemeModFComponent] = Map()
   var equivalentLambdas: Map[Expression, Expression] = Map()
   var allNewLexicalEnvs: BindingsWithScopes = Map()
+  var lexEnvsBuildEnvs: Map[Expression, Map[String, Address]] = Map()
+  var notToUpdate: List[Expression] = List()
 
   // Call this function when you want to update all the datastructures of an analysis
   // Arguments are an analysis and the expression that is being analysed
-  def changeDataStructures(a: IncrementalModAnalysis[Expression], exp: List[Expression], renamings: List[((Expression, Expression), Map[Identifier, Identifier])], ifs: IfsList = List(), scopeChanges: ScopeChanges = Map(), otherChanges: List[(Expression, Expression)] = List(), allLexicalEnvs: BindingsWithScopes = Map()): Boolean =
+  def changeDataStructures(a: IncrementalModAnalysis[Expression], exp: List[Expression], renamings: List[((Expression, Expression), Map[Identifier, Identifier])], ifs: IfsList = List(), scopeChanges: ScopeChanges = Map(), otherChanges: List[(Expression, Expression)] = List(), allLexicalEnvs: BindingsWithScopes = Map(), doNotUpdate: List[Expression] = List()): Boolean =
     val changedVarsSwapped = renamings.flatMap(e => e._2).toMap
     val finder = new SchemeChangePatterns
     val scopeChangedVars = scopeChanges.flatMap((k, v) => List((k._2._1, v._2._1)).appendedAll(finder.findAllVarsInOrder(k._1).zip(finder.findAllVarsInOrder(v._1))))
@@ -57,6 +61,8 @@ class IncrementalUpdateDatastructures {
     allNewLexicalEnvs = allLexicalEnvs
 
     allExprs = exp
+
+    notToUpdate = doNotUpdate
 
     // get all expressions that exist within an old expression and in a new expression and zip them together to know what has changed to what
     val allOldExps = changedExpressions.flatMap(e => findAllSubExps(e._1)).toList//.appendedAll(otherChanges.map(_._1))
@@ -98,8 +104,9 @@ class IncrementalUpdateDatastructures {
           (i._2.head, mapping)).toMap
 
     a match
-      case analysis: IncrementalGlobalStore[Expression] => // Update the store
+      case analysis: IncrementalGlobalStore[Expression] if renamings.nonEmpty || scopeChanges.nonEmpty || ifs.nonEmpty => // Update the store
         updateStore(analysis)
+      case _ =>
     updateDependencies(a) // Update the dependencies
     updateMapping(a) // Update the store
     updateVisited(a) // Update visited
@@ -137,14 +144,15 @@ class IncrementalUpdateDatastructures {
 
   // Find all the subexpressions of an expression, and their subexpressions.
   // Something like (lambda (a) (+ a 1)) will become List((lambda (a) (+ a 1)), (+ a 1), +, a, 1)
-  def findAllSubExps(expr: Expression): List[Expression] =
-    if expr.subexpressions.isEmpty && expr.height == 1 then
+  def findAllSubExps(expr: Expression, upToHeight: Int = 1): List[Expression] =
+    if expr.subexpressions.isEmpty && expr.height == upToHeight then
       List(expr)
     else if  expr.subexpressions.isEmpty then
       List()
     else expr match
-      case lambda: SchemeLambda => List(expr).appended(SchemeBegin(lambda.body, lambda.body.head.idn)).appendedAll(expr.subexpressions.flatMap(e => findAllSubExps(e)))
+      case lambda: SchemeLambda =>  List(expr).appended(SchemeBegin(lambda.body, lambda.body.head.idn)).appendedAll(expr.subexpressions.flatMap(e => findAllSubExps(e)))
       case _ => List(expr).appendedAll(expr.subexpressions.flatMap(e => findAllSubExps(e)))
+
 
   // Update the store in case there is one
   // There are three types of keys that can contain changes: Variable addresses, Return addresses, and Pointer Addresses. Primitive address can not change
@@ -241,12 +249,12 @@ class IncrementalUpdateDatastructures {
             case oldKey: SchemeExp => newKey = buildNewExpr(oldKey)
       (oldKey, newKey, newValue) match
         case (oldKey: SchemeExp, newKey: SchemeExp, newValue: Set[a.Component]) =>
-          if newKey.equals(oldKey) then
-            if !newValue.equals(oldValue) then
-              a.mapping = a.mapping + (oldKey -> newValue)
-          else
-            a.mapping = a.mapping - oldKey
-            a.mapping = a.mapping + (newKey -> newValue)
+          //if newKey.equals(oldKey) then
+           // if !newValue.equals(oldValue) then
+            //  a.mapping = a.mapping + (oldKey -> newValue)
+         // else
+          a.mapping = a.mapping - oldKey
+          a.mapping = a.mapping + (newKey -> newValue)
     )
 
   // Visited consists of a set of components
@@ -404,8 +412,8 @@ class IncrementalUpdateDatastructures {
             val newAddr = maf.modular.ReturnAddr[SchemeModFComponent](idn = newIdn, cmp = newCmp)
             newAddr
           case _ =>
-            if findAllSubExps(lam).exists(e => allExpressionsInChange.contains(e)) then
-              return maf.modular.ReturnAddr[SchemeModFComponent](idn = buildNewExpr(lam).asInstanceOf[lam.type].body.head.idn, cmp = newCmp)
+           // if findAllSubExps(lam).exists(e => allExpressionsInChange.contains(e)) then
+           //       return maf.modular.ReturnAddr[SchemeModFComponent](idn = buildNewExpr(lam).asInstanceOf[lam.type].body.head.idn, cmp = newCmp)
             val newAddr = maf.modular.ReturnAddr[SchemeModFComponent](idn = addr.idn, cmp = newCmp)
             newAddr
 
@@ -431,11 +439,11 @@ class IncrementalUpdateDatastructures {
             cachedComponents = cachedComponents + (comp -> newCmp)
             newCmp
           case _ =>
-            var newLam = lam
-            if findAllSubExps(lam).exists(e => allExpressionsInChange.contains(e)) then
-              newLam = buildNewExpr(lam).asInstanceOf[lam.type]
+        //    var newLam = lam
+        //    if findAllSubExps(lam).exists(e => allExpressionsInChange.contains(e)) then
+        //      newLam = buildNewExpr(lam).asInstanceOf[lam.type]
             val newEnv = createNewEnvironment(lam, a, env)
-            val newCmp = SchemeModFComponent.Call(clo = (newLam, new BasicEnvironment[Address](newEnv).restrictTo(newLam.fv)), ctx = newCtx)
+            val newCmp = SchemeModFComponent.Call(clo = (lam, new BasicEnvironment[Address](newEnv).restrictTo(lam.fv)), ctx = newCtx)
             cachedComponents = cachedComponents + (comp -> newCmp)
             newCmp
 
@@ -472,6 +480,7 @@ class IncrementalUpdateDatastructures {
     value match
       case clos : IncrementalSchemeTypeDomain.modularLattice.Clo =>
         var newClos: Set[IncrementalSchemeTypeDomain.modularLattice.schemeLattice.Closure] = clos.closures.map(closure =>
+          //TODO this will most definitely cause a problem if equivalentLambdas contains a renaming because then it won't be updated
           if !equivalentLambdas.contains(closure._1) then allExpressionsInChange.get(closure._1) match // check if lambda is in a change expression
             case Some(lambda: SchemeLambdaExp) =>
              closure._2 match // update the environment of the lambda if it needs changing
@@ -479,13 +488,16 @@ class IncrementalUpdateDatastructures {
                   var newEnv = createNewEnvironment(closure._1, a, env)
                   (lambda, new BasicEnvironment[Address](newEnv).restrictTo(lambda.fv))
             case _ =>
-              var nwLam = closure._1
-              if findAllSubExps(nwLam).exists(e => allExpressionsInChange.contains(e)) then
-                nwLam = buildNewExpr(nwLam).asInstanceOf[closure._1.type]
-              closure._2 match // update the environment of the lambda if it needs changing
-                case env : maf.core.BasicEnvironment[_] =>
-                  val newEnv = createNewEnvironment(closure._1, a, env)
-                  (nwLam, new BasicEnvironment[Address](newEnv).restrictTo(nwLam.fv))
+              if notToUpdate.contains(closure._1) then
+                closure
+              else
+                var nwLam = closure._1
+                if findAllSubExps(nwLam).exists(e => allExpressionsInChange.contains(e)) then
+                  nwLam = buildNewExpr(nwLam).asInstanceOf[closure._1.type]
+                closure._2 match // update the environment of the lambda if it needs changing
+                  case env : maf.core.BasicEnvironment[_] =>
+                    val newEnv = createNewEnvironment(closure._1, a, env)
+                    (nwLam, new BasicEnvironment[Address](newEnv).restrictTo(nwLam.fv))
           else closure)
         IncrementalSchemeTypeDomain.modularLattice.Clo(newClos)
       case vector: IncrementalSchemeTypeDomain.modularLattice.Vec =>
@@ -509,6 +521,9 @@ class IncrementalUpdateDatastructures {
 
 
   def createNewEnvironment(expr: SchemeLambdaExp, a: IncrementalModAnalysis[Expression], oldEnv: maf.core.BasicEnvironment[_]): Map[String, Address] =
+    lexEnvsBuildEnvs.get(expr) match
+      case Some(env) => return env
+      case _         =>
     val eqlLam = equivalentLambdas.find(l => l._1 == expr || l._2 == expr).getOrElse((expr, expr)).asInstanceOf[(SchemeExp, SchemeExp)]
     var newEnv: Map[String, Address] = Map()
     val newEnvIds: (Identifier, Map[String, Identifier]) = allNewLexicalEnvs.getOrElse(eqlLam._2, (Identifier("", NoCodeIdentity), Map()))
@@ -541,6 +556,7 @@ class IncrementalUpdateDatastructures {
               println(eqlLam._2)
               println(fv)
               throw new RuntimeException("please provide correct scopes to the environment builder"))
+    lexEnvsBuildEnvs = lexEnvsBuildEnvs + (expr -> newEnv)
     newEnv
   // To create an new enviroment, loop over the old enviroment
   // If a variable did not change, it can be added to the new environment

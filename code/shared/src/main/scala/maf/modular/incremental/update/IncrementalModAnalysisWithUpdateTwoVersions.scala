@@ -9,6 +9,7 @@ import maf.modular.scheme.modf.{NoContext, SchemeModFComponent}
 import maf.util.benchmarks.Timeout
 
 import scala.::
+import scala.collection.mutable
 
 trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val secondProgram: Expr) extends IncrementalModAnalysisWithUpdate[Expr]:
 
@@ -62,10 +63,21 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
         var affectedLambdasPairs: List[(Expression, Expression)] = List()
         var componentsWithAddedNots: List[SchemeModFComponent] = List()
         var componentsWithAddedBigger: List[SchemeModFComponent] = List()
+        var dontUpdate: List[Expression] = List()
         affectedLambdasPairsIntermediate.foreach(e => e match
           case (expr: Expr, Some(other: Expression)) if expr != other =>
             allChanges = allChanges + (expr -> other)
             affectedLambdasPairs = affectedLambdasPairs.::(expr, other)
+            println("affected lambda")
+            println(expr)
+            println(finder.reanalyse)
+            if finder.reanalyse.exists(k => k._1 == Some(expr)) then
+              println("ADDING")
+              println(expr)
+              dontUpdate = dontUpdate.::(expr)
+          case (expr: Expr, Some(other: Expr)) =>
+            dontUpdate = dontUpdate.::(expr)
+
            /* if !expr.fv.contains("not") && other.fv.contains("not") then
               affectedLambdas.get(expr) match
                 case Some(comp) => componentsWithAddedNots = componentsWithAddedNots.::(comp.asInstanceOf[SchemeModFComponent])
@@ -104,13 +116,13 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
               if changes.renamings.nonEmpty || changes.ifs.nonEmpty || changes.scopeChanges.nonEmpty then
                 val renamed = changes.renamings.map(e => (e._1, e._2._2))//.toSet
                 val timeBeforeU = System.nanoTime()
-                update.changeDataStructures(a, List(program, secondProgram), renamed, changes.ifs, changes.scopeChanges, affectedLambdasPairs, changes.allLexicalEnvs)
+                update.changeDataStructures(a, List(program, secondProgram), renamed, changes.ifs, changes.scopeChanges, affectedLambdasPairs, changes.allLexicalEnvs, dontUpdate)
                 println("time updating datastructures: " + (System.nanoTime() - timeBeforeU).toString)
           affectedAll = changes.reanalyse
         else
           this match
             case a: IncrementalModAnalysis[Expression] =>
-              update.changeDataStructures(a, List(program, secondProgram), List(), List(), Map(), affectedLambdasPairs, changes.allLexicalEnvs)
+              update.changeDataStructures(a, List(program, secondProgram), List(), List(), Map(), affectedLambdasPairs, changes.allLexicalEnvs, dontUpdate)
         var affected = affectedAll.appendedAll(affectedLambdasPairsIntermediate.filter((l1, l2) => l2 == None)).flatMap(e => e match
           case (Some(oldExpr: Expr), Some(nwExpr: Expr)) =>
             (mapping.get(oldExpr), mapping.get(nwExpr)) match
