@@ -67,7 +67,7 @@ class IncrementalUpdateDatastructures {
     equivalentLambdas = otherChanges.toMap
 
     println("ALL EXPRESSIONS IN CHANGE")
-    allExpressionsInChange.foreach(println)
+    equivalentLambdas.foreach(println)
 
    /* (for
       oldExp <- allSubsOtherOld

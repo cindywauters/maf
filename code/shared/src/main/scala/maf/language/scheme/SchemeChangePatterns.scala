@@ -29,6 +29,8 @@ class SchemeChangePatterns:
   var scopeChanges: ScopeChanges = Map()
   var maybeReanalyse: Map[Expression, (Option[Expression], Option[Expression])] = Map()
   var renamedBindingsIds: Map[Identifier, Identifier] = Map()
+  var allOldScopes: BindingsWithScopes = Map()
+  var allNewScopes: BindingsWithScopes = Map()
 
 // find all the changed expressions and create a set with all the old and new expressions
   def findAllChangedExpressions(expr: Expression): Set[ChangeExp[Expression]] = expr match
@@ -228,8 +230,8 @@ class SchemeChangePatterns:
 
   // Returns a list of expressions that needs to be reanalysed (old and new), and a list of tuples of expressions that are just renamings together with their mappings
   def comparePrograms(old: SchemeExp, nw: SchemeExp, analysis: Option[IncrementalModAnalysisWithUpdateTwoVersions[_]] = None): differentChanges =
-    lazy val allOldScopes = findLexicalScopes(old)
-    lazy val allNewScopes = findLexicalScopes(nw)
+    allOldScopes = findLexicalScopes(old)
+    allNewScopes = findLexicalScopes(nw)
     (old, nw) match
       case (oldlet: SchemeLettishExp, newlet: SchemeLettishExp) =>
         var relatedBindings: Map[Expression, Expression] = Map()
@@ -312,6 +314,18 @@ class SchemeChangePatterns:
       case let: SchemeLettishExp =>
         val bindings = let.bindings.map(_._2)
         lams.map(e => (e, findEquivalent(e, bindings)))
+
+  def findEquivalentLambdasInFunctionOfScopes(lams: List[Expression]): List[(Expression, Option[Expression])] =
+    lams.collect {
+      case lam: SchemeLambdaExp =>
+        allNewScopes.get(lam) match
+          case None =>
+            allNewScopes.find(otherLam => otherLam._1.idn == lam.idn) match
+              case Some(otherLam) => (lam, Some(otherLam._1))
+              case None           => (lam, None)
+          case Some(otherLam)     => (lam, Some(lam))
+    }
+
 
   def allBindingsInProgramIdSchemeExp(expr: Expression): List[(Identifier, Expression)] =
     if expr.subexpressions.isEmpty && expr.height == 1 then

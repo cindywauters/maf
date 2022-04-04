@@ -279,11 +279,8 @@
       (let* ((root (- size 1))
              (edge? (proc->vector
                       size
-                      (<change>
-                         (lambda (from)
-                            (make-vector size #f))
-                         (lambda (_from0)
-                            (make-vector size #f)))))
+                      (lambda (from)
+                            (make-vector size #f))))
              (edges (make-vector size ()))
              (out-degrees (make-vector size 0))
              (minimal-folder (make-minimal? root))

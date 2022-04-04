@@ -108,13 +108,13 @@ object UpdateStructuresInAnalysis extends App:
       // analysisWithoutUpdates.analyzeWithTimeout(timeout())
       // analysisWithoutUpdates.analyzeWithTimeout(timeout())
 
-      /*for (i <- 1 to 10) {
+      for (i <- 1 to 10) {
         val analysisWithoutUpdates = baseNoUpdates(program)
         val beforeAnalysis = System.nanoTime
         analysisWithoutUpdates.version = New
         analysisWithoutUpdates.analyzeWithTimeout(timeout())
         val timeAnalysis = System.nanoTime - beforeAnalysis
-      }*/
+      }
 
 
       val analysisWithUpdates = baseUpdates(program)
@@ -134,7 +134,6 @@ object UpdateStructuresInAnalysis extends App:
       val beforeAnalysis = System.nanoTime
       analysisWithoutUpdates.version = New
       analysisWithoutUpdates.analyzeWithTimeout(timeout())
-      println(analysisWithoutUpdates.mapping)
       val timeAnalysis = System.nanoTime - beforeAnalysis
 
       val storeWithoutUpdate = analysisWithoutUpdates.store
@@ -142,12 +141,12 @@ object UpdateStructuresInAnalysis extends App:
       val mappingWithoutUpdate = analysisWithoutUpdates.mapping
       val visitedWithoutUpdate = analysisWithoutUpdates.visited
 
-      visitedWithoutUpdate.foreach(e =>
+     /* visitedWithoutUpdate.foreach(e =>
         println(e)
           e match
           case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
             println(env)
-          case _ =>)
+          case _ =>)*/
 
       println("first analysis done")
 
@@ -169,7 +168,7 @@ object UpdateStructuresInAnalysis extends App:
           case Some(updatedValue) => updatedValue.==(v)
           case _ => false).toString)
 
-      storeWithoutUpdate.foreach((k, v) =>
+     /* storeWithoutUpdate.foreach((k, v) =>
         storeWithUpdate.get(k) match
           case Some(updatedValue) =>
             if updatedValue.!=(v) then
@@ -196,8 +195,8 @@ object UpdateStructuresInAnalysis extends App:
                   println(lam.toString + " " + env.toString + " " + oldCtx.toString)
             case _ =>
       )
-
-      println()
+*/
+  /*    println()
 
       //println("Dependencies with updating: " + depsWithUpdate.toString)
       //  println("Dependencies with regular reanalysis: " + depsWithoutUpdate.toString)
@@ -418,7 +417,7 @@ object UpdateStructuresInAnalysis extends App:
         if !visitedWithoutUpdate.contains(e) then
           e match
             case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: maf.modular.scheme.modf.ArgContext) =>
-              println("missing in reanalysis: "))// + e.toString()))
+              println("missing in reanalysis: "))// + e.toString()))*/
 
       val update = new IncrementalUpdateDatastructures
 
@@ -437,7 +436,8 @@ object UpdateStructuresInAnalysis extends App:
 
   val modConcbenchmarks: List[String] = List()
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/testfile.scm")
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/array1.scm")
+  val modFbenchmarks: List[String] = List("test/changes/scheme/nboyer.scm")
+  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/array1.scm")
 // val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm", "test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/symbols.scm")

@@ -44,13 +44,10 @@
  
 (define *current-gensym* 0)
  
-(define generate-symbol (<change>
+(define generate-symbol
       (lambda ()
          (set! *current-gensym* (+ *current-gensym* 1))
-         (string->symbol (number->string *current-gensym*)))
-      (lambda ()
-         (set! *current-gensym* (+ *current-gensym* 1))
-         (string->symbol (number->string *current-gensym*)))))
+         (string->symbol (number->string *current-gensym*))))
  
 (define append-to-tail! (lambda (x y)
       (if (null? x)

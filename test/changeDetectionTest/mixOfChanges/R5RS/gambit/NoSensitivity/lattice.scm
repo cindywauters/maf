@@ -188,11 +188,7 @@
          target
          ()
          (lattice->elements source)
-         (<change>
-            (lambda (x)
-               1)
-            (lambda (_x0)
-               1))
+         (lambda (x) 1)
          sum)))
  
 (define sum (lambda (lst)

@@ -56,12 +56,14 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
               case _ =>
           case _ =>
         )
-        var affectedLambdasPairsIntermediate = finder.findEquivalentLambdas(affectedLambdas, secondProgram)
+        val timeLamBefore = System.nanoTime()
+        var affectedLambdasPairsIntermediate = finder.findEquivalentLambdasInFunctionOfScopes(affectedLambdas)
+        println("time finding Lambdas:  " + (System.nanoTime() - timeLamBefore).toString)
         var affectedLambdasPairs: List[(Expression, Expression)] = List()
         var componentsWithAddedNots: List[SchemeModFComponent] = List()
         var componentsWithAddedBigger: List[SchemeModFComponent] = List()
         affectedLambdasPairsIntermediate.foreach(e => e match
-          case (expr: Expr, Some(other: Expression)) if expr != other && !changes.reanalyse.exists(e => e._1.contains(expr)) =>
+          case (expr: Expr, Some(other: Expression)) if expr != other =>
             allChanges = allChanges + (expr -> other)
             affectedLambdasPairs = affectedLambdasPairs.::(expr, other)
            /* if !expr.fv.contains("not") && other.fv.contains("not") then
@@ -101,7 +103,9 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
               )
               if changes.renamings.nonEmpty || changes.ifs.nonEmpty || changes.scopeChanges.nonEmpty then
                 val renamed = changes.renamings.map(e => (e._1, e._2._2))//.toSet
+                val timeBeforeU = System.nanoTime()
                 update.changeDataStructures(a, List(program, secondProgram), renamed, changes.ifs, changes.scopeChanges, affectedLambdasPairs, changes.allLexicalEnvs)
+                println("time updating datastructures: " + (System.nanoTime() - timeBeforeU).toString)
           affectedAll = changes.reanalyse
         else
           this match
