@@ -89,7 +89,7 @@ object TwoSeperateVersionsAnalyse extends App:
    //   println(analysisWithUpdates.store)
       val beforeUpdateAnalysis = System.nanoTime
       analysisWithUpdates.version = New
-      analysisWithUpdates.updateAnalysis(timeout(), true)
+      analysisWithUpdates.updateAnalysis(timeout(), false)
       val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
 
       val storeWithUpdate = analysisWithUpdates.store

@@ -199,18 +199,32 @@ class IncrementalUpdateDatastructures {
     allChanges.get(expr) match
       case Some(e: SchemeExp) =>
         e
-      case None => expr match
-        case lambda: SchemeLambda       => SchemeLambda(lambda.name, lambda.args, lambda.body.map(buildNewExpr(_, allChanges)), lambda.annotation, lambda.idn)
-        case lambda: SchemeVarArgLambda => SchemeVarArgLambda(lambda.name, lambda.args, lambda.vararg, lambda.body.map(buildNewExpr(_, allChanges)), lambda.annotation, lambda.idn)
-        case let: SchemeLet             => SchemeLet(let.bindings.map(b => (b._1, buildNewExpr(b._2, allChanges))), let.body.map(buildNewExpr(_, allChanges)), let.idn)
-        case let: SchemeLetStar         => SchemeLetStar(let.bindings.map(b => (b._1, buildNewExpr(b._2, allChanges))), let.body.map(buildNewExpr(_, allChanges)), let.idn)
-        case let: SchemeLetrec          => SchemeLetrec(let.bindings.map(b => (b._1, buildNewExpr(b._2, allChanges))), let.body.map(buildNewExpr(_, allChanges)), let.idn)
-        case ifExp: SchemeIf            => SchemeIf(buildNewExpr(ifExp.cond, allChanges), buildNewExpr(ifExp.cons, allChanges), buildNewExpr(ifExp.alt, allChanges), ifExp.idn)
-        case fun: SchemeFuncall         => SchemeFuncall(buildNewExpr(fun.f, allChanges), fun.args.map(buildNewExpr(_, allChanges)), fun.idn)
-        case set: SchemeSet             => SchemeSet(set.variable, buildNewExpr(set.value, allChanges), set.idn)
-        case begin: SchemeBegin         => SchemeBegin(begin.exps.map(buildNewExpr(_, allChanges)), begin.idn)
-        case scmVar: SchemeVar          => scmVar
-        case _                          => expr
+      case None =>
+        var newExpression = expr
+        expr match
+          case lambda: SchemeLambda       =>
+            newExpression = SchemeLambda(lambda.name, lambda.args, lambda.body.map(buildNewExpr(_, allChanges)), lambda.annotation, lambda.idn)
+          case lambda: SchemeVarArgLambda =>
+            newExpression = SchemeVarArgLambda(lambda.name, lambda.args, lambda.vararg, lambda.body.map(buildNewExpr(_, allChanges)), lambda.annotation, lambda.idn)
+          case let: SchemeLet             =>
+            newExpression = SchemeLet(let.bindings.map(b => (b._1, buildNewExpr(b._2, allChanges))), let.body.map(buildNewExpr(_, allChanges)), let.idn)
+          case let: SchemeLetStar         =>
+            newExpression = SchemeLetStar(let.bindings.map(b => (b._1, buildNewExpr(b._2, allChanges))), let.body.map(buildNewExpr(_, allChanges)), let.idn)
+          case let: SchemeLetrec          =>
+            newExpression = SchemeLetrec(let.bindings.map(b => (b._1, buildNewExpr(b._2, allChanges))), let.body.map(buildNewExpr(_, allChanges)), let.idn)
+          case ifExp: SchemeIf            =>
+            newExpression = SchemeIf(buildNewExpr(ifExp.cond, allChanges), buildNewExpr(ifExp.cons, allChanges), buildNewExpr(ifExp.alt, allChanges), ifExp.idn)
+          case fun: SchemeFuncall         =>
+            newExpression = SchemeFuncall(buildNewExpr(fun.f, allChanges), fun.args.map(buildNewExpr(_, allChanges)), fun.idn)
+          case set: SchemeSet             =>
+            newExpression = SchemeSet(set.variable, buildNewExpr(set.value, allChanges), set.idn)
+          case begin: SchemeBegin         =>
+            newExpression = SchemeBegin(begin.exps.map(buildNewExpr(_, allChanges)), begin.idn)
+          case scmVar: SchemeVar          =>
+            newExpression = scmVar
+          case _                          =>
+        allExpressionsInChange = allExpressionsInChange + (expr -> newExpression)
+        newExpression
 
 
   // In the mapping, the key is a (Scheme) expression and the value is a set of components
@@ -223,9 +237,8 @@ class IncrementalUpdateDatastructures {
       allExpressionsInChange.get(oldKey) match
         case Some(nw) => newKey = nw
         case _ =>
-          if findAllSubExps(oldKey).exists(e => allExpressionsInChange.contains(e)) then
-            oldKey match
-              case oldKey: SchemeExp => newKey = buildNewExpr(oldKey)
+          oldKey match
+            case oldKey: SchemeExp => newKey = buildNewExpr(oldKey)
       (oldKey, newKey, newValue) match
         case (oldKey: SchemeExp, newKey: SchemeExp, newValue: Set[a.Component]) =>
           if newKey.equals(oldKey) then
