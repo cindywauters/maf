@@ -149,10 +149,25 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
           /*case _ =>
             Set(initialComponent)*/
         )
+        finder.scopeChanges.foreach((k, v) =>
+          k._1 match
+            case lam: SchemeLambdaExp =>
+              mapping.get(lam.asInstanceOf[Expr]) match
+                case Some(comps) => affected = affected ++ comps
+                case _ => affected = affected ++ Set(initialComponent)
+          v._1 match
+            case lam: SchemeLambdaExp =>
+              mapping.get(lam.asInstanceOf[Expr]) match
+                case Some(comps) => affected = affected ++ comps
+                case _ => affected = affected ++ Set(initialComponent)
+
+
+        )
         mapping = mapping + (secondProgram -> Set(initialComponent))
         affected.foreach(addToWorkList)
         println(workList)
         println(changes.scopeChanges)
+        //addToWorkList(initialComponent)
     val beforeUpdateAnalysis = System.nanoTime
     analyzeWithTimeout(timeout)
     println("time analysis in 160: " + (System.nanoTime() - beforeUpdateAnalysis).toString)

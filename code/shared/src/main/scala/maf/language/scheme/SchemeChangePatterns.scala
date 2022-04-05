@@ -275,7 +275,7 @@ class SchemeChangePatterns:
                     scopeChanges = scopeChanges + ((deleted, oenv) -> (inserted, nenv))
                 case _ =>
             case _ =>)
-        deletes.foreach(deleted =>
+       /* deletes.foreach(deleted =>
           if !scopeChanges.exists(s => s._1._1 == deleted) then
             println(deleted)
             maybeReanalyse.find(r => r._1.eql(deleted)) match
@@ -284,7 +284,7 @@ class SchemeChangePatterns:
           if !scopeChanges.exists(s => s._2._1 == inserted) then
             println(inserted)
             maybeReanalyse.find(r => r._1.eql(inserted)) match
-              case Some(toReanalyse) => reanalyse = reanalyse.::(toReanalyse._2))
+              case Some(toReanalyse) => reanalyse = reanalyse.::(toReanalyse._2))*/
         println("reanalyse")
         reanalyse.foreach(println)
         println(reanalyse.size)

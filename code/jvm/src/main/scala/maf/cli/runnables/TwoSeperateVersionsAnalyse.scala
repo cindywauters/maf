@@ -137,6 +137,8 @@ object TwoSeperateVersionsAnalyse extends App:
           case Some(updatedValue) =>
             if !analysisWithUpdates.lattice.subsumes(updatedValue, v) then
               println("store r -> u " + k.toString() + " " + v.toString + " " + updatedValue.toString)
+              println(storeWithUpdate.zipWithIndex.find((k1, v1) => k == k1._1))
+              println(storeWithoutUpdate.zipWithIndex.find((k1, v1) => k == k1._1))
             analysisWithUpdates.lattice.subsumes(updatedValue, v)
           case _ =>
             println("old: " + v.toString + " " + k.toString())
@@ -232,7 +234,8 @@ object TwoSeperateVersionsAnalyse extends App:
   val modConcbenchmarks: List[String] = List()
   // val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm", "test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
  // val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/various/NoSensitivity/SICP-compiler.scm")
-  val modFbenchmarks: List[String] = List("test/changes/scheme/nboyer.scm")
+ // val modFbenchmarks: List[String] = List("test/changes/scheme/nboyer.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_nboyer.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_array1.scm")
  // val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/NoSensitivity/graphs.scm")
