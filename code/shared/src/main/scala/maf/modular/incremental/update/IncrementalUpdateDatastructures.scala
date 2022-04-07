@@ -548,7 +548,7 @@ class IncrementalUpdateDatastructures {
         case None =>
           newEnvIds._2.get(fv) match
             case Some(identifier: Identifier) =>
-              val newCtx = if allExprs.size > 1 &&  allExprs(1).subexpressions.exists(s => s.idn == identifier.idn) then
+              var newCtx = if allExprs.size > 1 &&  allExprs(1).subexpressions.exists(s => s.idn == identifier.idn) then
                 None
               else
                 Some(NoContext)

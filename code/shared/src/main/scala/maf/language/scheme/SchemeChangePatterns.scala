@@ -346,29 +346,24 @@ class SchemeChangePatterns:
       case let: SchemeLet =>
         let.bindings.foreach(b =>
           newScope = newScope + (b._1.name -> b._1)
-          toReturn = toReturn ++ findLexicalScopes(b._2, currentScope) ++ Map(b._2 -> (b._1, currentScope.filter(variable => b._2.fv.contains(variable._1)))))
+          toReturn = toReturn ++ findLexicalScopes(b._2, currentScope))
         toReturn ++ let.body.flatMap(exp => findLexicalScopes(exp, newScope))
       case let: SchemeLetrec =>
         let.bindings.foreach(b =>
           newScope = newScope + (b._1.name -> b._1))
         let.bindings.foreach(b =>
-          toReturn = toReturn ++ findLexicalScopes(b._2, newScope) ++ Map(b._2 -> (b._1, newScope.filter(variable => b._2.fv.contains(variable._1)))))
+          toReturn = toReturn ++ findLexicalScopes(b._2, newScope))
         toReturn ++ let.body.flatMap(exp => findLexicalScopes(exp, newScope))
       case let: SchemeLetStar =>
         let.bindings.foreach(b =>
-          toReturn = toReturn ++ findLexicalScopes(b._2, newScope) ++ Map(b._2 -> (b._1, newScope.filter(variable => b._2.fv.contains(variable._1))))
+          toReturn = toReturn ++ findLexicalScopes(b._2, newScope)
           newScope = newScope + (b._1.name -> b._1))
         toReturn ++ let.body.flatMap(exp => findLexicalScopes(exp, newScope))
-      case lam: SchemeLambda =>
-      /*  if
-        lam.name match
-          case Some(name) =>
-            currentScope
-            toReturn = toReturn ++ Map(lam -> name)*/
+      case lam: SchemeLambdaExp =>
         newScope = currentScope ++ lam.args.map(id => (id.name, id)).toMap
-        Map(lam -> (Identifier("", NoCodeIdentity), currentScope.filter(v => lam.fv.contains(v._1)))) ++ lam.subexpressions.flatMap(findLexicalScopes(_, newScope)).toMap
+        Map(lam -> (Identifier("", NoCodeIdentity), currentScope.filter(v => lam.fv.contains(v._1)))) ++ lam.body.flatMap(findLexicalScopes(_, newScope)).toMap
       case _ =>
-        if expr.height > 1 then
+        if expr.subexpressions.nonEmpty then
           expr.subexpressions.flatMap(findLexicalScopes(_, newScope)).toMap
         else
           Map()

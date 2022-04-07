@@ -327,7 +327,7 @@
             (lambda (_maker0)
                (_maker0 0 1 _coef-zero?0 _coef-+0 _coef-negate0 _coef-*0 _coef-recip0))))))
  
-(define extended-gcd (<change>
+(define extended-gcd
       (let ((n->sgn/abs (lambda (x cont)
                           (if (>= x 0) (cont 1 x) (cons -1 (- x))))))
          (lambda (a b cont)
@@ -348,34 +348,8 @@
                            0
                            q
                            0
-                           q-b)))))))
-      (let ((_n->sgn/abs0 (lambda (_x0 _cont0)
-                            (if (>= _x0 0) (_cont0 1 _x0) (cons -1 (- _x0))))))
-         (lambda (_a0 _b0 _cont1)
-            (_n->sgn/abs0
-               _a0
-               (lambda (_p-a0 _p0)
-                  (_n->sgn/abs0
-                     _b0
-                     (lambda (_q-b0 _q0)
-                        ((letrec ((__-*-0 (lambda (_p1 _p-a1 _p-b0 _q1 _q-a0 _q-b1)
-                                           (if (zero? _q1)
-                                              (_cont1 _p1 _p-a1 _p-b0)
-                                              (let ((_mult0 (quotient _p1 _q1)))
-                                                 (__-*-0
-                                                    _q1
-                                                    _q-a0
-                                                    _q-b1
-                                                    (- _p1 (* _mult0 _q1))
-                                                    (- _p-a1 (* _mult0 _q-a0))
-                                                    (- _p-b0 (* _mult0 _q-b1))))))))
-                           __-*-0)
-                           _p0
-                           _p-a0
-                           0
-                           _q0
-                           0
-                           _q-b0)))))))))
+                           q-b))))))))
+
  
 (define make-row-reduce (<change>
       (lambda (coef-zero coef-one coef-zero? coef-+ coef-negate coef-* coef-recip)

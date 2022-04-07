@@ -170,8 +170,8 @@ class IncrementalAnalysisUpdateSplitVersions extends AnyPropSpec:
   val gambitGeneratedContextInsensitive: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/MixOfChanges/R5RS/gambit/NoSensitivity")()
 
   val others: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changes/scheme")()
- // val manualScopeChanges: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/scopeChangesManual")()
-  val modFbenchmarks: Set[String] = gambitGenerated ++ gambitGeneratedContextInsensitive ++ others//++ manualScopeChanges
+  //val manualScopeChanges: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/scopeChangesManual")()
+  val modFbenchmarks: Set[String] = gambitGenerated ++ gambitGeneratedContextInsensitive ++ others //++ manualScopeChanges
 
   modFbenchmarks.foreach(benchmark =>
     val program = CSchemeParser.parseProgram(Reader.loadFile(benchmark))
