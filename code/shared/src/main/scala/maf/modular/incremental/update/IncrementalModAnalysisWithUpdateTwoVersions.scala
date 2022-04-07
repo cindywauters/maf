@@ -71,7 +71,7 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
             println("affected lambda")
             println(expr)
             println(finder.reanalyse)
-            if finder.reanalyse.exists(k => k._1 == Some(expr)) then
+            if !rename || finder.reanalyse.exists(k => k._1 == Some(expr)) then
               println("ADDING")
               println(expr)
               dontUpdate = dontUpdate.::(expr)
@@ -166,12 +166,15 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
           case SchemeModFComponent.Call((lam, env), ctx) =>
             if affectedLambdasPairs.exists((l1, l2) => l2 == lam) then
               addToWorkList(v)
+              mapping.get(lam.asInstanceOf[Expr]) match // TODO: probably optimizable by only adding if lam is in the affected list
+                case Some(comp) => addToWorkList(comp)
+                case _          =>
           case _ =>)
         mapping = mapping + (secondProgram -> Set(initialComponent))
         affected.foreach(addToWorkList)
         println(workList)
         println(changes.scopeChanges)
-        //addToWorkList(initialComponent)
+      //  addToWorkList(initialComponent)
     val beforeUpdateAnalysis = System.nanoTime
     analyzeWithTimeout(timeout)
     println("time analysis in 160: " + (System.nanoTime() - beforeUpdateAnalysis).toString)

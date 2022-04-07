@@ -1,261 +1,261 @@
 ;; renamed lambdas/lets: 1
  
 (define *board* (list->vector
-      (__toplevel_cons
+      (cons
          1
-         (__toplevel_cons
+         (cons
             1
-            (__toplevel_cons
+            (cons
                1
-               (__toplevel_cons
+               (cons
                   1
-                  (__toplevel_cons
+                  (cons
                      1
-                     (__toplevel_cons
+                     (cons
                         0
-                        (__toplevel_cons
+                        (cons
                            1
-                           (__toplevel_cons
+                           (cons
                               1
-                              (__toplevel_cons
+                              (cons
                                  1
-                                 (__toplevel_cons
+                                 (cons
                                     1
-                                    (__toplevel_cons
+                                    (cons
                                        1
-                                       (__toplevel_cons
+                                       (cons
                                           1
-                                          (__toplevel_cons 1 (__toplevel_cons 1 (__toplevel_cons 1 (__toplevel_cons 1 ()))))))))))))))))))
+                                          (cons 1 (cons 1 (cons 1 (cons 1 ()))))))))))))))))))
  
 (define *sequence* (list->vector
-      (__toplevel_cons
+      (cons
          0
-         (__toplevel_cons
+         (cons
             0
-            (__toplevel_cons
+            (cons
                0
-               (__toplevel_cons
+               (cons
                   0
-                  (__toplevel_cons
+                  (cons
                      0
-                     (__toplevel_cons
+                     (cons
                         0
-                        (__toplevel_cons
+                        (cons
                            0
-                           (__toplevel_cons
+                           (cons
                               0
-                              (__toplevel_cons
+                              (cons
                                  0
-                                 (__toplevel_cons
+                                 (cons
                                     0
-                                    (__toplevel_cons 0 (__toplevel_cons 0 (__toplevel_cons 0 (__toplevel_cons 0 ()))))))))))))))))
+                                    (cons 0 (cons 0 (cons 0 (cons 0 ()))))))))))))))))
  
 (define *a* (list->vector
-      (__toplevel_cons
+      (cons
          1
-         (__toplevel_cons
+         (cons
             2
-            (__toplevel_cons
+            (cons
                4
-               (__toplevel_cons
+               (cons
                   3
-                  (__toplevel_cons
+                  (cons
                      5
-                     (__toplevel_cons
+                     (cons
                         6
-                        (__toplevel_cons
+                        (cons
                            1
-                           (__toplevel_cons
+                           (cons
                               3
-                              (__toplevel_cons
+                              (cons
                                  6
-                                 (__toplevel_cons
+                                 (cons
                                     2
-                                    (__toplevel_cons
+                                    (cons
                                        5
-                                       (__toplevel_cons
+                                       (cons
                                           4
-                                          (__toplevel_cons
+                                          (cons
                                              11
-                                             (__toplevel_cons
+                                             (cons
                                                 12
-                                                (__toplevel_cons
+                                                (cons
                                                    13
-                                                   (__toplevel_cons
+                                                   (cons
                                                       7
-                                                      (__toplevel_cons
+                                                      (cons
                                                          8
-                                                         (__toplevel_cons
+                                                         (cons
                                                             4
-                                                            (__toplevel_cons
+                                                            (cons
                                                                4
-                                                               (__toplevel_cons
+                                                               (cons
                                                                   7
-                                                                  (__toplevel_cons
+                                                                  (cons
                                                                      11
-                                                                     (__toplevel_cons
+                                                                     (cons
                                                                         8
-                                                                        (__toplevel_cons
+                                                                        (cons
                                                                            12
-                                                                           (__toplevel_cons
+                                                                           (cons
                                                                               13
-                                                                              (__toplevel_cons
+                                                                              (cons
                                                                                  6
-                                                                                 (__toplevel_cons
+                                                                                 (cons
                                                                                     10
-                                                                                    (__toplevel_cons
+                                                                                    (cons
                                                                                        15
-                                                                                       (__toplevel_cons
+                                                                                       (cons
                                                                                           9
-                                                                                          (__toplevel_cons
+                                                                                          (cons
                                                                                              14
-                                                                                             (__toplevel_cons
+                                                                                             (cons
                                                                                                 13
-                                                                                                (__toplevel_cons
+                                                                                                (cons
                                                                                                    13
-                                                                                                   (__toplevel_cons
+                                                                                                   (cons
                                                                                                       14
-                                                                                                      (__toplevel_cons
+                                                                                                      (cons
                                                                                                          15
-                                                                                                         (__toplevel_cons 9 (__toplevel_cons 10 (__toplevel_cons 6 (__toplevel_cons 6 ())))))))))))))))))))))))))))))))))))))))
+                                                                                                         (cons 9 (cons 10 (cons 6 (cons 6 ())))))))))))))))))))))))))))))))))))))))
  
 (define *b* (list->vector
-      (__toplevel_cons
+      (cons
          2
-         (__toplevel_cons
+         (cons
             4
-            (__toplevel_cons
+            (cons
                7
-               (__toplevel_cons
+               (cons
                   5
-                  (__toplevel_cons
+                  (cons
                      8
-                     (__toplevel_cons
+                     (cons
                         9
-                        (__toplevel_cons
+                        (cons
                            3
-                           (__toplevel_cons
+                           (cons
                               6
-                              (__toplevel_cons
+                              (cons
                                  10
-                                 (__toplevel_cons
+                                 (cons
                                     5
-                                    (__toplevel_cons
+                                    (cons
                                        9
-                                       (__toplevel_cons
+                                       (cons
                                           8
-                                          (__toplevel_cons
+                                          (cons
                                              12
-                                             (__toplevel_cons
+                                             (cons
                                                 13
-                                                (__toplevel_cons
+                                                (cons
                                                    14
-                                                   (__toplevel_cons
+                                                   (cons
                                                       8
-                                                      (__toplevel_cons
+                                                      (cons
                                                          9
-                                                         (__toplevel_cons
+                                                         (cons
                                                             5
-                                                            (__toplevel_cons
+                                                            (cons
                                                                2
-                                                               (__toplevel_cons
+                                                               (cons
                                                                   4
-                                                                  (__toplevel_cons
+                                                                  (cons
                                                                      7
-                                                                     (__toplevel_cons
+                                                                     (cons
                                                                         5
-                                                                        (__toplevel_cons
+                                                                        (cons
                                                                            8
-                                                                           (__toplevel_cons
+                                                                           (cons
                                                                               9
-                                                                              (__toplevel_cons
+                                                                              (cons
                                                                                  3
-                                                                                 (__toplevel_cons
+                                                                                 (cons
                                                                                     6
-                                                                                    (__toplevel_cons
+                                                                                    (cons
                                                                                        10
-                                                                                       (__toplevel_cons
+                                                                                       (cons
                                                                                           5
-                                                                                          (__toplevel_cons
+                                                                                          (cons
                                                                                              9
-                                                                                             (__toplevel_cons
+                                                                                             (cons
                                                                                                 8
-                                                                                                (__toplevel_cons
+                                                                                                (cons
                                                                                                    12
-                                                                                                   (__toplevel_cons
+                                                                                                   (cons
                                                                                                       13
-                                                                                                      (__toplevel_cons
+                                                                                                      (cons
                                                                                                          14
-                                                                                                         (__toplevel_cons 8 (__toplevel_cons 9 (__toplevel_cons 5 (__toplevel_cons 5 ())))))))))))))))))))))))))))))))))))))))
+                                                                                                         (cons 8 (cons 9 (cons 5 (cons 5 ())))))))))))))))))))))))))))))))))))))))
  
 (define *c* (list->vector
-      (__toplevel_cons
+      (cons
          4
-         (__toplevel_cons
+         (cons
             7
-            (__toplevel_cons
+            (cons
                11
-               (__toplevel_cons
+               (cons
                   8
-                  (__toplevel_cons
+                  (cons
                      12
-                     (__toplevel_cons
+                     (cons
                         13
-                        (__toplevel_cons
+                        (cons
                            6
-                           (__toplevel_cons
+                           (cons
                               10
-                              (__toplevel_cons
+                              (cons
                                  15
-                                 (__toplevel_cons
+                                 (cons
                                     9
-                                    (__toplevel_cons
+                                    (cons
                                        14
-                                       (__toplevel_cons
+                                       (cons
                                           13
-                                          (__toplevel_cons
+                                          (cons
                                              13
-                                             (__toplevel_cons
+                                             (cons
                                                 14
-                                                (__toplevel_cons
+                                                (cons
                                                    15
-                                                   (__toplevel_cons
+                                                   (cons
                                                       9
-                                                      (__toplevel_cons
+                                                      (cons
                                                          10
-                                                         (__toplevel_cons
+                                                         (cons
                                                             6
-                                                            (__toplevel_cons
+                                                            (cons
                                                                1
-                                                               (__toplevel_cons
+                                                               (cons
                                                                   2
-                                                                  (__toplevel_cons
+                                                                  (cons
                                                                      4
-                                                                     (__toplevel_cons
+                                                                     (cons
                                                                         3
-                                                                        (__toplevel_cons
+                                                                        (cons
                                                                            5
-                                                                           (__toplevel_cons
+                                                                           (cons
                                                                               6
-                                                                              (__toplevel_cons
+                                                                              (cons
                                                                                  1
-                                                                                 (__toplevel_cons
+                                                                                 (cons
                                                                                     3
-                                                                                    (__toplevel_cons
+                                                                                    (cons
                                                                                        6
-                                                                                       (__toplevel_cons
+                                                                                       (cons
                                                                                           2
-                                                                                          (__toplevel_cons
+                                                                                          (cons
                                                                                              5
-                                                                                             (__toplevel_cons
+                                                                                             (cons
                                                                                                 4
-                                                                                                (__toplevel_cons
+                                                                                                (cons
                                                                                                    11
-                                                                                                   (__toplevel_cons
+                                                                                                   (cons
                                                                                                       12
-                                                                                                      (__toplevel_cons
+                                                                                                      (cons
                                                                                                          13
-                                                                                                         (__toplevel_cons 7 (__toplevel_cons 8 (__toplevel_cons 4 (__toplevel_cons 4 ())))))))))))))))))))))))))))))))))))))))
+                                                                                                         (cons 7 (cons 8 (cons 4 (cons 4 ())))))))))))))))))))))))))))))))))))))))
  
 (define *answer* ())
  
@@ -310,23 +310,23 @@
  
 (equal?
    (test 22 1)
-   (__toplevel_cons
+   (cons
       22
-      (__toplevel_cons
+      (cons
          34
-         (__toplevel_cons
+         (cons
             31
-            (__toplevel_cons
+            (cons
                15
-               (__toplevel_cons
+               (cons
                   7
-                  (__toplevel_cons
+                  (cons
                      1
-                     (__toplevel_cons
+                     (cons
                         20
-                        (__toplevel_cons
+                        (cons
                            17
-                           (__toplevel_cons
+                           (cons
                               25
-                              (__toplevel_cons 6 (__toplevel_cons 5 (__toplevel_cons 13 (__toplevel_cons 32 ()))))))))))))))
+                              (cons 6 (cons 5 (cons 13 (cons 32 ()))))))))))))))
  
