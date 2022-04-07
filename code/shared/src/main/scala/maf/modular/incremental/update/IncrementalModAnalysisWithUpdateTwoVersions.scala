@@ -169,7 +169,6 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
           case _ =>)
         mapping = mapping + (secondProgram -> Set(initialComponent))
         affected.foreach(addToWorkList)
-        workList = workList - initialComponent
         println(workList)
         println(changes.scopeChanges)
         //addToWorkList(initialComponent)

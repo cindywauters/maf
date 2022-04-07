@@ -421,7 +421,10 @@ object UpdateStructuresInAnalysis extends App:
 
       val update = new IncrementalUpdateDatastructures
 
-
+      println(storeWithUpdate.size + " (" + storeWithoutUpdate.size + ")")
+      println(depsWithUpdate.size + "  (" + depsWithoutUpdate.size + ")")
+      println(mappingWithUpdate.size + " (" + mappingWithoutUpdate.size + ")")
+      println(visitedWithUpdate.size + "  (" + visitedWithoutUpdate.size + ")")
 
       println()
 
@@ -436,7 +439,7 @@ object UpdateStructuresInAnalysis extends App:
 
   val modConcbenchmarks: List[String] = List()
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/testfile.scm")
-  val modFbenchmarks: List[String] = List("test/changes/scheme/nboyer.scm")
+  val modFbenchmarks: List[String] = List("test/changes/scheme/qeval.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/array1.scm")
 // val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm", "test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm")
