@@ -113,11 +113,10 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
                       case _ =>
                 )
               )
-              if changes.renamings.nonEmpty || changes.ifs.nonEmpty || changes.scopeChanges.nonEmpty then
-                val renamed = changes.renamings.map(e => (e._1, e._2._2))//.toSet
-                val timeBeforeU = System.nanoTime()
-                update.changeDataStructures(a, List(program, secondProgram), renamed, changes.ifs, changes.scopeChanges, affectedLambdasPairs, changes.allLexicalEnvs, dontUpdate)
-                println("time updating datastructures: " + (System.nanoTime() - timeBeforeU).toString)
+              val renamed = changes.renamings.map(e => (e._1, e._2._2))//.toSet
+              val timeBeforeU = System.nanoTime()
+              update.changeDataStructures(a, List(program, secondProgram), renamed, changes.ifs, changes.scopeChanges, affectedLambdasPairs, changes.allLexicalEnvs, dontUpdate)
+              println("time updating datastructures: " + (System.nanoTime() - timeBeforeU).toString)
           affectedAll = changes.reanalyse
         else
           this match
@@ -163,8 +162,14 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
 
 
         )
+        visited.foreach(v => v match
+          case SchemeModFComponent.Call((lam, env), ctx) =>
+            if affectedLambdasPairs.exists((l1, l2) => l2 == lam) then
+              addToWorkList(v)
+          case _ =>)
         mapping = mapping + (secondProgram -> Set(initialComponent))
         affected.foreach(addToWorkList)
+        workList = workList - initialComponent
         println(workList)
         println(changes.scopeChanges)
         //addToWorkList(initialComponent)

@@ -42,7 +42,7 @@ class IncrementalAnalysisUpdateSplitVersions extends AnyPropSpec:
     var configuration: IncrementalConfiguration = noOptimisations
     override def intraAnalysis(
                                 cmp: Component
-                              ) = new IntraAnalysis(cmp) with UpdateIncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis    }
+                              ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis    }
 
   def checkSubsumptionContexts(a: IncrementalModAnalysis[SchemeExp], u: IncrementalModAnalysisWithUpdate[SchemeExp], ac: Any, uc: Any): Boolean =
     a match
@@ -169,8 +169,9 @@ class IncrementalAnalysisUpdateSplitVersions extends AnyPropSpec:
   val gambitGenerated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/MixOfChanges/R5RS/gambit")()
   val gambitGeneratedContextInsensitive: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/MixOfChanges/R5RS/gambit/NoSensitivity")()
 
+  val others: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changes/scheme")()
  // val manualScopeChanges: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/scopeChangesManual")()
-  val modFbenchmarks: Set[String] = gambitGenerated ++ gambitGeneratedContextInsensitive //++ manualScopeChanges
+  val modFbenchmarks: Set[String] = gambitGenerated ++ gambitGeneratedContextInsensitive ++ others//++ manualScopeChanges
 
   modFbenchmarks.foreach(benchmark =>
     val program = CSchemeParser.parseProgram(Reader.loadFile(benchmark))
@@ -189,6 +190,6 @@ class IncrementalAnalysisUpdateSplitVersions extends AnyPropSpec:
 
     twoVersions.analyzeWithTimeout(standardTimeout())
     twoVersions.version = New
-    twoVersions.updateAnalysis(standardTimeout(), true)
+    twoVersions.updateAnalysis(standardTimeout(), false)
 
     checkSubsumptionForUpdate(twoVersionsNewOnly, twoVersions)

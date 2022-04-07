@@ -104,7 +104,7 @@ class IncrementalUpdateDatastructures {
           (i._2.head, mapping)).toMap
 
     a match
-      case analysis: IncrementalGlobalStore[Expression] if renamings.nonEmpty || scopeChanges.nonEmpty || ifs.nonEmpty => // Update the store
+      case analysis: IncrementalGlobalStore[Expression] => // Update the store
         updateStore(analysis)
       case _ =>
     updateDependencies(a) // Update the dependencies
@@ -481,25 +481,25 @@ class IncrementalUpdateDatastructures {
       case clos : IncrementalSchemeTypeDomain.modularLattice.Clo =>
         var newClos: Set[IncrementalSchemeTypeDomain.modularLattice.schemeLattice.Closure] = clos.closures.map(closure =>
           //TODO this will most definitely cause a problem if equivalentLambdas contains a renaming because then it won't be updated
-          if equivalentLambdas.contains(closure._1) then
-            closure
-          else
-            allExpressionsInChange.get(closure._1) match // check if lambda is in a change expression
-              case Some(lambda: SchemeLambdaExp) =>
-                if lambda.args.contains("grammar") then
-                  println("here")
-                closure._2 match // update the environment of the lambda if it needs changing
-                  case env : maf.core.BasicEnvironment[_] =>
-                    var newEnv = createNewEnvironment(closure._1, a, env)
-                    (lambda, new BasicEnvironment[Address](newEnv).restrictTo(lambda.fv))
-              case _ =>
-                var nwLam = closure._1
-                if findAllSubExps(nwLam).exists(e => allExpressionsInChange.contains(e)) then
-                  nwLam = buildNewExpr(nwLam).asInstanceOf[closure._1.type]
-                closure._2 match // update the environment of the lambda if it needs changing
-                  case env : maf.core.BasicEnvironment[_] =>
-                    val newEnv = createNewEnvironment(closure._1, a, env)
-                    (nwLam, new BasicEnvironment[Address](newEnv).restrictTo(nwLam.fv)))
+          //if notToUpdate.contains(closure._1) then
+          //  closure
+      //    else
+          allExpressionsInChange.get(closure._1) match // check if lambda is in a change expression
+            case Some(lambda: SchemeLambdaExp) =>
+              if lambda.args.contains("grammar") then
+                println("here")
+              closure._2 match // update the environment of the lambda if it needs changing
+                case env : maf.core.BasicEnvironment[_] =>
+                  var newEnv = createNewEnvironment(closure._1, a, env)
+                  (lambda, new BasicEnvironment[Address](newEnv).restrictTo(lambda.fv))
+            case _ =>
+              var nwLam = closure._1
+              if findAllSubExps(nwLam).exists(e => allExpressionsInChange.contains(e)) then
+                nwLam = buildNewExpr(nwLam).asInstanceOf[closure._1.type]
+              closure._2 match // update the environment of the lambda if it needs changing
+                case env : maf.core.BasicEnvironment[_] =>
+                  val newEnv = createNewEnvironment(closure._1, a, env)
+                  (nwLam, new BasicEnvironment[Address](newEnv).restrictTo(nwLam.fv)))
         IncrementalSchemeTypeDomain.modularLattice.Clo(newClos)
       case vector: IncrementalSchemeTypeDomain.modularLattice.Vec =>
         val newElementsVector = vector.elements.map((k, vecelem) =>

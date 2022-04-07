@@ -74,14 +74,14 @@ object TwoSeperateVersionsAnalyse extends App:
       println(program._1.subexpressions)
 
 
-      for(i <- 1 to 10) {
+    /*  for(i <- 1 to 10) {
         val analysisWithUpdates = baseUpdates(program._1, program._2)
         analysisWithUpdates.analyzeWithTimeout(timeout())
         val beforeUpdateAnalysis = System.nanoTime
         analysisWithUpdates.version = New
         analysisWithUpdates.updateAnalysis(timeout(), true)
         val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
-      }
+      }*/
 
       val analysisWithUpdates = baseUpdates(program._1, program._2)
       analysisWithUpdates.analyzeWithTimeout(timeout())
@@ -89,7 +89,8 @@ object TwoSeperateVersionsAnalyse extends App:
    //   println(analysisWithUpdates.store)
       val beforeUpdateAnalysis = System.nanoTime
       analysisWithUpdates.version = New
-      analysisWithUpdates.updateAnalysis(timeout(), true)
+     // analysisWithUpdates.analyzeWithTimeout(timeout())
+      analysisWithUpdates.updateAnalysis(timeout(), false)
       val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
 
       val storeWithUpdate = analysisWithUpdates.store
@@ -234,8 +235,9 @@ object TwoSeperateVersionsAnalyse extends App:
   val modConcbenchmarks: List[String] = List()
   // val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm", "test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
  // val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/various/NoSensitivity/SICP-compiler.scm")
- // val modFbenchmarks: List[String] = List("test/changes/scheme/nboyer.scm")
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_nboyer.scm")
+  val modFbenchmarks: List[String] = List("test/changes/scheme/ring-rotate.scm")
+   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_nboyer.scm")
+ // val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_browse.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_array1.scm")
  // val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/NoSensitivity/graphs.scm")
