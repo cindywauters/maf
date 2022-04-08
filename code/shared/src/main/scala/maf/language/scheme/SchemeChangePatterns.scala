@@ -268,10 +268,12 @@ class SchemeChangePatterns:
                 case (Some(oenv: (Identifier, Map[String, Identifier])), Some(nenv: (Identifier, Map[String, Identifier]))) =>
                   var oenvOnly = oenv._2
                   var nenvOnly = nenv._2
-                  if oenvOnly.get(oenv._1.name).contains(oenv._1) && nenvOnly.get(nenv._1.name).contains(nenv._1) then // recursive case
-                    oenvOnly = oenvOnly.filter((k, v) => k != oenv._1.name)
-                    nenvOnly = nenvOnly.filter((k, v) => k != nenv._1.name)
-                  if oenvOnly == nenvOnly && oenv._1.name == nenv._1.name then
+                  var oldIdentifier = oenv._1
+                  var newIdentifier = nenv._1
+                  if oenvOnly.contains(oldIdentifier.name) && nenvOnly.contains(newIdentifier.name) then // recursive case
+                    oenvOnly = oenvOnly.filter((k, v) => k != oldIdentifier.name)
+                    nenvOnly = nenvOnly.filter((k, v) => k != newIdentifier.name)
+                  if oenvOnly == nenvOnly && oldIdentifier.name == newIdentifier.name then
                     scopeChanges = scopeChanges + ((deleted, oenv) -> (inserted, nenv))
                 case _ =>
             case _ =>)
@@ -339,29 +341,29 @@ class SchemeChangePatterns:
   def allBindingsInprogram(expr: Expression): Map[Expression, Identifier] =
     allBindingsInProgramIdSchemeExp(expr).map(_.swap).toMap
 
-  def findLexicalScopes(expr: Expression, currentScope: Map[String, Identifier] = Map()): BindingsWithScopes =
+  def findLexicalScopes(expr: Expression, currentScope: Map[String, Identifier] = Map(), currentBinding: Identifier = Identifier("", NoCodeIdentity)): BindingsWithScopes =
     var newScope = currentScope
     var toReturn: BindingsWithScopes = Map()
     expr match
       case let: SchemeLet =>
         let.bindings.foreach(b =>
           newScope = newScope + (b._1.name -> b._1)
-          toReturn = toReturn ++ findLexicalScopes(b._2, currentScope))
+          toReturn = toReturn ++ findLexicalScopes(b._2, currentScope, b._1))
         toReturn ++ let.body.flatMap(exp => findLexicalScopes(exp, newScope))
       case let: SchemeLetrec =>
         let.bindings.foreach(b =>
           newScope = newScope + (b._1.name -> b._1))
         let.bindings.foreach(b =>
-          toReturn = toReturn ++ findLexicalScopes(b._2, newScope))
+          toReturn = toReturn ++ findLexicalScopes(b._2, newScope, b._1))
         toReturn ++ let.body.flatMap(exp => findLexicalScopes(exp, newScope))
       case let: SchemeLetStar =>
         let.bindings.foreach(b =>
-          toReturn = toReturn ++ findLexicalScopes(b._2, newScope)
+          toReturn = toReturn ++ findLexicalScopes(b._2, newScope, b._1)
           newScope = newScope + (b._1.name -> b._1))
         toReturn ++ let.body.flatMap(exp => findLexicalScopes(exp, newScope))
       case lam: SchemeLambdaExp =>
         newScope = currentScope ++ lam.args.map(id => (id.name, id)).toMap
-        Map(lam -> (Identifier("", NoCodeIdentity), currentScope.filter(v => lam.fv.contains(v._1)))) ++ lam.body.flatMap(findLexicalScopes(_, newScope)).toMap
+        Map(lam -> (currentBinding, currentScope.filter(v => lam.fv.contains(v._1)))) ++ lam.body.flatMap(findLexicalScopes(_, newScope)).toMap
       case _ =>
         if expr.subexpressions.nonEmpty then
           expr.subexpressions.flatMap(findLexicalScopes(_, newScope)).toMap
