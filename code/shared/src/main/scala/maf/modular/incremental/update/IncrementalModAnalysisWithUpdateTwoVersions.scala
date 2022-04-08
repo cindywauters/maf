@@ -24,14 +24,6 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
 
   def updateAnalysis(timeout: Timeout.T, rename: Boolean): Unit =
     version = New
-    var initialEnv: Map[String, (Identifier, SchemeExp)] = Map()
-    program match
-      case letrec: SchemeLetrec =>
-        println("28")
-        initialEnv = letrec.bindings.map(e =>
-          (e._1.name, (e._1, e._2))
-        ).toMap
-    println(initialEnv)
     (program, secondProgram) match
       case (old: SchemeExp, nw: SchemeExp) =>
         val time = System.nanoTime()
@@ -96,7 +88,7 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
         if rename then
           this match
             case a: IncrementalModAnalysis[Expression] =>
-              changes.ifs.foreach(e =>
+              /*changes.ifs.foreach(e =>
                 e._2.foreach(id =>
                   if !namesVisited.contains(id.name) then
                     initialEnv.get(id.name) match
@@ -112,7 +104,7 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
                         println(initialEnv.get(id.name))
                       case _ =>
                 )
-              )
+              )*/
               val renamed = changes.renamings.map(e => (e._1, e._2._2))//.toSet
               val timeBeforeU = System.nanoTime()
               update.changeDataStructures(a, List(program, secondProgram), renamed, changes.ifs, changes.scopeChanges, affectedLambdasPairs, changes.allLexicalEnvs, dontUpdate)

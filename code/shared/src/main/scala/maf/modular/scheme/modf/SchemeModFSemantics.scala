@@ -46,7 +46,8 @@ trait BaseSchemeModFSemanticsM
 
     /** A warning printer */
     def warn(msg: String): Unit =
-      MAFLogger.log(MAFLogger.LogLevel.AnalysisError, s"[${getName(program)}] warn $msg")
+      true
+     // MAFLogger.log(MAFLogger.LogLevel.AnalysisError, s"[${getName(program)}] warn $msg")
 
     // Represent `allocCtx` as a value, which can be passed
     // to other functions

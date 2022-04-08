@@ -14,12 +14,13 @@ import maf.lattice.Type
 import maf.lattice.interfaces.*
 import maf.modular.{AddrDependency, ReturnAddr}
 import maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain.modularLattice.incrementalSchemeLattice
-import maf.modular.incremental.scheme.lattice.*
+import maf.modular.incremental.scheme.lattice.{IncrementalModularSchemeLattice, *}
 import maf.modular.incremental.{IncrementalGlobalStore, IncrementalModAnalysis}
 import maf.modular.scheme.SchemeTypeDomain.primitives.allPrimitives
 import maf.modular.scheme.modf.{NoContext, SchemeModFComponent}
 import maf.modular.scheme.{ModularSchemeLatticeWrapper, PrmAddr, SchemeAddr}
 import maf.language.scheme.primitives.SchemePrelude
+import maf.modular.incremental.scheme.lattice
 
 import scala.collection.mutable
 
@@ -38,7 +39,8 @@ class IncrementalUpdateDatastructures {
   var allIfs: IfsList = List()
   var ifsWithMappings: Map[Identifier, Set[SchemeModFComponent]] = Map()
   var allScopeChanges: ScopeChanges = Map()
-  var allExprs: List[Expression] = List()
+ // var allExprs: List[Expression] = List()
+  var initialEnvNew: Map[String, Identifier] = Map()
   var cachedComponents: Map[Serializable, SchemeModFComponent] = Map()
   var equivalentLambdas: Map[Expression, Expression] = Map()
   var allNewLexicalEnvs: BindingsWithScopes = Map()
@@ -60,7 +62,7 @@ class IncrementalUpdateDatastructures {
 
     allNewLexicalEnvs = allLexicalEnvs
 
-    allExprs = exp
+ //   allExprs = exp
 
     notToUpdate = doNotUpdate
 
@@ -74,6 +76,12 @@ class IncrementalUpdateDatastructures {
 
     println("ALL EXPRESSIONS IN CHANGE")
     equivalentLambdas.foreach(println)
+
+    if exp.size > 1 then
+      exp(1) match
+        case letrec: SchemeLetrec =>
+          initialEnvNew = letrec.bindings.map(e => (e._1.name, e._1)).toMap
+
 
    /* (for
       oldExp <- allSubsOtherOld
@@ -112,23 +120,22 @@ class IncrementalUpdateDatastructures {
     updateVisited(a) // Update visited
 
     // Find which component the expression has moved to/ in which ones it belongs. Also keep track of where it no longer belongs
-    var moved: Map[Expression, Set[SchemeModFComponent]] = scopeChangesExprs.map(e => (e, Set(): Set[SchemeModFComponent])).toMap//.flatMap(e => findAllSubExps(e._2)).collect {
-    //  case e: SchemeLambdaExp => (e, Set(): Set[SchemeModFComponent])
-   // }.toMap//.map(e => (e, Set(): Set[SchemeModFComponent]))
-    a.visited.foreach(comp => comp match
-      case comp @ SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), ctx: _) =>
-        val allSubs = findAllSubExps(lam)
-        scopeChangesExprs.foreach(expr =>
-          if lam.equals(expr) then //allSubs.contains(exprs._2) then
-            var allSubsExpr = findAllSubExps(expr).tail
-            allSubsExpr.foreach(e =>
-              moved = moved + (e -> (moved.getOrElse(e, Set()) ++ Set(comp))))
-          else if allSubs.contains(expr) then
-              moved = moved + (expr -> (moved.getOrElse(expr, Set()) ++ Set(comp)))
+    var moved: Map[Expression, Set[SchemeModFComponent]] = scopeChangesExprs.map(e => (e, Set(): Set[SchemeModFComponent])).toMap
+    if scopeChangesExprs.nonEmpty then
+      a.visited.foreach(comp => comp match
+        case comp @ SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), ctx: _) =>
+          val allSubs = findAllSubExps(lam)
+          scopeChangesExprs.foreach(expr =>
+            if lam.equals(expr) then //allSubs.contains(exprs._2) then
+              var allSubsExpr = findAllSubExps(expr).tail
+              allSubsExpr.foreach(e =>
+                moved = moved + (e -> (moved.getOrElse(e, Set()) ++ Set(comp))))
+            else if allSubs.contains(expr) then
+                moved = moved + (expr -> (moved.getOrElse(expr, Set()) ++ Set(comp)))
            // allSubs.filter(sub => a.mapping.contains(sub)).foreach(sub => moved = moved + (sub -> toInsert))
+        )
+        case _ =>
       )
-      case comp: SchemeModFComponent.Main.type =>
-    )
     moved.foreach(e =>
      var toInsert: Set[a.Component] = Set(a.initialComponent)
      if e._2.nonEmpty then
@@ -136,7 +143,6 @@ class IncrementalUpdateDatastructures {
      if !a.mapping.get(e._1).contains(toInsert) then
        a.mapping.find(m => m._1.idn == e._1.idn) match
          case Some(map) =>
-            // a.mapping = a.mapping - map._1
            a.mapping = a.mapping + (e._1 -> toInsert)
          case _ =>
          )
@@ -186,17 +192,9 @@ class IncrementalUpdateDatastructures {
         case (addrDep: AddrDependency, newValue: Set[a.Component]) =>
           addrDep.addr match
             case k: VarAddr =>
-              ifsWithMappings.find(i => i._1.name == k.id.name) match // For swapped branches if
-                case Some(mapping) =>
-                  insertInDeps(a, addrDep, addrDep.copy(addr = getNewVarAddr(a, k)), oldValue, newValue  ++ mapping._2.map(e => getNewComponent(a, e)).asInstanceOf[Set[a.Component]])
-                case None =>
-                  insertInDeps(a, addrDep, addrDep.copy(addr = getNewVarAddr(a, k)), oldValue, newValue)
+              insertInDeps(a, addrDep, addrDep.copy(addr = getNewVarAddr(a, k)), oldValue, newValue)
             case k: RetAddr =>
-              ifsWithMappings.find(i => i._1.idn.pos.tag.show == k.idn.pos.tag.show) match
-                case Some(mapping) =>
-                  insertInDeps(a, addrDep, addrDep.copy(addr = getNewRetAddr(a, k)), oldValue, newValue  ++ mapping._2.map(e => getNewComponent(a, e)).asInstanceOf[Set[a.Component]])
-                case None =>
-                  insertInDeps(a, addrDep, addrDep.copy(addr = getNewRetAddr(a, k)), oldValue, newValue)
+              insertInDeps(a, addrDep, addrDep.copy(addr = getNewRetAddr(a, k)), oldValue, newValue)
             case k: PtrAddr =>
               insertInDeps(a, addrDep, addrDep.copy(addr = getNewPointerAddr(a, k)), oldValue, newValue)
             case k: PrmAddr =>
@@ -231,7 +229,7 @@ class IncrementalUpdateDatastructures {
           case scmVar: SchemeVar          =>
             newExpression = scmVar
           case _                          =>
-        allExpressionsInChange = allExpressionsInChange + (expr -> newExpression)
+        allExpressionsInChange = allExpressionsInChange + (expr -> newExpression) // cache for next time
         newExpression
 
 
@@ -249,10 +247,6 @@ class IncrementalUpdateDatastructures {
             case oldKey: SchemeExp => newKey = buildNewExpr(oldKey)
       (oldKey, newKey, newValue) match
         case (oldKey: SchemeExp, newKey: SchemeExp, newValue: Set[a.Component]) =>
-          //if newKey.equals(oldKey) then
-           // if !newValue.equals(oldValue) then
-            //  a.mapping = a.mapping + (oldKey -> newValue)
-         // else
           a.mapping = a.mapping - oldKey
           a.mapping = a.mapping + (newKey -> newValue)
     )
@@ -292,83 +286,6 @@ class IncrementalUpdateDatastructures {
       a.deps = a.deps - oldKey
       a.deps = a.deps + (newKey -> newValue)
 
-  def insertAComponent(name: String, a: IncrementalGlobalStore[Expression], initialEnv: Map[String, (Identifier, Expression)], componentsWithAddedNot: List[SchemeModFComponent]): Unit =
-    initialEnv.get(name) match
-      case Some((id: Identifier, lam: SchemeLambdaExp)) =>
-        val newEnv = BasicEnvironment[Address](lam.fv.map(fv =>
-          initialEnv.get(fv) match
-            case Some((idfv: Identifier, _)) =>
-              (fv, maf.modular.scheme.VarAddr(idfv, None))
-            case _ =>
-              (fv, PrmAddr(fv))
-        ).toMap)
-        val component = SchemeModFComponent.Call((lam, newEnv), NoContext).asInstanceOf[a.Component]
-        // val notL = IncrementalSchemeTypeDomain.modularLattice.bool(boolLattice.Top)
-        var boolValueReturn = IncrementalSchemeTypeDomain.modularLattice.AnnotatedElements(List(IncrementalSchemeTypeDomain.modularLattice.Bool(ConstantPropagation.Top)), Set()).asInstanceOf[a.Value]
-        var valueVarAddr =
-          if name == "not" then
-            boolValueReturn
-          else
-            IncrementalSchemeTypeDomain.modularLattice.AnnotatedElements(List(IncrementalSchemeTypeDomain.modularLattice.Int(Type.Top)), Set()).asInstanceOf[a.Value]
-        val notReturn = maf.modular.ReturnAddr(idn = lam.body.head.idn, cmp = component)
-        var notVarAddrs = lam.args.map(arg => maf.modular.scheme.VarAddr(arg, Some(NoContext)))//.appendedAll(newEnv.content.values)
-        newEnv.content.values.foreach(addr => addr match
-          case valAddr @ maf.modular.scheme.VarAddr(vr, ctx) =>
-            initialEnv.get(vr.name) match
-              case Some((idnew: Identifier, lamnew: SchemeLambdaExp)) =>
-                val envForComp = BasicEnvironment[Address](lamnew.fv.map(fv =>
-                  initialEnv.get(fv) match
-                    case Some((idfv: Identifier, _)) =>
-                      val valAddr = maf.modular.scheme.VarAddr(idfv, None)
-                      a.deps.get(AddrDependency(valAddr)) match
-                        case Some(deps) => a.deps = a.deps + (AddrDependency(valAddr) -> (deps + component))
-                        case _          => a.deps = a.deps + (AddrDependency(valAddr) -> Set(component))
-                      (fv, valAddr)
-                    case _ =>
-                      (fv, PrmAddr(fv))).toMap)
-                  val retAddr = ReturnAddr(SchemeModFComponent.Call((lamnew, envForComp), NoContext), lamnew.body.head.idn)
-                  a.deps.get(AddrDependency(retAddr)) match
-                    case Some(deps) => a.deps = a.deps + (AddrDependency(retAddr) -> (deps + component))
-                    case _          => a.deps = a.deps + (AddrDependency(retAddr) -> Set(component))
-              case _ =>
-            a.deps.get(AddrDependency(valAddr)) match
-              case Some(deps) => a.deps = a.deps + (AddrDependency(valAddr) -> (deps + component))
-              case _          => a.deps = a.deps + (AddrDependency(valAddr) -> Set(component))
-          case _ =>)
-        if a.visited.contains(component) then
-          a.store.get(notVarAddrs.head) match
-            case Some(value) =>
-              valueVarAddr = a.lattice.join(valueVarAddr, value)
-            case _           =>
-        else
-          a.visited = a.visited + component
-        a.store = a.store + (notReturn -> boolValueReturn)
-        a.deps.get(AddrDependency(notReturn)) match
-          case Some(deps) => a.deps = a.deps + (AddrDependency(notReturn) -> (deps ++ componentsWithAddedNot.map(e => e.asInstanceOf[a.Component])))
-          case _          => a.deps = a.deps + (AddrDependency(notReturn) ->  componentsWithAddedNot.map(e => e.asInstanceOf[a.Component]).toSet)
-        val varAddrNotItself = maf.modular.scheme.VarAddr(id, None)
-        a.deps.get(AddrDependency(varAddrNotItself)) match
-          case Some(deps) => a.deps = a.deps + (AddrDependency(varAddrNotItself) -> (deps ++ componentsWithAddedNot.map(e => e.asInstanceOf[a.Component])))
-          case _          => a.deps = a.deps + (AddrDependency(varAddrNotItself) ->  componentsWithAddedNot.map(e => e.asInstanceOf[a.Component]).toSet)
-        notVarAddrs.foreach(addr =>
-          a.store = a.store + (addr -> valueVarAddr)
-          a.deps.get(AddrDependency(addr)) match
-            case Some(deps) => a.deps = a.deps + (AddrDependency(addr) -> (deps + component))
-            case _          => a.deps = a.deps + (AddrDependency(addr) -> Set(component))
-        )
-     /*   if name == ">" then
-          initialEnv.get("not") match
-            case Some((idnot, lamnot: SchemeLambda)) =>
-              val notComponent = SchemeModFComponent.Call((lamnot, BasicEnvironment[Address](Map())), NoContext).asInstanceOf[a.Component]
-              a.deps.get(AddrDependency(ReturnAddr(notComponent, lamnot.body.head.idn))) match
-                case Some(deps) => a.deps = a.deps + (AddrDependency(ReturnAddr(notComponent, lamnot.body.head.idn)) -> (deps + component))
-*/
-
-        a.mapping = a.mapping + (lam -> Set(a.initialComponent))
-        findAllSubExps(lam).drop(1).foreach(sub =>
-          a.mapping = a.mapping + (sub -> Set(component))
-        )
-
   // A variable address can only change if the variable exists somewhere in the changed expression
   // In this case, get what the variable has changed into and use that to create the new address
   // Otherwise, just return the old address
@@ -376,9 +293,9 @@ class IncrementalUpdateDatastructures {
     var newCtx = updateCtx(a, addr.ctx)
     if changedVars contains addr.id then
       val newIdn = changedVars.getOrElse(addr.id, addr.id)
-      if allExprs.size > 1 && newCtx != null && allExprs.head.subexpressions.exists(e => e.idn == addr.idn) && !allExprs(1).subexpressions.exists(e => e.idn == addr.idn) then
+      if !initialEnvNew.exists(e => e._2.idn == addr.idn) then
         newCtx = Some(NoContext) // If something moved from toplevel to lower level (will not work for context sensitive)
-      else if allExprs.size > 1 && allExprs(1).subexpressions.exists(e => e.idn == newIdn.idn) then //e.idn == addr.idn) then
+      else
         newCtx = None
       val newAddr = addr.copy(id = newIdn, ctx = newCtx)
       newAddr
@@ -399,11 +316,7 @@ class IncrementalUpdateDatastructures {
         addr
       case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
         val changeToLambda = allExpressionsInChange.get(lam)
-        var newCtx = updateCtx(a, oldCtx)
-     /*   if newCtx != null && allExprs.head.subexpressions.exists(e => e.idn == addr.idn) then
-          newCtx = Some(NoContext) // If something moved from toplevel to lower level (will not work for context sensitive)
-        else if allExprs.size > 1 && allExprs(1).subexpressions.exists(e => e.idn == addr.idn) then
-          newCtx = None*/
+        val newCtx = updateCtx(a, oldCtx)
         val newEnv = createNewEnvironment(lam, a, env)
         val newCmp = getNewComponent(a, SchemeModFComponent.Call((lam, BasicEnvironment[Address](newEnv).restrictTo(lam.fv)), newCtx))
         changeToLambda match
@@ -412,8 +325,6 @@ class IncrementalUpdateDatastructures {
             val newAddr = maf.modular.ReturnAddr[SchemeModFComponent](idn = newIdn, cmp = newCmp)
             newAddr
           case _ =>
-           // if findAllSubExps(lam).exists(e => allExpressionsInChange.contains(e)) then
-           //       return maf.modular.ReturnAddr[SchemeModFComponent](idn = buildNewExpr(lam).asInstanceOf[lam.type].body.head.idn, cmp = newCmp)
             val newAddr = maf.modular.ReturnAddr[SchemeModFComponent](idn = addr.idn, cmp = newCmp)
             newAddr
 
@@ -480,7 +391,6 @@ class IncrementalUpdateDatastructures {
     value match
       case clos : IncrementalSchemeTypeDomain.modularLattice.Clo =>
         var newClos: Set[IncrementalSchemeTypeDomain.modularLattice.schemeLattice.Closure] = clos.closures.map(closure =>
-          //TODO this will most definitely cause a problem if equivalentLambdas contains a renaming because then it won't be updated
           if notToUpdate.contains(closure._1) then
             closure
           else
@@ -539,7 +449,7 @@ class IncrementalUpdateDatastructures {
               val newVarAddr = getNewVarAddr(a, varAddr)
                 newEnv += (identifiers._2.name -> newVarAddr)
             case _ =>
-              val newCtx = if allExprs.size > 1 &&  allExprs(1).subexpressions.exists(s => s.idn == varAddr.idn) then
+              val newCtx = if initialEnvNew.exists(e => e._2.idn == varAddr.idn.idn) then
                 None
               else
                 updateCtx(a, varAddr.ctx)
@@ -548,7 +458,7 @@ class IncrementalUpdateDatastructures {
         case None =>
           newEnvIds._2.get(fv) match
             case Some(identifier: Identifier) =>
-              var newCtx = if allExprs.size > 1 &&  allExprs(1).subexpressions.exists(s => s.idn == identifier.idn) then
+              var newCtx = if initialEnvNew.exists(e => e._2.idn == identifier.idn)  then
                 None
               else
                 Some(NoContext)
