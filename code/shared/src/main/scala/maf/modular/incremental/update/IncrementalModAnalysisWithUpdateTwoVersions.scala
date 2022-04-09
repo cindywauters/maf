@@ -114,7 +114,7 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
           this match
             case a: IncrementalModAnalysis[Expression] =>
               update.changeDataStructures(a, List(program, secondProgram), List(), List(), Map(), affectedLambdasPairs, changes.allLexicalEnvs, dontUpdate)
-        var affected = affectedAll.appendedAll(affectedLambdasPairsIntermediate.filter((l1, l2) => l2 == None)).flatMap(e => e match
+        var affected = affectedAll.flatMap(e => e match
           case (Some(oldExpr: Expr), Some(nwExpr: Expr)) =>
             (mapping.get(oldExpr), mapping.get(nwExpr)) match
               case (Some(compold), _) =>
@@ -151,12 +151,10 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
               mapping.get(lam.asInstanceOf[Expr]) match
                 case Some(comps) => affected = affected ++ comps
                 case _ => affected = affected ++ Set(initialComponent)
-
-
         )
         visited.foreach(v => v match
           case SchemeModFComponent.Call((lam, env), ctx) =>
-            if affectedLambdasPairs.exists((l1, l2) => l2 == lam) then
+            if (!rename && affectedLambdasPairs.exists((l1, l2) => l2 == lam)) ||  (affectedLambdasPairs.exists((l1, l2) => l2 == lam) && (!finder.scopeChanges.exists(e => e._2._1 == lam) && !finder.rename.exists(e => e._1._2 == lam))) then
               addToWorkList(v)
               mapping.get(lam.asInstanceOf[Expr]) match // TODO: probably optimizable by only adding if lam is in the affected list
                 case Some(comp) => addToWorkList(comp)

@@ -1,22 +1,22 @@
-(<insert>
+
   (define make-arg-target
     (lambda (targ-num)
-      (string->symbol (string-append "val" (number->string targ-num))))))
+      (string->symbol (string-append "val" (number->string targ-num)))))
 
-(<insert>
+
 (define make-arg-targets
     (lambda (from to)
       (if (< from to)
         (cons (make-arg-target from)
           (make-arg-targets (+ from 1) to))
-          '()))))
-(<insert>
+          '())))
+
 (define open-coded?
     (lambda (exp)
       (and (application? exp)
-        (member (operator exp) '(+ - * =))))))
+        (member (operator exp) '(+ - * =)))))
 
-(<insert>
+
 (define spread-args
     (lambda (arg-exps call-code)
       (let* ((targets  (make-arg-targets 0 (length arg-exps)))
@@ -35,8 +35,8 @@
               (loop (cdr arg-codes)
                 (cdr targets)
                 (cons (car targets)
-                  to-preserve)))))))))
-(<insert>
+                  to-preserve))))))))
+
 (define compile-open-coded
     (lambda (exp target linkage)
       (let* ((op (operator exp))
@@ -53,7 +53,7 @@
               (list target)
                 ;`((assign ,target (op ,op) ,@target-regs))
                  (list (append (list 'assign target (list 'op op)) target-regs))
-            )))))))
+            ))))))
 
 ;;
 ;;toegevoegd
@@ -307,7 +307,7 @@
 ;;
 ;; zie deel 1.1 p49
 ;;
-(define (define-variable! var val env)
+(define ((<update> define-variable! def-var!) var val env)
   (let ((frame (first-frame env)))
     (define (scan vars vals)
       (cond ((null? vars)
@@ -339,27 +339,6 @@
 ;; zie deel 8 p3
 ;;
 (define (compile exp target linkage)
-  (<update>
-    (cond ((self-evaluating? exp)
-            (compile-self-evaluating exp target linkage))
-      ((quoted? exp) (compile-quoted exp target linkage))
-      ((variable? exp)
-        (compile-variable exp target linkage))
-      ((assignment? exp)
-        (compile-assignment exp target linkage))
-      ((definition? exp)
-        (compile-definition exp target linkage))
-      ((if? exp)
-        (compile-if exp target linkage))
-      ((lambda? exp)
-        (compile-lambda exp target linkage))
-      ((begin? exp)
-        (compile-sequence (begin-actions exp) target linkage))
-      ((cond? exp) (compile (cond->if exp) target linkage))
-      ((application? exp)
-        (compile-application exp target linkage))
-      (else
-        (error "Unknown expression type -- COMPILE" exp)))
     (cond ((self-evaluating? exp)
             (compile-self-evaluating exp target linkage))
       ((open-coded? exp)
@@ -381,7 +360,7 @@
       ((application? exp)
         (compile-application exp target linkage))
       (else
-        (error "Unknown expression type -- COMPILE" exp)))))
+        (error "Unknown expression type -- COMPILE" exp))))
 
 ;;
 ;; zie deel 8 p6
@@ -464,7 +443,7 @@
         get-value-code
         (make-instruction-sequence
             '(env val) (list target)
-            `((perform (op define-variable!)
+            `((perform (op (<update> define-variable! def-var!))
                 (const ,var)
                 (reg val)
                 (reg env))
@@ -789,8 +768,8 @@
           (extend-environment (primitive-procedure-names)
             (primitive-procedure-objects)
             the-empty-environment)))
-    (define-variable! 'true true initial-env)
-    (define-variable! 'false false initial-env)
+    ((<update> define-variable! def-var!) 'true true initial-env)
+    ((<update> define-variable! def-var!) 'false false initial-env)
     initial-env))
 
 ;;
@@ -1279,7 +1258,7 @@
     (list 'extend-environment extend-environment)
     (list 'lookup-variable-value lookup-variable-value)
     (list 'set-variable-value! set-variable-value!)
-    (list 'define-variable! define-variable!)
+    (list 'define-variable! (<update> define-variable! def-var!))
     (list 'primitive-procedure? primitive-procedure?)
     (list 'apply-primitive-procedure apply-primitive-procedure)
     (list 'empty-arglist empty-arglist)
@@ -1297,10 +1276,10 @@
 
 (define faculty
   (make-machine
-    (<update> '(exp env val proc argl continue unev)
+  ;  (<update> '(exp env val proc argl continue unev)
         '(exp env val proc argl continue unev
            val0 val1 val2 val3 val4 val5 val6 val7 val8 val9
-           compapp))
+           compapp);)
     eceval-operations
     (cons '(assign env (op get-global-environment))
       (caddr (compile
