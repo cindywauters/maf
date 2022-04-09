@@ -114,7 +114,7 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
           this match
             case a: IncrementalModAnalysis[Expression] =>
               update.changeDataStructures(a, List(program, secondProgram), List(), List(), Map(), affectedLambdasPairs, changes.allLexicalEnvs, dontUpdate)
-        var affected = affectedAll.flatMap(e => e match
+       /* var affected = affectedAll.flatMap(e => e match
           case (Some(oldExpr: Expr), Some(nwExpr: Expr)) =>
             (mapping.get(oldExpr), mapping.get(nwExpr)) match
               case (Some(compold), _) =>
@@ -151,17 +151,23 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
               mapping.get(lam.asInstanceOf[Expr]) match
                 case Some(comps) => affected = affected ++ comps
                 case _ => affected = affected ++ Set(initialComponent)
-        )
+        )*/
         visited.foreach(v => v match
           case SchemeModFComponent.Call((lam, env), ctx) =>
-            if (!rename && affectedLambdasPairs.exists((l1, l2) => l2 == lam)) ||  (affectedLambdasPairs.exists((l1, l2) => l2 == lam) && (!finder.scopeChanges.exists(e => e._2._1 == lam) && !finder.rename.exists(e => e._1._2 == lam))) then
+            var allSubs = update.findAllSubExps(lam)
+          /*  println("158")
+            println(lam)
+            println(allSubs.exists(e => finder.reanalyse.exists(r => r._2.get == e) || (!rename && (finder.scopeChanges.exists(s => s._2._1 == e) && !finder.rename.exists(r => r._1._2 == e)))))
+            if allSubs.exists(e => if affectedLambdasPairs.exists((l1, l2) => l2 == e) then (!rename || (!finder.scopeChanges.exists(s => s._2._1 == e) && !finder.rename.exists(r => r._1._2 == e))) else true) then*/
+           // if (!rename && affectedLambdasPairs.exists((l1, l2) => l2 == lam)) ||  (affectedLambdasPairs.exists((l1, l2) => l2 == lam) && (!finder.scopeChanges.exists(e => e._2._1 == lam) && !finder.rename.exists(e => e._1._2 == lam))) then
+              if finder.reanalyse.exists(r => r._2.get == lam) || (!rename && (finder.scopeChanges.exists(s => s._2._1 == lam) || finder.rename.exists(r => r._1._2 == lam))) then
               addToWorkList(v)
               mapping.get(lam.asInstanceOf[Expr]) match // TODO: probably optimizable by only adding if lam is in the affected list
                 case Some(comp) => addToWorkList(comp)
                 case _          =>
           case _ =>)
         mapping = mapping + (secondProgram -> Set(initialComponent))
-        affected.foreach(addToWorkList)
+        //affected.foreach(addToWorkList)
         println(workList)
         println(changes.scopeChanges)
       //  addToWorkList(initialComponent)

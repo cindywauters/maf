@@ -74,8 +74,8 @@ class IncrementalUpdateDatastructures {
  //   val allSubsOtherNew = otherChanges.map(_._2).flatMap(findAllSubExps)
     equivalentLambdas = otherChanges.toMap
 
-    println("ALL EXPRESSIONS IN CHANGE")
-    equivalentLambdas.foreach(println)
+  //  println("ALL EXPRESSIONS IN CHANGE")
+  //  allExpressionsInChange.foreach(println)
 
     if exp.size > 1 then
       exp(1) match
@@ -396,8 +396,6 @@ class IncrementalUpdateDatastructures {
           else
            allExpressionsInChange.get(closure._1) match // check if lambda is in a change expression
               case Some(lambda: SchemeLambdaExp) =>
-                if lambda.args.contains("grammar") then
-                  println("here")
                 closure._2 match // update the environment of the lambda if it needs changing
                  case env : maf.core.BasicEnvironment[_] =>
                     var newEnv = createNewEnvironment(closure._1, a, env)
@@ -464,8 +462,6 @@ class IncrementalUpdateDatastructures {
                 Some(NoContext)
               newEnv = newEnv + (fv -> maf.modular.scheme.VarAddr(identifier, newCtx))
             case None =>
-              println(eqlLam._2)
-              println(fv)
               throw new RuntimeException("please provide correct scopes to the environment builder"))
     lexEnvsBuildEnvs = lexEnvsBuildEnvs + (expr -> newEnv)
     newEnv

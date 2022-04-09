@@ -79,7 +79,7 @@ object TwoSeperateVersionsAnalyse extends App:
         analysisWithUpdates.analyzeWithTimeout(timeout())
         val beforeUpdateAnalysis = System.nanoTime
         analysisWithUpdates.version = New
-        analysisWithUpdates.updateAnalysis(timeout(), false)
+        analysisWithUpdates.updateAnalysis(timeout(), true)
         val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
       }
 
