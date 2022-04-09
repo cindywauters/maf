@@ -121,13 +121,13 @@ class SchemeChangePatterns:
               println("119")
               Some(List(), (oldFun.args.head, newFun))
             else None
-          case (_, SchemeVar(newId)) if newId.name == "not" =>
+     /*     case (_, SchemeVar(newId)) if newId.name == "not" =>
             if comparePartialCondAndBranches(List(oldFun), newFun.args, oldIf.cons, oldIf.alt, newIf.cons, newIf.alt) then
               println("124")
               Some(prims.filter(e => e.name == "not"), (oldFun, newFun.args.head))
-            else None
+            else None*/
           case (SchemeVar(oldId), SchemeVar(newId)) =>
-            if oldId.name == "<=" && newId.name == ">"|| oldId.name == ">" && newId.name == "<=" || oldId.name == ">=" && newId.name == "<" || oldId.name == "<" && newId.name == ">=" then
+            if oldId.name == ">=" && newId.name == "<" || oldId.name == ">" && newId.name == "<=" then //oldId.name == "<=" && newId.name == ">"|| oldId.name == ">" && newId.name == "<=" || oldId.name == ">=" && newId.name == "<" || oldId.name == "<" && newId.name == ">=" then
               if comparePartialCondAndBranches(oldFun.args, newFun.args, oldIf.cons, oldIf.alt, newIf.cons, newIf.alt) then
                 println(prims)
                 println(newId.name)
@@ -144,7 +144,7 @@ class SchemeChangePatterns:
                 return Some(List(), (oldFun.args.head, newVal))
             None
           case _ => None
-      case (oldVal: _, newFun: SchemeFuncall) =>
+     /* case (oldVal: _, newFun: SchemeFuncall) =>
         newFun.f match
           case SchemeVar(newId) =>
             if newId.name == "not" then
@@ -152,7 +152,7 @@ class SchemeChangePatterns:
                 println("139")
                 return Some(prims.filter(e => e.name == "not"), (oldVal, newFun.args.head))
             None
-          case _ => None
+          case _ => None*/
       case (e1: _, e2: _) => None
 
   def checkPossibilityRenaming(oe: Expression, ne: Expression): Boolean =
