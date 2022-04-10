@@ -116,19 +116,15 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
               update.changeDataStructures(a, List(program, secondProgram), List(), List(), Map(), affectedLambdasPairs, changes.allLexicalEnvs, dontUpdate)
         var affected = affectedAll.flatMap(e => e match
           case (Some(oldExpr: Expr), Some(nwExpr: Expr)) =>
-            (mapping.get(oldExpr), mapping.get(nwExpr)) match
-              case (Some(compold), _) =>
-                compold
-              case (_, Some(compNew)) =>
-                compNew
+            (mapping.getOrElse(oldExpr, Set()), mapping.getOrElse(nwExpr, Set())) match
+              case (compold, compNew) =>
+                compold ++ compNew
               case _ =>
                 Set(initialComponent)
           case (oldExpr: Expr, nwExpr: Expr) =>
-            (mapping.get(oldExpr), mapping.get(nwExpr)) match
-              case (Some(compold), _) =>
-                compold
-              case (_, Some(compNew)) =>
-                compNew
+            (mapping.getOrElse(oldExpr, Set()), mapping.getOrElse(nwExpr, Set())) match
+              case (compold, compNew) =>
+                compold ++ compNew
               case _ =>
                 Set(initialComponent)
           case (oldExpr: Expr, None) =>

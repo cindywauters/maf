@@ -46,7 +46,7 @@ object TwoSeperateVersionsAnalyse extends App:
       with SchemeModFSemanticsUpdate
       with LIFOWorklistAlgorithm[SchemeExp]
       with UpdateIncrementalSchemeModFBigStepSemantics
-      with IncrementalSchemeTypeDomain
+      with IncrementalSchemeConstantPropagationDomain
       with IncrementalModAnalysisWithUpdateTwoVersions(newProgram)
       with IncrementalGlobalStoreWithUpdate[SchemeExp]
     {
@@ -236,9 +236,9 @@ object TwoSeperateVersionsAnalyse extends App:
   // val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm", "test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
  // val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/various/NoSensitivity/SICP-compiler.scm")
   //val modFbenchmarks: List[String] = List("test/changes/scheme/browse.scm")
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/machine-simulator.scm")
+ // val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/machine-simulator.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_browse.scm")
- // val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_nboyer.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_nboyer.scm")
  // val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/NoSensitivity/earley.scm")
 
