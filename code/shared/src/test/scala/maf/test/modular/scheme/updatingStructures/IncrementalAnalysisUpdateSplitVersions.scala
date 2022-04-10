@@ -175,12 +175,11 @@ class IncrementalAnalysisUpdateSplitVersions extends AnyPropSpec:
 
   modFbenchmarks.foreach(benchmark =>
     val twoPrograms = CSchemeParserWithSplitter.parseProgram(Reader.loadFile(benchmark))
-      property(s"No sensitivity: Check if datastructures are the same in the analysis of new version and update for" + benchmark) {
-      callAnalysisOnBenchmark(baseAnalysisUpdateInsertDelete(twoPrograms._1, twoPrograms._2))
-    }
+      property(s"No sensitivity: Check if datastructures are the same in the analysis of new version and update for " + benchmark) {
+      callAnalysisOnBenchmark(benchmark, baseAnalysisUpdateInsertDelete(twoPrograms._1, twoPrograms._2))}
   )
 
-  def callAnalysisOnBenchmark(twoVersions: IncrementalModAnalysisWithUpdateTwoVersions[SchemeExp]): Unit =
+  def callAnalysisOnBenchmark(benchmark: String, twoVersions: IncrementalModAnalysisWithUpdateTwoVersions[SchemeExp]): Unit =
     val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 
     val twoVersionsNewOnly = twoVersions.deepCopy()
@@ -189,6 +188,13 @@ class IncrementalAnalysisUpdateSplitVersions extends AnyPropSpec:
 
     twoVersions.analyzeWithTimeout(standardTimeout())
     twoVersions.version = New
+    val twoVersionsWithUpdate = twoVersions.deepCopy()
+    twoVersionsWithUpdate.updateAnalysis(standardTimeout(), true)
+
+
     twoVersions.updateAnalysis(standardTimeout(), false)
 
+    checkSubsumptionForUpdate(twoVersionsNewOnly, twoVersionsWithUpdate)
     checkSubsumptionForUpdate(twoVersionsNewOnly, twoVersions)
+    checkSubsumptionForUpdate(twoVersionsWithUpdate, twoVersions)
+

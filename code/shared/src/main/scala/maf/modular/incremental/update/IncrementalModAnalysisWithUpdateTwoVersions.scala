@@ -117,17 +117,17 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
         var affected = affectedAll.flatMap(e => e match
           case (Some(oldExpr: Expr), Some(nwExpr: Expr)) =>
             (mapping.getOrElse(oldExpr, Set()), mapping.getOrElse(nwExpr, Set())) match
-              case (compold, compNew) =>
+              case (compold, compNew) if compold.nonEmpty || compNew.nonEmpty =>
                 compold ++ compNew
               case _ =>
                 Set(initialComponent)
           case (oldExpr: Expr, nwExpr: Expr) =>
             (mapping.getOrElse(oldExpr, Set()), mapping.getOrElse(nwExpr, Set())) match
-              case (compold, compNew) =>
+              case (compold, compNew) if compold.nonEmpty || compNew.nonEmpty  =>
                 compold ++ compNew
               case _ =>
                 Set(initialComponent)
-          case (oldExpr: Expr, None) =>
+          case (oldExpr: Expr, None)  =>
             mapping.get(oldExpr) match
               case Some(compold) =>
                 compold

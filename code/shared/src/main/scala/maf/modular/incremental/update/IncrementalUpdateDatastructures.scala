@@ -295,7 +295,7 @@ class IncrementalUpdateDatastructures {
     var newCtx = updateCtx(a, addr.ctx)
     if changedVars contains addr.id then
       val newIdn = changedVars.getOrElse(addr.id, addr.id)
-      if !initialEnvNew.exists(e => e._2.idn == addr.idn) then
+      if !initialEnvNew.exists(e => e._2.idn == newIdn.idn) then
         newCtx = Some(NoContext) // If something moved from toplevel to lower level (will not work for context sensitive)
       else
         newCtx = None
