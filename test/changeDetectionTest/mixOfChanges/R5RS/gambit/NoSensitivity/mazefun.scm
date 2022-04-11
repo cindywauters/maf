@@ -10,8 +10,9 @@
          (foldr-aux lst))
       (lambda (_f0 _base0 _lst0)
          (define foldr-aux (lambda (_lst1)
-               (if (not (null? _lst1)) ;; NOT RENAMING, introduced not
-                  _base0
+               (if (null? _lst1)
+                  (begin (display 'ok) ;; NOT RENAMING
+                  _base0)
                   (_f0 (car _lst1) (foldr-aux (cdr _lst1))))))
          (foldr-aux _lst0))))
  
@@ -31,7 +32,7 @@
          (for-aux lo))
       (lambda (_lo0 _hi0 _f0)
          (define for-aux (lambda (_lo1)
-               (if (> _lo1 _hi0) ;; NOT RENAMING, changed < to >
+               (if (<= _lo1 _hi0) ;; NOT RENAMING, changed < to <=
                   (cons (_f0 _lo1) (for-aux (+ _lo1 1)))
                   ())))
          (for-aux _lo0))))

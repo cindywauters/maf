@@ -118,14 +118,30 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
           case (Some(oldExpr: Expr), Some(nwExpr: Expr)) =>
             (mapping.getOrElse(oldExpr, Set()), mapping.getOrElse(nwExpr, Set())) match
               case (compold, compNew) if compold.nonEmpty || compNew.nonEmpty =>
+                println("121")
+                println(oldExpr)
+                println(nwExpr)
+                println(compold)
+                println(compNew)
                 compold ++ compNew
               case _ =>
+                println("128")
+                println(oldExpr)
+                println(nwExpr)
                 Set(initialComponent)
           case (oldExpr: Expr, nwExpr: Expr) =>
             (mapping.getOrElse(oldExpr, Set()), mapping.getOrElse(nwExpr, Set())) match
               case (compold, compNew) if compold.nonEmpty || compNew.nonEmpty  =>
+                println("135")
+                println(oldExpr)
+                println(nwExpr)
+                println(compold)
+                println(compNew)
                 compold ++ compNew
               case _ =>
+                println("142")
+                println(oldExpr)
+                println(nwExpr)
                 Set(initialComponent)
           case (oldExpr: Expr, None)  =>
             mapping.get(oldExpr) match
@@ -156,7 +172,7 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
             println(allSubs.exists(e => finder.reanalyse.exists(r => r._2.get == e) || (!rename && (finder.scopeChanges.exists(s => s._2._1 == e) && !finder.rename.exists(r => r._1._2 == e)))))
             if allSubs.exists(e => if affectedLambdasPairs.exists((l1, l2) => l2 == e) then (!rename || (!finder.scopeChanges.exists(s => s._2._1 == e) && !finder.rename.exists(r => r._1._2 == e))) else true) then*/
            // if (!rename && affectedLambdasPairs.exists((l1, l2) => l2 == lam)) ||  (affectedLambdasPairs.exists((l1, l2) => l2 == lam) && (!finder.scopeChanges.exists(e => e._2._1 == lam) && !finder.rename.exists(e => e._1._2 == lam))) then
-              if finder.reanalyse.exists(r => r._2.get == lam) || (!rename && affectedLambdasPairs.exists((l1, l2) => lam == l2)) then //(finder.scopeChanges.exists(s => s._2._1 == lam) || finder.rename.exists(r => r._1._2 == lam))) then
+              if finder.reanalyse.exists(r => r._2.get == lam) || (!rename && finder.rename.exists((exps, rest) => exps._2 == lam)) then//affectedLambdasPairs.exists((l1, l2) => lam == l2)) then //(finder.scopeChanges.exists(s => s._2._1 == lam) || finder.rename.exists(r => r._1._2 == lam))) then
               addToWorkList(v)
               mapping.get(lam.asInstanceOf[Expr]) match // TODO: probably optimizable by only adding if lam is in the affected list
                 case Some(comp) => addToWorkList(comp)

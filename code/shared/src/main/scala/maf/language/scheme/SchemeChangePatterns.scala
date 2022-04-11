@@ -204,6 +204,9 @@ class SchemeChangePatterns:
         case (oldexp: SchemeExp, newexp: SchemeExp) if oldexp.subexpressions.forall(o => !newexp.subexpressions.exists(n => o.idn == n.idn))  =>
           reanalyse = reanalyse.::(Some(oldexp), Some(newexp))
           return
+        case (oldfun: SchemeFuncall, newfun: SchemeFuncall) if oldfun.height == 2 || newfun.height == 2 =>
+          reanalyse = reanalyse.::(Some(oldfun), Some(newfun))
+          return
         case _ =>
       var addToMaybe: List[Expression] = List()
       old.subexpressions.foreach(oe =>

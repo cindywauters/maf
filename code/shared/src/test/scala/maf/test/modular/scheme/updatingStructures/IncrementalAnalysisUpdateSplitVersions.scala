@@ -196,5 +196,5 @@ class IncrementalAnalysisUpdateSplitVersions extends AnyPropSpec:
 
     checkSubsumptionForUpdate(twoVersionsNewOnly, twoVersionsWithUpdate)
     checkSubsumptionForUpdate(twoVersionsNewOnly, twoVersions)
-    checkSubsumptionForUpdate(twoVersionsWithUpdate, twoVersions)
+   // checkSubsumptionForUpdate(twoVersionsWithUpdate, twoVersions)
 
