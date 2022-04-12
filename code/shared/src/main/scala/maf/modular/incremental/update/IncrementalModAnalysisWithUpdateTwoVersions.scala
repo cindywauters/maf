@@ -42,13 +42,6 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
               case _ =>
             lam
         }.toList
-        visited.foreach(v => v match
-          case comp@SchemeModFComponent.Call((lam: Expr, env: BasicEnvironment[_]), oldCtx: _) if lam.idn.idn.tag != Position.noTag =>
-            lam.name match
-              case Some(name) => namesVisited = namesVisited.::(name)
-              case _ =>
-          case _ =>
-        )
         val timeLamBefore = System.nanoTime()
         var affectedLambdasPairsIntermediate = finder.findEquivalentLambdasInFunctionOfScopes(affectedLambdas)
         println("time finding Lambdas:  " + (System.nanoTime() - timeLamBefore).toString)

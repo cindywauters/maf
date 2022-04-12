@@ -775,8 +775,8 @@
 ;;
 ;; zie deel 1.1 p51
 ;;
-(define (primitive-procedure? proc)
-  (tagged-list? proc 'primitive))
+(define (primitive-procedure? (<update> proc procedure))
+  (tagged-list? (<update> proc procedure) 'primitive))
 
 (define primitive-procedures
   (list (list 'car car)
