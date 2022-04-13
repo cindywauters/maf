@@ -240,7 +240,7 @@ object TwoSeperateVersionsAnalyse extends App:
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_browse.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_nboyer.scm")
  // val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/benchmarks/ifs/matrix.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/benchmarks/scope changes/freeze.scm")
 
   val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 

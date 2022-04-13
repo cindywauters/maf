@@ -478,7 +478,9 @@ class IncrementalUpdateDatastructures {
                 Some(NoContext)
               newEnv = newEnv + (fv -> maf.modular.scheme.VarAddr(identifier, newCtx))
             case None =>
-              throw new RuntimeException("please provide correct scopes to the environment builder"))
+              println(expr)
+              println(fv))
+            //  throw new RuntimeException("please provide correct scopes to the environment builder"))
     lexEnvsBuildEnvs = lexEnvsBuildEnvs + (expr -> newEnv)
     newEnv
   // To create an new enviroment, loop over the old enviroment
