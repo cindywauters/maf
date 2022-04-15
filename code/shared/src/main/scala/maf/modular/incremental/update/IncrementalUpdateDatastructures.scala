@@ -54,8 +54,9 @@ class IncrementalUpdateDatastructures {
   def changeDataStructures(a: IncrementalModAnalysis[Expression], exp: List[Expression], renamings: List[((Expression, Expression), Map[Identifier, Identifier])], ifs: IfsList = List(), scopeChanges: ScopeChanges = Map(), otherChanges: List[(Expression, Expression)] = List(), allLexicalEnvs: BindingsWithScopes = Map(), doNotUpdate: List[Expression] = List()): Boolean =
     val changedVarsSwapped = renamings.flatMap(e => e._2).toMap
     val finder = new SchemeChangePatterns
+    //val scopeChangedVars = scopeChanges.flatMap((k, v) => List((k._2._1, v._2._1)).appendedAll(finder.findAllVarsInOrder(k._1).zip(finder.findAllVarsInOrder(v._1))))
     val scopeChangedVars = scopeChanges.flatMap((k, v) => List((k._2._1, v._2._1)).appendedAll(finder.findAllVarsInOrder(k._1).zip(finder.findAllVarsInOrder(v._1))))
-    changedVars = changedVarsSwapped.map(_.swap).toMap ++ scopeChangedVars // Get all renamed vars
+    changedVars = changedVarsSwapped.map(_.swap) ++ scopeChangedVars // Get all renamed vars
     var scopeChangesExprs: List[Expression] = scopeChanges.map((k, v) => (k._1, v._1)).flatMap(e => findAllSubExps(e._2)).collect {
       case e: SchemeLambdaExp => e.asInstanceOf[Expression]
     }.toList
@@ -72,10 +73,12 @@ class IncrementalUpdateDatastructures {
     val allOldExps = changedExpressions.flatMap(e => findAllSubExps(e._1)).toList//.appendedAll(otherChanges.map(_._1))
     val allNewExps = changedExpressions.flatMap(e => findAllSubExps(e._2)).toList//.appendedAll(otherChanges.map(_._2))
     allExpressionsInChange = allOldExps.zip(allNewExps).appendedAll(otherChanges).toMap
- //   val allSubsOtherOld = otherChanges.map(_._1).flatMap(findAllSubExps)
- //   val allSubsOtherNew = otherChanges.map(_._2).flatMap(findAllSubExps)
     equivalentLambdas = otherChanges.toMap
 
+    ifs.foreach(i =>
+      changedVars = changedVars ++ finder.findAllVarsInOrder(i._1._1.cond).zip(finder.findAllVarsInOrder(i._1._2.cond)).toMap
+      changedVars = changedVars ++ finder.findAllVarsInOrder(i._1._1.cons).zip(finder.findAllVarsInOrder(i._1._2.alt)).toMap
+      changedVars = changedVars ++ finder.findAllVarsInOrder(i._1._1.alt).zip(finder.findAllVarsInOrder(i._1._2.cons)).toMap)
   //  println("ALL EXPRESSIONS IN CHANGE")
   //  allExpressionsInChange.foreach(println)
 
@@ -84,12 +87,28 @@ class IncrementalUpdateDatastructures {
         case letrec: SchemeLetrec =>
           initialEnvNew = letrec.bindings.map(e => (e._1.name, e._1)).toMap
 
+    /** Step necessary for the mapping when scope changes are present
+     * For example:
+     *  Old: (lambda () (let ((f (lambda () 1))) (f))
+     *  New: (lambda () (let () (f))
+     * In this case the other changes will contain that let, which also should be changed to each other if reanalysis wants to be avoided
+     * Therefore we get all subexpressions that are lettisch/lambda expressions and match them together if they have the same idn
+     **/
 
-   /* (for
-      oldExp <- allSubsOtherOld
-      newExp <- allSubsOtherNew
-      if oldExp.idn == newExp.idn && oldExp.getClass == newExp.getClass && !allSubsOtherNew.contains(oldExp)// && (if oldExp.idn == NoCodeIdentity && oldExp.subexpressions.nonEmpty && newExp.subexpressions.nonEmpty then if oldExp.subexpressions.head.idn == newExp.subexpressions.head.idn then true else false else false)
-    yield (oldExp, newExp)).foreach(e => allExpressionsInChange = allExpressionsInChange + (e._1 -> e._2))*/
+    if scopeChanges.nonEmpty then
+      var allSubsOtherOld: Set[Expression] = Set()
+      var allSubsOtherNew: Set[Expression] = Set()
+      otherChanges.map(_._1).sortWith(_.height > _.height).foreach(e => // Some optimisation, some of the other changes are nested lambdas so if the lambda is already present as a subexpression of another, its subexpressions will also already have been added
+        if !allSubsOtherOld.contains(e) then //
+          allSubsOtherOld = allSubsOtherOld ++ findAllSubExps(e).filter(e => e.isInstanceOf[SchemeLambdaExp] || e.isInstanceOf[SchemeLettishExp]))
+      otherChanges.map(_._2).sortWith(_.height > _.height).foreach(e =>
+        if !allSubsOtherOld.contains(e) then
+          allSubsOtherNew = allSubsOtherNew ++ findAllSubExps(e).filter(e => e.isInstanceOf[SchemeLambdaExp] || e.isInstanceOf[SchemeLettishExp]))
+      (for
+        oldExp <- allSubsOtherOld
+        newExp <- allSubsOtherNew
+        if oldExp.idn == newExp.idn && oldExp.getClass == newExp.getClass //&& !allSubsOtherNew.contains(oldExp)// && (if oldExp.idn == NoCodeIdentity && oldExp.subexpressions.nonEmpty && newExp.subexpressions.nonEmpty then if oldExp.subexpressions.head.idn == newExp.subexpressions.head.idn then true else false else false)
+      yield (oldExp, newExp)).foreach(e => allExpressionsInChange = allExpressionsInChange + (e._1 -> e._2))
 
 
     ifs.foreach(e =>
@@ -114,7 +133,7 @@ class IncrementalUpdateDatastructures {
           (i._2.head, mapping)).toMap
 
     a match
-      case analysis: IncrementalGlobalStore[Expression] => // Update the store
+      case analysis: IncrementalGlobalStore[Expression] =>//if renamings.nonEmpty || ifs.nonEmpty || scopeChanges.nonEmpty => // Update the store
         updateStore(analysis)
       case _ =>
     updateDependencies(a) // Update the dependencies
@@ -388,7 +407,7 @@ class IncrementalUpdateDatastructures {
         value.asInstanceOf[a.Value]
 
   def getNewClosure(a: IncrementalModAnalysis[Expression], lam: SchemeLambdaExp, env: Environment[Address]): (SchemeLambdaExp, Environment[Address]) =
-    if notToUpdate.contains(lam) then
+    if notToUpdate.contains(lam) && allScopeChanges.isEmpty then
       (lam, env)
     else
       allExpressionsInChange.get(lam) match // check if lambda is in a change expression
@@ -469,6 +488,8 @@ class IncrementalUpdateDatastructures {
                 updateCtx(a, varAddr.ctx)
               val newVarAddr = varAddr.copy(ctx= newCtx) // bugfix for some context sensitive things, context might update even if the actual var addr does not
                 newEnv = newEnv + (fv -> newVarAddr)
+        case Some(prim: PrmAddr) =>
+          newEnv = newEnv + (fv -> prim)
         case None =>
           newEnvIds._2.get(fv) match
             case Some(identifier: Identifier) =>

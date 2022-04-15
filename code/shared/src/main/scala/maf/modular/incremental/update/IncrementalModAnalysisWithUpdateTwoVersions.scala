@@ -33,10 +33,10 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
           case (Some(oe), None)     => allDeletes = allDeletes.::(oe)
           case _ =>
         )
-        var affectedAll = changes.reanalyse.appendedAll(changes.renamings.map(_._1)).appendedAll(changes.ifs.map(_._1._1)).appendedAll(changes.scopeChanges.map((k, v) => (k._1, v._1)))
+        var affectedAll = changes.reanalyse.appendedAll(changes.renamings.map(_._1)).appendedAll(changes.ifs.map(_._1)).appendedAll(changes.scopeChanges.map((k, v) => (k._1, v._1)))
         var namesVisited: List[String] = List()
         val affectedLambdas: List[Expr] = visited.collect {
-          case comp@SchemeModFComponent.Call((lam: Expr, env: BasicEnvironment[_]), oldCtx: _) if lam.idn.idn.tag == Position.noTag =>
+          case comp@SchemeModFComponent.Call((lam: Expr, env: BasicEnvironment[_]), oldCtx: _) =>// if lam.idn.idn.tag == Position.noTag =>
             lam.name match
               case Some(name) => namesVisited = namesVisited.::(name)
               case _ =>
@@ -56,48 +56,17 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
             println("affected lambda")
             println(expr)
             println(finder.reanalyse)
-            if !rename || finder.reanalyse.exists(k => k._1.contains(expr)) then
+            /*if !rename || finder.reanalyse.exists(k => k._1.contains(expr)) then
               println("ADDING")
               println(expr)
-              dontUpdate = dontUpdate.::(expr)
+              dontUpdate = dontUpdate.::(expr)*/
           case (expr: Expr, Some(other: Expr)) =>
             dontUpdate = dontUpdate.::(expr)
-
-           /* if !expr.fv.contains("not") && other.fv.contains("not") then
-              affectedLambdas.get(expr) match
-                case Some(comp) => componentsWithAddedNots = componentsWithAddedNots.::(comp.asInstanceOf[SchemeModFComponent])
-                case _          =>
-            if !expr.fv.contains(">") && other.fv.contains(">") then
-              affectedLambdas.get(expr) match
-                case Some(comp) => componentsWithAddedBigger = componentsWithAddedBigger.::(comp.asInstanceOf[SchemeModFComponent]) */
           case (expr: Expr, _) =>
-           /* affectedLambdas.get(expr).foreach(e => e match
-              case SchemeModFComponent.Call((lam: Expr, _), _)  =>
-                mapping.get(lam).foreach(addToWorkList)
-            )*/
-
-           // )
         )
         if rename then
           this match
             case a: IncrementalModAnalysis[Expression] =>
-              /*changes.ifs.foreach(e =>
-                e._2.foreach(id =>
-                  if !namesVisited.contains(id.name) then
-                    initialEnv.get(id.name) match
-                      case Some((id: Identifier, lam: SchemeLambdaExp)) =>
-                        val newEnv = BasicEnvironment[Address](lam.fv.map(fv =>
-                          initialEnv.get(fv) match
-                            case Some((idfv: Identifier, _)) =>
-                              (fv, maf.modular.scheme.VarAddr(idfv, None))
-                            case _ =>
-                              (fv, PrmAddr(fv))
-                        ).toMap)
-                        val newComponent = SchemeModFComponent.Call((lam, newEnv), NoContext)
-                        println(initialEnv.get(id.name))
-                      case _ =>
-                )
-              )*/
               val renamed = changes.renamings.map(e => (e._1, e._2._2))//.toSet
               val timeBeforeU = System.nanoTime()
               update.changeDataStructures(a, List(program, secondProgram), renamed, changes.ifs, changes.scopeChanges, affectedLambdasPairs, changes.allLexicalEnvs, dontUpdate)
@@ -106,7 +75,9 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
         else
           this match
             case a: IncrementalModAnalysis[Expression] =>
+              val timeBeforeU = System.nanoTime()
               update.changeDataStructures(a, List(program, secondProgram), List(), List(), Map(), affectedLambdasPairs, changes.allLexicalEnvs, dontUpdate)
+              println("time updating datastructures: " + (System.nanoTime() - timeBeforeU).toString)
         var affected = affectedAll.flatMap(e => e match
           case (Some(oldExpr: Expr), Some(nwExpr: Expr)) =>
             (mapping.getOrElse(oldExpr, Set()), mapping.getOrElse(nwExpr, Set())) match
@@ -160,12 +131,7 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
         visited.foreach(v => v match
           case SchemeModFComponent.Call((lam, env), ctx) =>
             var allSubs = update.findAllSubExps(lam)
-          /*  println("158")
-            println(lam)
-            println(allSubs.exists(e => finder.reanalyse.exists(r => r._2.get == e) || (!rename && (finder.scopeChanges.exists(s => s._2._1 == e) && !finder.rename.exists(r => r._1._2 == e)))))
-            if allSubs.exists(e => if affectedLambdasPairs.exists((l1, l2) => l2 == e) then (!rename || (!finder.scopeChanges.exists(s => s._2._1 == e) && !finder.rename.exists(r => r._1._2 == e))) else true) then*/
-           // if (!rename && affectedLambdasPairs.exists((l1, l2) => l2 == lam)) ||  (affectedLambdasPairs.exists((l1, l2) => l2 == lam) && (!finder.scopeChanges.exists(e => e._2._1 == lam) && !finder.rename.exists(e => e._1._2 == lam))) then
-              if finder.reanalyse.exists(r => r._2.get == lam) || (!rename && finder.rename.exists((exps, rest) => exps._2 == lam)) then//affectedLambdasPairs.exists((l1, l2) => lam == l2)) then //(finder.scopeChanges.exists(s => s._2._1 == lam) || finder.rename.exists(r => r._1._2 == lam))) then
+            if finder.reanalyse.exists(r => r._2.get == lam) || (!rename && affectedLambdasPairs.exists((l1, l2) => l2 == lam)) then //(finder.rename.exists((exps, rest) => exps._2 == lam))) then//affectedLambdasPairs.exists((l1, l2) => lam == l2)) then //(finder.scopeChanges.exists(s => s._2._1 == lam) || finder.rename.exists(r => r._1._2 == lam))) then
               addToWorkList(v)
               mapping.get(lam.asInstanceOf[Expr]) match // TODO: probably optimizable by only adding if lam is in the affected list
                 case Some(comp) => addToWorkList(comp)
@@ -175,7 +141,8 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
         affected.foreach(addToWorkList)
         println(workList)
         println(changes.scopeChanges)
-      //  addToWorkList(initialComponent)
+        if finder.inserts.nonEmpty && finder.inserts.size != changes.scopeChanges.size then  // Necessary because top-level functions might have been added
+          addToWorkList(initialComponent)
     val beforeUpdateAnalysis = System.nanoTime
     analyzeWithTimeout(timeout)
     println("time analysis in 160: " + (System.nanoTime() - beforeUpdateAnalysis).toString)

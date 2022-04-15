@@ -40,7 +40,7 @@ object TwoSeperateVersionsAnalyse extends App:
     def baseUpdates(oldProgram: SchemeExp, newProgram: SchemeExp) = new ModAnalysis[SchemeExp](oldProgram)
       with StandardSchemeModFComponents
       //with SchemeModFFullArgumentSensitivity
-     // with SchemeModFCallSiteSensitivity
+      //with SchemeModFCallSiteSensitivity
      // with SchemeModFFullArgumentCallSiteSensitivity
       with SchemeModFNoSensitivity
       with SchemeModFSemanticsUpdate
@@ -74,14 +74,14 @@ object TwoSeperateVersionsAnalyse extends App:
       println(program._1.subexpressions)
 
 
-      for(i <- 1 to 4) {
+     /* for(i <- 1 to 4) {
         val analysisWithUpdates = baseUpdates(program._1, program._2)
         analysisWithUpdates.analyzeWithTimeout(timeout())
         val beforeUpdateAnalysis = System.nanoTime
         analysisWithUpdates.version = New
         analysisWithUpdates.updateAnalysis(timeout(), true)
         val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
-      }
+      }*/
 
       val analysisWithUpdates = baseUpdates(program._1, program._2)
       analysisWithUpdates.analyzeWithTimeout(timeout())
@@ -90,7 +90,7 @@ object TwoSeperateVersionsAnalyse extends App:
       val beforeUpdateAnalysis = System.nanoTime
       analysisWithUpdates.version = New
      // analysisWithUpdates.analyzeWithTimeout(timeout())
-      analysisWithUpdates.updateAnalysis(timeout(), false)
+      analysisWithUpdates.updateAnalysis(timeout(), true)
       val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
 
       val storeWithUpdate = analysisWithUpdates.store
@@ -210,13 +210,15 @@ object TwoSeperateVersionsAnalyse extends App:
       case _ =>
     )
 
-    println()
+    println()*/
 
-    visitedWithoutUpdate.foreach(e => e match
-        case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
-          println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
-        case _ =>
-      )*/
+    visitedWithUpdate.foreach(e =>
+      if !visitedWithoutUpdate.contains(e) then
+        e match
+          case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+            println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
+          case _ =>
+      )
 
 
       println(storeWithUpdate.size + " (" + storeWithoutUpdate.size + ")")
@@ -239,8 +241,8 @@ object TwoSeperateVersionsAnalyse extends App:
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/machine-simulator.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_browse.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_nboyer.scm")
- // val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/benchmarks/scope changes/freeze.scm")
+  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/benchmarks/scope changes/multiple-dwelling.scm")
 
   val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 
