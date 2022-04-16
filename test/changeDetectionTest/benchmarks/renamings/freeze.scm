@@ -20,16 +20,16 @@
 ;;
 ;; zie deel 1.1 p46
 ;;
-(define lookup-variable-value (lambda ((<update> var varoable) env)
+(define lookup-variable-value (lambda ((<update> var variable) env)
   (define (env-loop env)
     (define (scan vars vals)
       (cond ((null? vars)
              (env-loop (enclosing-environment env)))
-            ((eq? (<update> var varoable) (car vars))
+            ((eq? (<update> var variable) (car vars))
              (car vals))
             (else (scan (cdr vars) (cdr vals)))))
     (if (eq? env the-empty-environment)
-        (error "Unbound variable" (<update> var varoable))
+        (error "Unbound variable" (<update> var variable))
         (let ((frame (first-frame env)))
           (scan (frame-variables frame)
                 (frame-values frame)))))

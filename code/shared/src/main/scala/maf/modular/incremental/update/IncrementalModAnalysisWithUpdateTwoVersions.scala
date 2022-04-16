@@ -56,10 +56,10 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
             println("affected lambda")
             println(expr)
             println(finder.reanalyse)
-            /*if !rename || finder.reanalyse.exists(k => k._1.contains(expr)) then
+            if !rename || finder.reanalyse.exists(k => k._1.contains(expr)) then
               println("ADDING")
               println(expr)
-              dontUpdate = dontUpdate.::(expr)*/
+              dontUpdate = dontUpdate.::(expr)
           case (expr: Expr, Some(other: Expr)) =>
             dontUpdate = dontUpdate.::(expr)
           case (expr: Expr, _) =>

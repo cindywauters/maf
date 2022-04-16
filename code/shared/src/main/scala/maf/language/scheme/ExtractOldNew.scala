@@ -10,6 +10,11 @@ object ExtractOldNew:
   def buildNew(exp: SExp, idn: Identity): SExp =
     exp match
       case SExpId(Identifier(name, _)) => SExpId(Identifier(name, idn))
+      // below case necessary for cases like (<update> 'finished 'done) will not assign the same idn to each other due to the quoted expression
+      case SExpPair(SExpId(Identifier("quote", _)), SExpPair(SExpId(Identifier(value, _)), second, _), _) => SExpPair(SExpId(Identifier("quote", idn)), SExpPair(SExpId(Identifier(value, idn)), second, idn), idn)
+      case SExpPair(SExpId(Identifier("quote", _)), SExpPair(SExpPair(first, second, _), third, _), _)    => SExpPair(SExpId(Identifier("quote", idn)), SExpPair(SExpPair(first, second, idn), third, idn), idn)
+      // Needed for conditionals as the idn given to the desugared if-statement is the idn of the first condition within the conditional 
+      case SExpPair(SExpId(Identifier("cond", _)), SExpPair(SExpPair(SExpPair(first, second, _), third, _), fourth, _), _)  => SExpPair(SExpId(Identifier("cond", idn)), SExpPair(SExpPair(SExpPair(first, second, idn), third, idn), fourth, idn), idn)
       case SExpPair(first, second, _) => SExpPair(first, second, idn)
       case SExpValue(value, _) => SExpValue(value, idn)
 
@@ -23,7 +28,9 @@ object ExtractOldNew:
     case SExpPair(SExpId(Identifier("<change>", idn)), SExpPair(old, SExpPair(nw, _, _), _), _) =>
       if oldversion then
         buildNew(old, idn)
-      else buildNew(nw, idn)
+      else
+        var nwreturn = buildNew(nw, idn)
+        nwreturn
     // If there is an insert and we are looking for the new version: take the SExp otherwise insert placeholder that will be removed later
     case SExpPair(SExpId(Identifier("<insert>", _)), SExpPair(toInsert, _, _), idn) =>
       if oldversion then

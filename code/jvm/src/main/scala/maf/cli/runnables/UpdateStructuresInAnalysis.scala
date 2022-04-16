@@ -63,10 +63,10 @@ object UpdateStructuresInAnalysis extends App:
     // Analysis from soundness tests.
     def baseNoUpdates(program: SchemeExp) = new ModAnalysis[SchemeExp](program)
       with StandardSchemeModFComponents
-      //with SchemeModFFullArgumentSensitivity
+      with SchemeModFFullArgumentSensitivity
       //with SchemeModFCallSiteSensitivity
       //with SchemeModFFullArgumentCallSiteSensitivity
-      with SchemeModFNoSensitivity
+      //with SchemeModFNoSensitivity
       with SchemeModFSemanticsM
       with LIFOWorklistAlgorithm[SchemeExp]
       with IncrementalSchemeModFBigStepSemantics
@@ -446,6 +446,7 @@ object UpdateStructuresInAnalysis extends App:
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/symbols.scm")
  // val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/various/NoSensitivity/SICP-compiler.scm")
  // val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/ad/mesort.scm")
+  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/benchmarks/renamings/nboyer.scm")
   val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 
   modFbenchmarks.foreach(modfAnalysis(_, standardTimeout))
