@@ -40,6 +40,7 @@ class IncrementalAnalysisUpdateSplitVersions extends AnyPropSpec:
         with IncrementalGlobalStoreWithUpdate[SchemeExp]
     {
         var configuration: IncrementalConfiguration = noOptimisations
+        override def warn(msg: String): Unit = ()
         override def intraAnalysis(
                                       cmp: Component
                                   ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis    }

@@ -1,7 +1,10 @@
 package maf.cli.experiments.updating
 
+import maf.bench.scheme.SchemeBenchmarkPrograms
+import maf.cli.runnables.GenerateConsistentRenamings.replaceInParsed
+import maf.core.Label.DPC
 import maf.language.CScheme.{CSchemeParser, CSchemeParserWithSplitter}
-import maf.language.change.CodeVersion.New
+import maf.language.change.CodeVersion.{New, Old}
 import maf.language.scheme.SchemeExp
 import maf.language.scheme.lattices.SchemeLattice
 import maf.language.scheme.primitives.SchemePrimitives
@@ -13,8 +16,9 @@ import maf.modular.incremental.update.{IncrementalGlobalStoreWithUpdate, Increme
 import maf.modular.scheme.modf.{SchemeModFComponent, SchemeModFNoSensitivity, StandardSchemeModFComponents}
 import maf.modular.worklist.LIFOWorklistAlgorithm
 import maf.util.Reader
-import maf.util.benchmarks.{Timeout, Timer}
+import maf.util.benchmarks.{Table, Timeout, Timer}
 
+import java.io.{BufferedWriter, File, FileWriter}
 import scala.concurrent.duration.{Duration, MINUTES}
 
 object UpdatingPerformance extends App:
@@ -27,7 +31,9 @@ object UpdatingPerformance extends App:
         with IncrementalSchemeTypeDomain
         with IncrementalModAnalysisWithUpdateTwoVersions(newProgram)
         with IncrementalGlobalStoreWithUpdate[SchemeExp]
-    { var configuration: IncrementalConfiguration = noOptimisations
+    {
+        override def warn(msg: String): Unit = ()
+        var configuration: IncrementalConfiguration = noOptimisations
         override def intraAnalysis(
                                       cmp: Component
                                   ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra  with IncrementalGlobalStoreIntraAnalysis }
@@ -41,7 +47,9 @@ object UpdatingPerformance extends App:
         with IncrementalSchemeConstantPropagationDomain
         with IncrementalModAnalysisWithUpdateTwoVersions(newProgram)
         with IncrementalGlobalStoreWithUpdate[SchemeExp]
-    { var configuration: IncrementalConfiguration = noOptimisations
+    {
+        override def warn(msg: String): Unit = ()
+        var configuration: IncrementalConfiguration = noOptimisations
         override def intraAnalysis(
                                       cmp: Component
                                   ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra  with IncrementalGlobalStoreIntraAnalysis }
@@ -57,6 +65,22 @@ object UpdatingPerformance extends App:
 
     def timeout(): Timeout.T = Timeout.start(Duration(2, MINUTES))
 
+    var resultsNoRefactoring: Table[Int] = Table.empty.withDefaultValue(0)
+    var resultsWithRefactoring: Table[Int] = Table.empty.withDefaultValue(0)
+    var resultsNonIncremental: Table[Int] = Table.empty.withDefaultValue(0)
+
+    def addToIncrementalInitial(table: Table[Int], a: IncrementalModAnalysisWithUpdateTwoVersions[SchemeExp], index: String, totalTime: Double): Table[Int] =
+        var outputTable = table.add(index, "total time", totalTime.toInt)
+        outputTable = outputTable.add(index, "change detection", (a.timeFindingChanges / 1000000).toInt)
+        outputTable = outputTable.add(index, "updating datastructures", (a.timeUpdatingStructures / 1000000).toInt)
+        outputTable = outputTable.add(index, "incremental analysis" , (a.timeIncrementalReanalysis / 1000000).toInt)
+        outputTable
+
+    def addToNonIncrementalInitial(index: String, totalTime: Double): Unit =
+        resultsNonIncremental = resultsNonIncremental.add(index, "Initial: total time", totalTime.toInt)
+    def addToNonIncrementalNew(index: String, totalTime: Double): Unit =
+        resultsNonIncremental = resultsNonIncremental.add(index, "New only: total time", totalTime.toInt)
+
     def warmUp(msg: String, block: Timeout.T => Unit): Unit =
         print(s"Warmup: $msg ")
         val timeOut = timeout()
@@ -67,7 +91,7 @@ object UpdatingPerformance extends App:
             if timeOut.reached then
                 println()
                 return
-                    println()
+            println()
 
     def runOneTime(analysis: IncrementalModAnalysisWithUpdateTwoVersions[SchemeExp], block: (Timeout.T, IncrementalModAnalysisWithUpdateTwoVersions[SchemeExp]) => Unit): Option[Double] =
         System.gc()
@@ -88,18 +112,30 @@ object UpdatingPerformance extends App:
             runOneTime(analysis, block) match
                 case Some(t) =>
                     times = t :: times
+                    if analysis.timeUpdatingStructures == 0 then
+                        if analysis.version == Old then
+                            addToNonIncrementalInitial(i.toString, t)
+                        else
+                            addToNonIncrementalNew(i.toString, t)
+                    else
+                        if analysis.withUpdating then
+                            resultsWithRefactoring = addToIncrementalInitial(resultsWithRefactoring, analysis, i.toString, t)
+                        else
+                            resultsNoRefactoring = addToIncrementalInitial(resultsNoRefactoring, analysis, i.toString, t)
                 case None =>
                     println(" timed out.")
                     return None
             println()
-            if analysis.timeUpdatingStructures != 0 then
-                println(analysis.getTimes())
-                println()
         Some(times)
 
     def onBenchmark(file: String): Unit =
         val (oldProgram, newProgram) = CSchemeParserWithSplitter.parseProgram(Reader.loadFile(file))
-
+        val fullfilename = file.split("\\\\|\\.")
+        var writeToFile = ""
+        if fullfilename != null then
+            val dir = fullfilename(3)
+            val filename = fullfilename(4)
+            writeToFile = "benchOutput/UpdatingPerformance/" + dir + "/" + filename + ".csv"
 
         warmUp("initial analysis", timeout => {
             val initial = AnalysisType(oldProgram, newProgram)
@@ -161,5 +197,24 @@ object UpdatingPerformance extends App:
             },
             (timeout, analysis) => analysis.updateAnalysis(timeout)))
 
+        val noRefactoringString = resultsNoRefactoring.toCSVString(rows = resultsWithRefactoring.allRows.toList.sortBy(_.toInt))
+        val withRefactoringString = resultsWithRefactoring.toCSVString(rows = resultsWithRefactoring.allRows.toList.sortBy(_.toInt))
+        val fullRunsString = resultsNonIncremental.toCSVString(rows = resultsWithRefactoring.allRows.toList.sortBy(_.toInt))
+        val fullString = "\nIncremental analysis without refactoring updates\n\n" ++ noRefactoringString ++ "\n\nIncremental analysis with refactoring updates\n\n" ++ withRefactoringString + "\n\nFull analysis\n\n" + fullRunsString
+        println(fullString)
+        val outFile = new File(writeToFile)
+        val bw = new BufferedWriter(new FileWriter(outFile))
+        bw.write(fullString)
+        bw.close()
 
-    onBenchmark("test/changeDetectionTest/benchmarks/renamings/browse.scm")
+
+
+
+    //onBenchmark("test/changeDetectionTest/benchmarks/renamings/browse.scm")
+   // onBenchmark("test/changeDetectionTest/benchmarks/Scope Changes/browse.scm")
+    val benchmarks = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/benchmarks/renamings")()
+    benchmarks.foreach(file =>
+        onBenchmark(file)
+    )
+
+
