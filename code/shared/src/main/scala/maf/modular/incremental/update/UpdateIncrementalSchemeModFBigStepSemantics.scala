@@ -10,18 +10,18 @@ import maf.modular.scheme.modf.{BigStepModFSemantics, SchemeModFComponent}
 
 trait UpdateIncrementalSchemeModFBigStepSemantics extends IncrementalSchemeModFBigStepSemantics  with IncrementalModAnalysisWithUpdateTwoVersions[SchemeExp]:
 
-  trait UpdateIncrementalSchemeModFBigStepIntra extends IncrementalSchemeModFBigStepIntra:
-    override protected def eval(exp: SchemeExp): EvalM[Value] = exp match
-      case e if version == Old =>
-        registerComponent(e, component)
-        super.eval(e)
-      case e if version == New =>
-        registerComponent(e, component)
-        super.eval(e)
-      /*  allChanges.get(e) match
-          case Some(newexp: SchemeExp) =>
-            registerComponent(newexp, component)
-            super.eval(newexp)
-          case None =>
-            registerComponent(e, component)
-            super.eval(e)*/
+    trait UpdateIncrementalSchemeModFBigStepIntra extends IncrementalSchemeModFBigStepIntra:
+        override protected def eval(exp: SchemeExp): EvalM[Value] = exp match
+            case e if version == Old =>
+                registerComponent(e, component)
+                super.eval(e)
+            case e if version == New =>
+                registerComponent(e, component)
+                super.eval(e)
+/*  allChanges.get(e) match
+    case Some(newexp: SchemeExp) =>
+      registerComponent(newexp, component)
+      super.eval(newexp)
+    case None =>
+      registerComponent(e, component)
+      super.eval(e)*/

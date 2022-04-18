@@ -24,128 +24,128 @@ import scala.concurrent.duration.{Duration, MINUTES}
 
 class IncrementalAnalysisUpdatingConsistentRenamingOnlyTest extends AnyPropSpec:
 
-  type Analysis <: IncrementalModAnalysis[SchemeExp]
+    type Analysis <: IncrementalModAnalysis[SchemeExp]
 
-  abstract class BaseAnalysis(program: SchemeExp)
-    extends ModAnalysis[SchemeExp](program)
-      with StandardSchemeModFComponents
-      with SchemeModFSemanticsM
-      with LIFOWorklistAlgorithm[SchemeExp]
-      with IncrementalSchemeModFBigStepSemantics
-      with IncrementalSchemeTypeDomain
+    abstract class BaseAnalysis(program: SchemeExp)
+        extends ModAnalysis[SchemeExp](program)
+            with StandardSchemeModFComponents
+            with SchemeModFSemanticsM
+            with LIFOWorklistAlgorithm[SchemeExp]
+            with IncrementalSchemeModFBigStepSemantics
+            with IncrementalSchemeTypeDomain
 
-  class NoSensitivityAnalysis(program: SchemeExp)
-    extends BaseAnalysis(program)
-      with SchemeModFNoSensitivity
-      with IncrementalGlobalStoreWithUpdate[SchemeExp]:
-      var configuration: IncrementalConfiguration = noOptimisations
-      override def intraAnalysis(
-                                cmp: Component
-                              ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis
+    class NoSensitivityAnalysis(program: SchemeExp)
+        extends BaseAnalysis(program)
+            with SchemeModFNoSensitivity
+            with IncrementalGlobalStoreWithUpdate[SchemeExp]:
+        var configuration: IncrementalConfiguration = noOptimisations
+        override def intraAnalysis(
+                                      cmp: Component
+                                  ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis
 
-  class FullArgSensitivityAnalysis(program: SchemeExp)
-    extends BaseAnalysis(program)
-      with SchemeModFFullArgumentSensitivity
-      with IncrementalGlobalStoreWithUpdate[SchemeExp]:
-      var configuration: IncrementalConfiguration = noOptimisations
-      override def intraAnalysis(
-                                cmp: Component
-                              ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis
+    class FullArgSensitivityAnalysis(program: SchemeExp)
+        extends BaseAnalysis(program)
+            with SchemeModFFullArgumentSensitivity
+            with IncrementalGlobalStoreWithUpdate[SchemeExp]:
+        var configuration: IncrementalConfiguration = noOptimisations
+        override def intraAnalysis(
+                                      cmp: Component
+                                  ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis
 
-  class CallSensitivityAnalysis(program: SchemeExp)
-    extends BaseAnalysis(program)
-      with SchemeModFCallSiteSensitivity
-      with IncrementalGlobalStoreWithUpdate[SchemeExp]:
-      var configuration: IncrementalConfiguration =  noOptimisations
-      override def intraAnalysis(
-                                cmp: Component
-                              ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis
+    class CallSensitivityAnalysis(program: SchemeExp)
+        extends BaseAnalysis(program)
+            with SchemeModFCallSiteSensitivity
+            with IncrementalGlobalStoreWithUpdate[SchemeExp]:
+        var configuration: IncrementalConfiguration =  noOptimisations
+        override def intraAnalysis(
+                                      cmp: Component
+                                  ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis
 
-  class FullArgCallSensitivityAnalysis(program: SchemeExp)
-    extends BaseAnalysis(program)
-      with SchemeModFFullArgumentCallSiteSensitivity
-      with IncrementalGlobalStoreWithUpdate[SchemeExp]:
-      var configuration: IncrementalConfiguration = noOptimisations
-      override def intraAnalysis(
-                                cmp: Component
-                              ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis
-
-
-  def checkEqual(updated: IncrementalModAnalysis[SchemeExp], analysisOfNew: IncrementalModAnalysis[SchemeExp]): Unit =
-    assert(updated.visited.hashCode() == analysisOfNew.visited.hashCode(), "The visited sets of the updated program differs from the visited set of the analysis of the new program.")
-    assert(updated.deps.hashCode() == analysisOfNew.deps.hashCode(), "The dependencies of the updated program differs from the dependencies of the analysis of the new program.")
-    assert(updated.mapping.hashCode() == analysisOfNew.mapping.hashCode(), "The mappings of the updated program differs from the mappings of the analysis of the new program.")
-
-    (updated, analysisOfNew) match
-      case (updated: IncrementalGlobalStore[SchemeExp], analysisOfNew: IncrementalGlobalStore[SchemeExp]) =>
-        assert(updated.store.hashCode() == analysisOfNew.store.hashCode() , "The store of the updated program differs from the store of the analysis of the new program.")
-      case _ =>
-
-  val firstTests: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming")()
-
-  val gambitGenerated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/gambit")()
-
-  val adGenerated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/ad")()
-
-  val tlsGenerated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/WeiChenRompf2019/the-little-schemer")()
-
-  val scp1Generated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/scp1")()
-
-  val scp1CompressedGenerated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/scp1-compressed")()
-
-  val variousGenerated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/various")()
-
-  val modFbenchmarks: Set[String] = variousGenerated ++ scp1CompressedGenerated ++ scp1Generated ++ tlsGenerated ++ firstTests ++ gambitGenerated ++ adGenerated
-
-  modFbenchmarks.foreach(benchmark =>
-    val program = CSchemeParser.parseProgram(Reader.loadFile(benchmark))
-    property(s"No sensitivity: Check if datastructures are the same in the analysis of new version and update for" + benchmark) {
-      callAnalysisOnBenchmark(NoSensitivityAnalysis(program), program)
-    }
-    property(s"Full Arg sensitivity: Check if datastructures are the same in the analysis of new version and update for" + benchmark) {
-      callAnalysisOnBenchmark(FullArgSensitivityAnalysis(program), program)
-    }
-    property(s"Call sensitivity: Check if datastructures are the same in the analysis of new version and update for" + benchmark) {
-      callAnalysisOnBenchmark(CallSensitivityAnalysis(program), program)
-    }
-      property(s"Full Arg Call sensitivity: Check if datastructures are the same in the analysis of new version and update for" + benchmark) {
-      callAnalysisOnBenchmark(FullArgCallSensitivityAnalysis(program), program)
-    }
-  )
+    class FullArgCallSensitivityAnalysis(program: SchemeExp)
+        extends BaseAnalysis(program)
+            with SchemeModFFullArgumentCallSiteSensitivity
+            with IncrementalGlobalStoreWithUpdate[SchemeExp]:
+        var configuration: IncrementalConfiguration = noOptimisations
+        override def intraAnalysis(
+                                      cmp: Component
+                                  ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis
 
 
-  val gambitGeneratedContextInsensitive: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/gambit/NoSensitivity")()
+    def checkEqual(updated: IncrementalModAnalysis[SchemeExp], analysisOfNew: IncrementalModAnalysis[SchemeExp]): Unit =
+        assert(updated.visited.hashCode() == analysisOfNew.visited.hashCode(), "The visited sets of the updated program differs from the visited set of the analysis of the new program.")
+        assert(updated.deps.hashCode() == analysisOfNew.deps.hashCode(), "The dependencies of the updated program differs from the dependencies of the analysis of the new program.")
+        assert(updated.mapping.hashCode() == analysisOfNew.mapping.hashCode(), "The mappings of the updated program differs from the mappings of the analysis of the new program.")
 
-  val adGeneratedContextInsensitive: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/ad/NoSensitivity")()
+        (updated, analysisOfNew) match
+            case (updated: IncrementalGlobalStore[SchemeExp], analysisOfNew: IncrementalGlobalStore[SchemeExp]) =>
+                assert(updated.store.hashCode() == analysisOfNew.store.hashCode() , "The store of the updated program differs from the store of the analysis of the new program.")
+            case _ =>
 
-  val tlsGeneratedContextInsensitive: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/WeiChenRompf2019/the-little-schemer/NoSensitivity")()
+    val firstTests: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming")()
 
-  val scp1GeneratedContextInsensitive: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/scp1/NoSensitivity")()
+    val gambitGenerated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/gambit")()
 
-  val scp1ComGeneratedContextInsensitive: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/scp1-compressed/NoSensitivity")()
+    val adGenerated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/ad")()
 
-  val VariousGeneratedContextInsensitive: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/various/NoSensitivity")()
+    val tlsGenerated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/WeiChenRompf2019/the-little-schemer")()
 
-  val onlyCallSensitivity = tlsGeneratedContextInsensitive ++ gambitGeneratedContextInsensitive ++ adGeneratedContextInsensitive ++ scp1GeneratedContextInsensitive ++ scp1ComGeneratedContextInsensitive ++ VariousGeneratedContextInsensitive
+    val scp1Generated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/scp1")()
 
-  onlyCallSensitivity.foreach(benchmark =>
-    val program = CSchemeParser.parseProgram(Reader.loadFile(benchmark))
-      property(s"No sensitivity: Check if datastructures are the same in the analysis of new version and update for" + benchmark) {
-      callAnalysisOnBenchmark(NoSensitivityAnalysis(program), program)
-    }
-      property(s"Call sensitivity: Check if datastructures are the same in the analysis of new version and update for" + benchmark) {
-      callAnalysisOnBenchmark(CallSensitivityAnalysis(program), program)
-    }
+    val scp1CompressedGenerated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/scp1-compressed")()
 
-  )
+    val variousGenerated: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/various")()
 
-  def callAnalysisOnBenchmark(a: IncrementalModAnalysis[SchemeExp], program: SchemeExp): Unit =
-    val analysisToUpdate = a.deepCopy()
-    analysisToUpdate.analyzeWithTimeout(Timeout.start(Duration(2, MINUTES)))
-    analysisToUpdate.updateAnalysis(Timeout.start(Duration(2, MINUTES)))
+    val modFbenchmarks: Set[String] = variousGenerated ++ scp1CompressedGenerated ++ scp1Generated ++ tlsGenerated ++ firstTests ++ gambitGenerated ++ adGenerated
 
-    val analysisNew = a.deepCopy()
-    analysisNew.version = New
-    analysisNew.analyzeWithTimeout(Timeout.start(Duration(2, MINUTES)))
+    modFbenchmarks.foreach(benchmark =>
+        val program = CSchemeParser.parseProgram(Reader.loadFile(benchmark))
+            property(s"No sensitivity: Check if datastructures are the same in the analysis of new version and update for" + benchmark) {
+            callAnalysisOnBenchmark(NoSensitivityAnalysis(program), program)
+        }
+            property(s"Full Arg sensitivity: Check if datastructures are the same in the analysis of new version and update for" + benchmark) {
+            callAnalysisOnBenchmark(FullArgSensitivityAnalysis(program), program)
+        }
+            property(s"Call sensitivity: Check if datastructures are the same in the analysis of new version and update for" + benchmark) {
+            callAnalysisOnBenchmark(CallSensitivityAnalysis(program), program)
+        }
+            property(s"Full Arg Call sensitivity: Check if datastructures are the same in the analysis of new version and update for" + benchmark) {
+            callAnalysisOnBenchmark(FullArgCallSensitivityAnalysis(program), program)
+        }
+    )
 
-    checkEqual(analysisToUpdate, analysisNew)
+
+    val gambitGeneratedContextInsensitive: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/gambit/NoSensitivity")()
+
+    val adGeneratedContextInsensitive: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/ad/NoSensitivity")()
+
+    val tlsGeneratedContextInsensitive: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/WeiChenRompf2019/the-little-schemer/NoSensitivity")()
+
+    val scp1GeneratedContextInsensitive: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/scp1/NoSensitivity")()
+
+    val scp1ComGeneratedContextInsensitive: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/scp1-compressed/NoSensitivity")()
+
+    val VariousGeneratedContextInsensitive: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/onlyConsistentRenaming/R5RS/various/NoSensitivity")()
+
+    val onlyCallSensitivity = tlsGeneratedContextInsensitive ++ gambitGeneratedContextInsensitive ++ adGeneratedContextInsensitive ++ scp1GeneratedContextInsensitive ++ scp1ComGeneratedContextInsensitive ++ VariousGeneratedContextInsensitive
+
+    onlyCallSensitivity.foreach(benchmark =>
+        val program = CSchemeParser.parseProgram(Reader.loadFile(benchmark))
+            property(s"No sensitivity: Check if datastructures are the same in the analysis of new version and update for" + benchmark) {
+            callAnalysisOnBenchmark(NoSensitivityAnalysis(program), program)
+        }
+            property(s"Call sensitivity: Check if datastructures are the same in the analysis of new version and update for" + benchmark) {
+            callAnalysisOnBenchmark(CallSensitivityAnalysis(program), program)
+        }
+
+    )
+
+    def callAnalysisOnBenchmark(a: IncrementalModAnalysis[SchemeExp], program: SchemeExp): Unit =
+        val analysisToUpdate = a.deepCopy()
+        analysisToUpdate.analyzeWithTimeout(Timeout.start(Duration(2, MINUTES)))
+        analysisToUpdate.updateAnalysis(Timeout.start(Duration(2, MINUTES)))
+
+        val analysisNew = a.deepCopy()
+        analysisNew.version = New
+        analysisNew.analyzeWithTimeout(Timeout.start(Duration(2, MINUTES)))
+
+        checkEqual(analysisToUpdate, analysisNew)

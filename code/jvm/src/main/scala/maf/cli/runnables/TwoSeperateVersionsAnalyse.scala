@@ -37,313 +37,244 @@ import maf.language.CScheme.CSchemeLexicalAddresser
 
 object TwoSeperateVersionsAnalyse extends App:
 
-  def modfAnalysis(bench: String, timeout: () => Timeout.T): Unit =
+    def modfAnalysis(bench: String, timeout: () => Timeout.T): Unit =
 
-    def baseUpdates(oldProgram: SchemeExp, newProgram: SchemeExp) = new ModAnalysis[SchemeExp](oldProgram)
-      with StandardSchemeModFComponents
-     // with SchemeModFFullArgumentSensitivity
-      //with SchemeModFCallSiteSensitivity
-     // with SchemeModFFullArgumentCallSiteSensitivity
-      with SchemeModFNoSensitivity
-      with SchemeModFSemanticsUpdate
-      with LIFOWorklistAlgorithm[SchemeExp]
-      with UpdateIncrementalSchemeModFBigStepSemantics
-      with IncrementalSchemeTypeDomain
-      with IncrementalModAnalysisWithUpdateTwoVersions(newProgram)
-    //  with IncrementalLogging[SchemeExp]
-      with IncrementalGlobalStoreWithUpdate[SchemeExp]
-    {
-      var configuration: IncrementalConfiguration = noOptimisations
-      override def intraAnalysis(
-                                  cmp: Component
-                                ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra  with IncrementalGlobalStoreIntraAnalysis // {
-   /*     override protected def eval(exp: SchemeExp): EvalM[Value] =
-          if version == New then
-            println("intra")
-            println(exp)
-            println(allChanges)
-          super.eval(exp)
-      } */
-      }
+        def baseUpdates(oldProgram: SchemeExp, newProgram: SchemeExp) = new ModAnalysis[SchemeExp](oldProgram)
+            with StandardSchemeModFComponents
+            // with SchemeModFFullArgumentSensitivity
+            //with SchemeModFCallSiteSensitivity
+            // with SchemeModFFullArgumentCallSiteSensitivity
+            with SchemeModFNoSensitivity
+            with SchemeModFSemanticsUpdate
+            with LIFOWorklistAlgorithm[SchemeExp]
+            with UpdateIncrementalSchemeModFBigStepSemantics
+            with IncrementalSchemeTypeDomain
+            with IncrementalModAnalysisWithUpdateTwoVersions(newProgram)
+            //  with IncrementalLogging[SchemeExp]
+            with IncrementalGlobalStoreWithUpdate[SchemeExp]
+        {
+            override def warn(msg: String): Unit = ()
+            var configuration: IncrementalConfiguration = noOptimisations
+            override def intraAnalysis(
+                                          cmp: Component
+                                      ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra  with IncrementalGlobalStoreIntraAnalysis // {
+            /*     override protected def eval(exp: SchemeExp): EvalM[Value] =
+                   if version == New then
+                     println("intra")
+                     println(exp)
+                     println(allChanges)
+                   super.eval(exp)
+               } */
+        }
 
-    def newOnly(program: SchemeExp) = new ModAnalysis[SchemeExp](program)
-      with StandardSchemeModFComponents
-      //with SchemeModFCallSiteSensitivity
-      with SchemeModFNoSensitivity
-      with SchemeModFSemanticsM
-      with LIFOWorklistAlgorithm[SchemeExp]
-      with IncrementalSchemeModFBigStepSemantics
-      with IncrementalSchemeTypeDomain // IncrementalSchemeConstantPropagationDomain
-      with IncrementalGlobalStore[SchemeExp]
-     // with IncrementalLogging[SchemeExp]
-      //with IncrementalDataFlowVisualisation[SchemeExp]
-    {
-      var configuration: IncrementalConfiguration = noOptimisations
-      override def intraAnalysis(
-                                  cmp: Component
-                                ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis
-      //with IncrementalVisualIntra
-    }
-
-
-    try {
-      println(s"***** $bench *****")
-      val program = CSchemeParserWithSplitter.parseProgram(Reader.loadFile(bench))//CSchemeParser.parseProgram(Reader.loadFile(bench))
-
-      println(program._1.prettyString())
-      println(program._2.prettyString())
-
-      println(program._1.subexpressions)
+        def newOnly(program: SchemeExp) = new ModAnalysis[SchemeExp](program)
+            with StandardSchemeModFComponents
+            //with SchemeModFCallSiteSensitivity
+            with SchemeModFNoSensitivity
+            with SchemeModFSemanticsM
+            with LIFOWorklistAlgorithm[SchemeExp]
+            with IncrementalSchemeModFBigStepSemantics
+            with IncrementalSchemeTypeDomain // IncrementalSchemeConstantPropagationDomain
+            with IncrementalGlobalStore[SchemeExp]
+            // with IncrementalLogging[SchemeExp]
+            //with IncrementalDataFlowVisualisation[SchemeExp]
+        {
+            override def warn(msg: String): Unit = ()
+            var configuration: IncrementalConfiguration = noOptimisations
+            override def intraAnalysis(
+                                          cmp: Component
+                                      ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis
+            //with IncrementalVisualIntra
+        }
 
 
-      for(i <- 1 to 4) {
-        val analysisWithUpdates = baseUpdates(program._1, program._2)
-        analysisWithUpdates.analyzeWithTimeout(timeout())
-        val beforeUpdateAnalysis = System.nanoTime
-        analysisWithUpdates.withUpdating = true
-        analysisWithUpdates.updateAnalysis(timeout())
-        val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
-      }
+        try {
+            println(s"***** $bench *****")
+            val program = CSchemeParserWithSplitter.parseProgram(Reader.loadFile(bench))//CSchemeParser.parseProgram(Reader.loadFile(bench))
 
-      val analysisWithUpdates = baseUpdates(program._1, program._2)
-      analysisWithUpdates.analyzeWithTimeout(timeout())
-   //   println(analysisWithUpdates.mapping)
-   //   println(analysisWithUpdates.store)
-      val beforeUpdateAnalysis = System.nanoTime
-      analysisWithUpdates.version = New
-     // analysisWithUpdates.analyzeWithTimeout(timeout())
-      analysisWithUpdates.withUpdating = true
-      analysisWithUpdates.updateAnalysis(timeout())
-      val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
+            println(program._1.prettyString())
+            println(program._2.prettyString())
 
-      val storeWithUpdate = analysisWithUpdates.store
-      val depsWithUpdate = analysisWithUpdates.deps
-      val mappingWithUpdate = analysisWithUpdates.mapping
-      val visitedWithUpdate = analysisWithUpdates.visited
-
-      println("next")
+            println(program._1.subexpressions)
 
 
-      val analysisWithoutUpdates = baseUpdates(program._1, program._2)
-   //   println(analysisWithoutUpdates.store)
-   //   println(analysisWithoutUpdates.mainBody)
-   //   println(analysisWithoutUpdates.secondMainBody)
+            for(i <- 1 to 4) {
+                val analysisWithUpdates = baseUpdates(program._1, program._2)
+                analysisWithUpdates.analyzeWithTimeout(timeout())
+                val beforeUpdateAnalysis = System.nanoTime
+                analysisWithUpdates.withUpdating = true
+                analysisWithUpdates.updateAnalysis(timeout())
+                val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
+            }
 
-      val beforeNewAnalysis = System.nanoTime
-      analysisWithoutUpdates.version = New
-      analysisWithoutUpdates.analyzeWithTimeout(timeout())
-      val timeNewAnalysis = System.nanoTime - beforeNewAnalysis
+            val analysisWithUpdates = baseUpdates(program._1, program._2)
+            analysisWithUpdates.analyzeWithTimeout(timeout())
+            //   println(analysisWithUpdates.mapping)
+            //   println(analysisWithUpdates.store)
+            val beforeUpdateAnalysis = System.nanoTime
+            analysisWithUpdates.version = New
+            // analysisWithUpdates.analyzeWithTimeout(timeout())
+            analysisWithUpdates.withUpdating = true
+            analysisWithUpdates.updateAnalysis(timeout())
+            val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
 
-      val storeWithoutUpdate = analysisWithoutUpdates.store
-      val depsWithoutUpdate = analysisWithoutUpdates.deps
-      val mappingWithoutUpdate = analysisWithoutUpdates.mapping
-      val visitedWithoutUpdate = analysisWithoutUpdates.visited
+            val storeWithUpdate = analysisWithUpdates.store
+            val depsWithUpdate = analysisWithUpdates.deps
+            val mappingWithUpdate = analysisWithUpdates.mapping
+            val visitedWithUpdate = analysisWithUpdates.visited
 
-      println("updating done")
-      println("Time updating:                    " + timeUpdateAnalysis)
-      println("Time analysis new:                " + timeNewAnalysis)
-
-     // println("Store with update: " + storeWithUpdate.toString)
-     // println("Store new only   : " + storeWithoutUpdate.toString)
-
-      println("store reanalysis -> Update (subsumption): " + storeWithoutUpdate.forall((k, v) =>
-        storeWithUpdate.get(k) match
-          case Some(updatedValue) =>
-            if !analysisWithUpdates.lattice.subsumes(updatedValue, v) then
-              println("store r -> u " + k.toString() + " " + v.toString + " " + updatedValue.toString)
-            analysisWithUpdates.lattice.subsumes(updatedValue, v)
-          case _ =>
-            println("old: " + v.toString + " " + k.toString())
-            false).toString)
-      println("all missing: ")
-      /*storeWithUpdate.foreach((k, v) =>
-        storeWithoutUpdate.get(k) match
-          case Some(updatedValue) =>
-            if !analysisWithUpdates.lattice.subsumes(updatedValue, v) then
-              println("store r -> u " + k.toString() + " " + v.toString + " " + updatedValue.toString)
-              println(storeWithUpdate.zipWithIndex.find((k1, v1) => k == k1._1))
-              println(storeWithoutUpdate.zipWithIndex.find((k1, v1) => k == k1._1))
-            analysisWithUpdates.lattice.subsumes(updatedValue, v)
-          case _ =>
-            println("old: " + v.toString + " " + k.toString())
-            false)*/
-
-    //  println("Dependencies with update: " + depsWithUpdate.toString)
-    //  println("Dependencies new only   : " + depsWithoutUpdate.toString)
-
-      println("Dependencies reanalysis -> Update (subsumption): " + depsWithoutUpdate.forall((k, v) =>
-        depsWithUpdate.get(k) match
-          case Some(updatedValue) =>
-            if !v.forall(elv => updatedValue.contains(elv)) then
-              println(" deps r -> u " + k.toString() + " " + v.toString + " " + updatedValue.toString)
-              v.foreach(e => e match
-                case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
-                  println(lam.toString + " " + env.toString + " " + oldCtx.toString))
-              updatedValue.foreach(e => e match
-                case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
-                  println(lam.toString + " " + env.toString + " " + oldCtx.toString)  )
-          //  if v.size < updatedValue.size then
-          //    println("sizes: "  + k.toString + " " + v.toString + " " + updatedValue.toString)
-            v.forall(elv => updatedValue.contains(elv))
-          case _ =>
-            println("doesnt exist: ")
-            println(k)
-            false).toString)
+            println("next")
 
 
-      def checkSubsumptionContexts(a: IncrementalModAnalysis[SchemeExp], u: IncrementalModAnalysisWithUpdate[SchemeExp], ac: Any, uc: Any): Boolean =
-        a match
-          case a: IncrementalGlobalStore[SchemeExp] =>
-            (ac, uc) match
-              case (ac: maf.modular.scheme.modf.ArgCallSiteContext, uc: maf.modular.scheme.modf.ArgCallSiteContext) =>
-                ac.args.forall(v =>
-                  uc.args.exists(w =>
-                    a.lattice.subsumes(w.asInstanceOf[a.Value], v.asInstanceOf[a.Value])))
-              case (ac: maf.modular.scheme.modf.ArgContext, uc: maf.modular.scheme.modf.ArgContext)  =>
-                ac.values.forall(v =>
-                  uc.values.exists(w => a.lattice.subsumes(w.asInstanceOf[a.Value], v.asInstanceOf[a.Value])))
-              case (Some(ac: maf.modular.scheme.modf.ArgCallSiteContext), Some(uc: maf.modular.scheme.modf.ArgCallSiteContext)) =>
-                ac.args.forall(v =>
-                  uc.args.exists(w =>
-                    a.lattice.subsumes(w.asInstanceOf[a.Value], v.asInstanceOf[a.Value])))
-              case (Some(ac: maf.modular.scheme.modf.ArgContext), Some(uc: maf.modular.scheme.modf.ArgContext))  =>
-                ac.values.forall(v =>
-                  uc.values.exists(w => a.lattice.subsumes(w.asInstanceOf[a.Value], v.asInstanceOf[a.Value])))
-              case (ac: _, uc: _) =>
-                ac.equals(uc)
+            val analysisWithoutUpdates = baseUpdates(program._1, program._2)
+            //   println(analysisWithoutUpdates.store)
+            //   println(analysisWithoutUpdates.mainBody)
+            //   println(analysisWithoutUpdates.secondMainBody)
 
+            val beforeNewAnalysis = System.nanoTime
+            analysisWithoutUpdates.version = New
+            analysisWithoutUpdates.analyzeWithTimeout(timeout())
+            val timeNewAnalysis = System.nanoTime - beforeNewAnalysis
 
-      def checkSubsumptionOneComponent(a: IncrementalModAnalysis[SchemeExp], u: IncrementalModAnalysisWithUpdate[SchemeExp], ac: a.Component, uc: u.Component): Boolean =
-        a match
-          case a: IncrementalGlobalStore[SchemeExp] =>
-            (ac, uc) match
-              case (SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _), SchemeModFComponent.Call((wlam: SchemeLambdaExp, wenv: BasicEnvironment[_]), woldCtx: _)) =>
-                if lam.equals(wlam) && wenv.equals(wenv) then
-                  checkSubsumptionContexts(a, u, oldCtx, woldCtx)
-                else false
-              case (ac: _, uc: _) => ac.equals(uc)
-          case _ => false
+            val storeWithoutUpdate = analysisWithoutUpdates.store
+            val depsWithoutUpdate = analysisWithoutUpdates.deps
+            val mappingWithoutUpdate = analysisWithoutUpdates.mapping
+            val visitedWithoutUpdate = analysisWithoutUpdates.visited
 
-      def checkSubsumptionSetOfComponents(a: IncrementalModAnalysis[SchemeExp], u: IncrementalModAnalysisWithUpdate[SchemeExp], ac: Set[a.Component], uc: Set[u.Component]): Boolean =
-        a match
-          case a: IncrementalGlobalStore[SchemeExp] =>
-            ac.forall(av =>
-              uc.exists(uv =>
-                checkSubsumptionOneComponent(a, u, av.asInstanceOf[a.Component], uv.asInstanceOf[u.Component])))
-          case _ => false
+            println("updating done")
+            println("Time updating:                    " + timeUpdateAnalysis)
+            println("Time analysis new:                " + timeNewAnalysis)
 
-      def checkSubsumptionSetOfDependencies(a: IncrementalModAnalysis[SchemeExp], u: IncrementalModAnalysisWithUpdate[SchemeExp]): Boolean =
-        a match
-          case a: IncrementalGlobalStore[SchemeExp] =>
-            var ac = a.deps
-            val uc = u.deps
-            ac.forall(av =>
-              uc.exists(uv =>
-                (av._1, uv._1) match
-                  case (k1: AddrDependency, k2: AddrDependency) =>
-                    (k1.addr, k2.addr) match
-                      case (addr1: maf.modular.scheme.VarAddr[_], addr2: maf.modular.scheme.VarAddr[_]) =>
-                        if addr1.equals(addr2) then
-                          true
-                        else
-                          addr1.idn.equals(addr2.idn) && addr1.id.equals(addr2.id) && checkSubsumptionContexts(a, u, addr1.ctx, addr2.ctx) && checkSubsumptionSetOfComponents(a, u, av._2, uv._2)
-                      case (addr1: maf.modular.ReturnAddr[_], addr2: maf.modular.ReturnAddr[_]) =>
-                        if addr1.equals(addr2) then
-                          true
-                        else
-                          addr1.idn.equals(addr2.idn) && checkSubsumptionOneComponent(a, u, addr1.cmp.asInstanceOf[a.Component], addr2.cmp.asInstanceOf[u.Component]) && checkSubsumptionSetOfComponents(a, u, av._2, uv._2)
-                      case (addr1: maf.modular.scheme.PtrAddr[_], addr2: maf.modular.scheme.PtrAddr[_]) =>
-                        if addr1.equals(addr2) then
-                          true
-                        else addr1.idn.equals(addr2.idn) && checkSubsumptionContexts(a, u, addr1.ctx, addr2.ctx) && checkSubsumptionSetOfComponents(a, u, av._2, uv._2)
-                      case (addr1: _, addr2: _) =>
-                        addr1.equals(addr2) && checkSubsumptionSetOfComponents(a, u, av._2, uv._2)
-                  case _ => false))
+            // println("Store with update: " + storeWithUpdate.toString)
+            // println("Store new only   : " + storeWithoutUpdate.toString)
 
-    println(checkSubsumptionSetOfDependencies(analysisWithoutUpdates, analysisWithUpdates))
-    //  println("Mapping with update : " + mappingWithUpdate.toString)
-    //  println("Mapping new only    : " + mappingWithoutUpdate.toString)
+            println("store reanalysis -> Update (subsumption): " + storeWithoutUpdate.forall((k, v) =>
+                storeWithUpdate.get(k) match
+                    case Some(updatedValue) =>
+                        if !analysisWithUpdates.lattice.subsumes(updatedValue, v) then
+                            println("store r -> u " + k.toString() + " " + v.toString + " " + updatedValue.toString)
+                        analysisWithUpdates.lattice.subsumes(updatedValue, v)
+                    case _ =>
+                        println("old: " + v.toString + " " + k.toString())
+                        false).toString)
+            println("all missing: ")
+            /*storeWithUpdate.foreach((k, v) =>
+              storeWithoutUpdate.get(k) match
+                case Some(updatedValue) =>
+                  if !analysisWithUpdates.lattice.subsumes(updatedValue, v) then
+                    println("store r -> u " + k.toString() + " " + v.toString + " " + updatedValue.toString)
+                    println(storeWithUpdate.zipWithIndex.find((k1, v1) => k == k1._1))
+                    println(storeWithoutUpdate.zipWithIndex.find((k1, v1) => k == k1._1))
+                  analysisWithUpdates.lattice.subsumes(updatedValue, v)
+                case _ =>
+                  println("old: " + v.toString + " " + k.toString())
+                  false)*/
 
-      println(mappingWithoutUpdate.size)
-      println("Mapping reanalysis -> Update (subsumption): " + mappingWithoutUpdate.forall((k, v) =>
-        mappingWithUpdate.get(k) match
-          case Some(updatedValue) =>
-            if !v.forall(elv => updatedValue.contains(elv)) then
-              println(k)
-              println(v)
-              println(updatedValue)
-              v.foreach(e => e match
-                case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
-                  println("without")
-                  println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
-                case _ =>)
-              updatedValue.foreach(e => e match
-                    case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
-                      println("with")
-                      println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
-                    case _ =>)
-            v.forall(elv => updatedValue.contains(elv))
-          case _ =>
-            println("no matching key")
-            println(k)
-            println(v)
-            false).toString)
+            //  println("Dependencies with update: " + depsWithUpdate.toString)
+            //  println("Dependencies new only   : " + depsWithoutUpdate.toString)
+
+            println("Dependencies reanalysis -> Update (subsumption): " + depsWithoutUpdate.forall((k, v) =>
+                depsWithUpdate.get(k) match
+                    case Some(updatedValue) =>
+                        if !v.forall(elv => updatedValue.contains(elv)) then
+                            println(" deps r -> u " + k.toString() + " " + v.toString + " " + updatedValue.toString)
+                            v.foreach(e => e match
+                                case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+                                    println(lam.toString + " " + env.toString + " " + oldCtx.toString))
+                            updatedValue.foreach(e => e match
+                                case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+                                    println(lam.toString + " " + env.toString + " " + oldCtx.toString)  )
+                            //  if v.size < updatedValue.size then
+                            //    println("sizes: "  + k.toString + " " + v.toString + " " + updatedValue.toString)
+                        v.forall(elv => updatedValue.contains(elv))
+                    case _ =>
+                        println("doesnt exist: ")
+                            println(k)
+                        false).toString)
+
+            //  println("Mapping with update : " + mappingWithUpdate.toString)
+            //  println("Mapping new only    : " + mappingWithoutUpdate.toString)
+
+            println(mappingWithoutUpdate.size)
+            println("Mapping reanalysis -> Update (subsumption): " + mappingWithoutUpdate.forall((k, v) =>
+                mappingWithUpdate.get(k) match
+                    case Some(updatedValue) =>
+                        if !v.forall(elv => updatedValue.contains(elv)) then
+                            println(k)
+                            println(v)
+                            println(updatedValue)
+                            v.foreach(e => e match
+                                case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+                                    println("without")
+                                    println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
+                                case _ =>)
+                            updatedValue.foreach(e => e match
+                                case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+                                    println("with")
+                                    println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
+                                case _ =>)
+                        v.forall(elv => updatedValue.contains(elv))
+                    case _ =>
+                        println("no matching key")
+                            println(k)
+                            println(v)
+                        false).toString)
 
 
 
-      println("Visited with update : " + visitedWithUpdate.toString)
-      println("Visited new only    : " + visitedWithoutUpdate.toString)
-      println("Visited reanalysis -> Update (subsumption): " + visitedWithoutUpdate.forall(e =>
-          /* println(e)
-           e match
-             case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
-              println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
-             case _ =>*/
-           visitedWithUpdate.contains(e)).toString)
+            println("Visited with update : " + visitedWithUpdate.toString)
+            println("Visited new only    : " + visitedWithoutUpdate.toString)
+            println("Visited reanalysis -> Update (subsumption): " + visitedWithoutUpdate.forall(e =>
+                /* println(e)
+                 e match
+                   case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+                    println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
+                   case _ =>*/
+                visitedWithUpdate.contains(e)).toString)
 
-   /* visitedWithUpdate.foreach(e => e match
-      case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
-        println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
-        println(lam.fv)
-      case _ =>
-    )
+            /* visitedWithUpdate.foreach(e => e match
+               case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+                 println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
+                 println(lam.fv)
+               case _ =>
+             )
 
-    println()*/
+             println()*/
 
-    /*visitedWithUpdate.foreach(e =>
-      if !visitedWithoutUpdate.contains(e) then
-        e match
-          case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
-            println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
-          case _ =>
-      )*/
+            /*visitedWithUpdate.foreach(e =>
+              if !visitedWithoutUpdate.contains(e) then
+                e match
+                  case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+                    println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
+                  case _ =>
+              )*/
 
 
-      println(storeWithUpdate.size + " (" + storeWithoutUpdate.size + ")")
-      println(depsWithUpdate.size + "  (" + depsWithoutUpdate.size + ")")
-      println(mappingWithUpdate.size + " (" + mappingWithoutUpdate.size + ")")
-      println(visitedWithUpdate.size + "  (" + visitedWithoutUpdate.size + ")")
+            println(storeWithUpdate.size + " (" + storeWithoutUpdate.size + ")")
+            println(depsWithUpdate.size + "  (" + depsWithoutUpdate.size + ")")
+            println(mappingWithUpdate.size + " (" + mappingWithoutUpdate.size + ")")
+            println(visitedWithUpdate.size + "  (" + visitedWithoutUpdate.size + ")")
 
-      //println(analysisWithoutUpdates.getSummary())
-      //println(analysisWithUpdates.getSummary())
-      println(analysisWithUpdates.getTimes())
-    } catch {
-      case e: Exception =>
-        println(e)
-    }
-  end modfAnalysis
+            //println(analysisWithoutUpdates.getSummary())
+            //println(analysisWithUpdates.getSummary())
+            println(analysisWithUpdates.getTimes())
+        } catch {
+            case e: Exception =>
+                println(e)
+        }
+    end modfAnalysis
 
-  // val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm", "test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
- // val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/various/NoSensitivity/SICP-compiler.scm")
-  //val modFbenchmarks: List[String] = List("test/changes/scheme/machine-simulator.scm")
- // val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/NoSensitivity/earley.scm")
-  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/machine-simulator.scm")
-  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_browse.scm")
- // val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_nboyer.scm")
-  //val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/benchmarks/renamings/browse.scm")
+    // val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm", "test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
+    // val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/various/NoSensitivity/SICP-compiler.scm")
+    //val modFbenchmarks: List[String] = List("test/changes/scheme/machine-simulator.scm")
+    // val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/NoSensitivity/earley.scm")
+    //val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/machine-simulator.scm")
+    //val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_browse.scm")
+    // val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_nboyer.scm")
+    //val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
+    val modFbenchmarks: List[String] = List("test/changeDetectionTest/benchmarks/renamings/browse.scm")
 
-  val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
+    val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 
-  modFbenchmarks.foreach(modfAnalysis(_, standardTimeout))
-  println("Done")
+    modFbenchmarks.foreach(modfAnalysis(_, standardTimeout))
+    println("Done")
