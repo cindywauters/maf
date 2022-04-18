@@ -12,6 +12,7 @@ import maf.modular.scheme._
 import maf.modular.scheme.modf._
 import maf.modular.worklist._
 import maf.util._
+import maf.language.symbolic.lattices.*
 
 trait ScvAnalysisTests extends SchemeBenchmarkTests:
     protected type Analysis = ScvModAnalysis
@@ -19,19 +20,19 @@ trait ScvAnalysisTests extends SchemeBenchmarkTests:
     protected def analysis(program: SchemeExp): Analysis =
         import maf.modular.scv.ScvSymbolicStore.given
         new ModAnalysis(program)
-          with ScvBigStepSemantics
-          with SchemeConstantPropagationDomain
-          with StandardSchemeModFComponents
-          with LIFOWorklistAlgorithm[SchemeExp]
-          with SchemeModFSemanticsM
-          with ScvOneContextSensitivity:
+            with ScvBigStepSemantics
+            with SymbolicSchemeConstantPropagationDomain
+            with StandardSchemeModFComponents
+            with LIFOWorklistAlgorithm[SchemeExp]
+            with SchemeModFSemanticsM
+            with ScvOneContextSensitivity(0):
             override def intraAnalysis(cmp: Component) = new IntraScvSemantics(cmp)
             override val sat: ScvSatSolver[Value] =
                 given SchemeLattice[Value, Addr] = lattice
                 new JVMSatSolver(this)
 
     protected def parse(program: String): SchemeExp =
-      ContractSchemeParser.parse(program.nn)
+        ContractSchemeParser.parse(program.nn)
 
     protected def runFromFile(b: Benchmark)(onAnalysisDone: (Analysis) => Unit): Unit =
         val content = Reader.loadFile(b)

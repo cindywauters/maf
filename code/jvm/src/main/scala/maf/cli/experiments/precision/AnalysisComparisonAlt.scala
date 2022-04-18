@@ -34,6 +34,8 @@ abstract class AnalysisComparisonAlt[Num: IntLattice, Rea: RealLattice, Bln: Boo
             case Result.Errored      => "ERROR"
     var results: Table[Result] = Table.empty
 
+    protected def additionalCounts(analysisName: String, path: Benchmark, r1: ResultMap, r2: ResultMap): Unit = ()
+
     /**
      * For a given benchmark, compare each analysis with the result of the concrete interpreter That is, count for each analysis how many values are
      * strictly over-approximating the result of the concrete interpreter All results are saved in the `result` table of this object
@@ -48,19 +50,21 @@ abstract class AnalysisComparisonAlt[Num: IntLattice, Rea: RealLattice, Bln: Boo
         val concreteResult = runInterpreter(program, path, Timeout.none, runs).get // no timeout set for the concrete interpreter
         // run the other analyses on the benchmark
         analyses.foreach { case (analysis, name) =>
-          val t0 = System.nanoTime
-          val otherResult = runAnalysis(analysis, name, program, path, timeout())
-          val t1 = System.nanoTime
-          val duration = (System.nanoTime - t0) / 1e9d
-          println(s"duration: $duration")
-          val (lessPrecise, size) = otherResult match
-              case Terminated(analysisResult) =>
-                (Result.Success(compareOrdered(analysisResult, concreteResult).size), Result.Success(analysisResult.keys.size))
-              case TimedOut(partialResult) =>
-                (Result.Timeout(compareOrdered(partialResult, concreteResult, check = false).size), Result.Timeout(partialResult.keys.size))
-              case Errored(_) => (Result.Errored, Result.Errored)
-          results = results.add(path, name, lessPrecise)
-          results = results.add(path, s"$name-total", size)
+            val t0 = System.nanoTime
+            val otherResult = runAnalysis(analysis, name, program, path, timeout())
+            val t1 = System.nanoTime
+            val duration = (System.nanoTime - t0) / 1e9d
+            println(s"duration: $duration")
+            val (lessPrecise, size) = otherResult match
+                case Terminated(analysisResult) =>
+                    additionalCounts(name, path, analysisResult, concreteResult)
+                    (Result.Success(compareOrdered(analysisResult, concreteResult).size), Result.Success(analysisResult.keys.size))
+                case TimedOut(partialResult) =>
+                    additionalCounts(name, path, partialResult, concreteResult)
+                    (Result.Timeout(compareOrdered(partialResult, concreteResult, check = false).size), Result.Timeout(partialResult.keys.size))
+                case Errored(_) => (Result.Errored, Result.Errored)
+            results = results.add(path, name, lessPrecise)
+            results = results.add(path, s"$name-total", size)
         }
 
 object AnalysisComparisonAlt1
@@ -79,7 +83,7 @@ object AnalysisComparisonAlt1
     lazy val wdss: (SchemeExp => Analysis, String) = (SchemeAnalyses.modFlocalAnalysisWidened(_, k), s"$k-CFA WDSS")
     lazy val dssFS: (SchemeExp => Analysis, String) = (SchemeAnalyses.modflocalFSAnalysis(_, k), s"$k-CFA DSS-FS")
     lazy val adaptive: List[(SchemeExp => Analysis, String)] = ls.map { l =>
-      (SchemeAnalyses.modflocalAnalysisAdaptiveA(_, k, l), s"$k-CFA DSS w/ ASW (l = $l)")
+        (SchemeAnalyses.modflocalAnalysisAdaptiveA(_, k, l), s"$k-CFA DSS w/ ASW (l = $l)")
     }
     def analyses = modf :: dssFS :: dss :: Nil
     def main0(args: Array[String]) = check("test/R5RS/gambit/matrix.scm")
@@ -147,6 +151,6 @@ object AnalysisComparisonAlt1
         benchmarks.foreach(runBenchmark)
         val cols = analyses.map(_._2)
         println(results.prettyString(columns = cols))
-        Writer.setDefaultWriter(Writer.open("benchOutput/precision/precision-benchmarks.csv"))
-        Writer.write(results.toCSVString(rowName = "benchmark", columns = cols))
-        Writer.closeDefaultWriter()
+        val writer = Writer.open("benchOutput/precision/precision-benchmarks.csv")
+        Writer.write(writer, results.toCSVString(rowName = "benchmark", columns = cols))
+        Writer.close(writer)

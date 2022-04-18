@@ -20,7 +20,7 @@ object DailyPrecisionBenchmarks
     ]:
     // analyses to compare
     def baseAnalysis(prg: SchemeExp): Analysis =
-      SchemeAnalyses.contextInsensitiveAnalysis(prg)
+        SchemeAnalyses.contextInsensitiveAnalysis(prg)
     def otherAnalyses() = List(
       (SchemeAnalyses.callSiteContextSensitiveAnalysis, "1CS")
       //(SchemeAnalyses.adaptiveAnalysisPolicy3(_, 5), "adaptive-policy-3")
@@ -37,6 +37,6 @@ object DailyPrecisionBenchmarks
     def main(args: Array[String]) =
         benchmarks.foreach(runBenchmark)
         println(results.prettyString(format = _.map(_.toString()).getOrElse("TIMEOUT")))
-        Writer.setDefaultWriter(Writer.open("benchOutput/precision/daily-precision-benchmarks.csv"))
-        Writer.write(results.toCSVString(format = _.map(_.toString()).getOrElse("TIMEOUT"), rowName = "benchmark"))
-        Writer.closeDefaultWriter()
+        val writer = Writer.open("benchOutput/precision/daily-precision-benchmarks.csv")
+        Writer.write(writer, results.toCSVString(format = _.map(_.toString()).getOrElse("TIMEOUT"), rowName = "benchmark"))
+        Writer.close(writer)

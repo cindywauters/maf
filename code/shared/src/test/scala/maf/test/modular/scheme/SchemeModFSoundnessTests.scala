@@ -2,12 +2,14 @@ package maf.test.modular.scheme
 
 import maf.bench.scheme.SchemeBenchmarkPrograms
 import maf.language.scheme._
+import maf.language.symbolic.lattices.*
 import maf.modular._
 import maf.modular.scv._
 import maf.modular.scheme._
 import maf.modular.scheme.modf._
 import maf.modular.worklist._
 import maf.test._
+import maf.language.symbolic.Formula
 
 trait SchemeModFSoundnessTests extends SchemeSoundnessTests:
     override def testTags(b: Benchmark) = super.testTags(b) :+ SchemeModFTest
@@ -21,24 +23,24 @@ trait BigStepSchemeModF extends SchemeModFSoundnessTests:
 trait SmallStepSchemeModF extends SchemeModFSoundnessTests:
     def name = "small-step semantics"
     def analysis(program: SchemeExp) = new ModAnalysis(program)
-      with SchemeModFSemanticsM
-      with SmallStepModFSemantics
-      with StandardSchemeModFComponents
-      with SchemeConstantPropagationDomain
-      with SchemeModFNoSensitivity
-      with LIFOWorklistAlgorithm[SchemeExp] {
-      override def intraAnalysis(cmp: Component) = new IntraAnalysis(cmp) with SmallStepIntra
+        with SchemeModFSemanticsM
+        with SmallStepModFSemantics
+        with StandardSchemeModFComponents
+        with SchemeConstantPropagationDomain
+        with SchemeModFNoSensitivity
+        with LIFOWorklistAlgorithm[SchemeExp] {
+        override def intraAnalysis(cmp: Component) = new IntraAnalysis(cmp) with SmallStepIntra
     }
 
 trait ParallelSchemeModF extends SchemeModFSoundnessTests:
     def name = "parallel analysis (n = 8)"
     def analysis(program: SchemeExp) = new SimpleSchemeModFAnalysis(program)
-      with SchemeConstantPropagationDomain
-      with SchemeModFNoSensitivity
-      with CallDepthFirstWorklistAlgorithm[SchemeExp]
-      with ParallelWorklistAlgorithm[SchemeExp] {
-      override def workers = 8
-      override def intraAnalysis(cmp: Component) = new IntraAnalysis(cmp) with BigStepModFIntra with ParallelIntra
+        with SchemeConstantPropagationDomain
+        with SchemeModFNoSensitivity
+        with CallDepthFirstWorklistAlgorithm[SchemeExp]
+        with ParallelWorklistAlgorithm[SchemeExp] {
+        override def workers = 8
+        override def intraAnalysis(cmp: Component) = new IntraAnalysis(cmp) with BigStepModFIntra with ParallelIntra
     }
 
 trait ScvModF extends SchemeModFSoundnessTests:
@@ -46,16 +48,16 @@ trait ScvModF extends SchemeModFSoundnessTests:
     def analysis(program: SchemeExp) =
         import maf.modular.scv.ScvSymbolicStore.given
         new ModAnalysis(program)
-          with ScvBigStepSemantics
-          with SchemeConstantPropagationDomain
-          with StandardSchemeModFComponents
-          with LIFOWorklistAlgorithm[SchemeExp]
-          with SchemeModFSemanticsM
-          with ScvOneContextSensitivity:
+            with ScvBigStepSemantics
+            with SymbolicSchemeConstantPropagationDomain
+            with StandardSchemeModFComponents
+            with LIFOWorklistAlgorithm[SchemeExp]
+            with SchemeModFSemanticsM
+            with ScvOneContextSensitivity(m = 0):
             override def intraAnalysis(cmp: Component) = new IntraScvSemantics(cmp)
             // we always return "unknown" here because the Z3 solver is not available in the `shared` module
             override val sat: ScvSatSolver[Value] = new ScvSatSolver[Value]():
-                def sat(e: List[SchemeExp], vars: List[String]): IsSat[Value] = Unknown
+                def sat(e: Formula, vars: List[String]): IsSat[Value] = Unknown
 
 // concrete test suites to run ...
 

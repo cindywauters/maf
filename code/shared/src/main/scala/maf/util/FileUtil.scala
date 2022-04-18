@@ -2,9 +2,11 @@ package maf.util
 
 import maf.util.StringUtil.NumberedStrings
 
-import java.io._
+import java.io.*
 import maf.util.Writer.Writer
 import maf.util.benchmarks.Clock
+
+import java.nio.file.{Paths, StandardCopyOption}
 
 // null values are used here due to Java interop
 import scala.language.unsafeNulls
@@ -19,66 +21,70 @@ object Reader:
         content
 
 /**
- * Utility to write to plain text files. Can also be modifief to write to csv files using a CSVWriter, CSVWriter.NO_QUOTE_CHARACTER and the writeNext
+ * Utility to write to plain text files. Can also be modified to write to csv files using a CSVWriter, CSVWriter.NO_QUOTE_CHARACTER and the writeNext
  * method.
  */
 object Writer:
 
-    type Writer = BufferedWriter
+    private case class W(w: BufferedWriter, var report: Boolean)
 
-    private var defaultWriter: Writer = _
-    var report: Boolean = false
+    opaque type Writer = W
 
-    def open(path: String): Writer =
+    /** Avoids a file to be accidentally overwritten. */
+    private def addSuffix(f: File): File =
+        var file = f
+        if !file.exists() then return file
+        val path = file.getPath
+        val idx = path.lastIndexOf(".")
+        val (name, ext) = (path.substring(0, idx), path.substring(idx))
+        var suffix = 1
+        while file.exists() do
+            val n = s"$name-$suffix$ext"
+            file = new File(n)
+            suffix += 1
+        file
+
+    def open(path: String, avoidDuplicate: Boolean = false): Writer =
         val file = new File(path)
-        file.getParentFile().nn.mkdirs() // Creates the directory containing the file if it does not exists
-        new BufferedWriter(new FileWriter(file))
+        file.getParentFile().nn.mkdirs() // Creates the directory containing the file if it does not exists.
+        W(new BufferedWriter(new FileWriter(if avoidDuplicate then addSuffix(file) else file)), false)
 
     def openTimeStamped(path: String): Writer =
-      path.split("\\.").nn match
-          case Array(file, ext) => open(file + " " + Clock.nowStr() + "." + ext)
-          case _                => throw new Exception(s"Illegal path: $path")
+        path.split("\\.").nn match
+            case Array(file, ext) => open(file + " " + Clock.nowStr() + "." + ext, true)
+            case _                => throw new Exception(s"Illegal path: $path")
 
     def openTimeStampedGetName(path: String): (Writer, String) = // Also returns the name of the file.
-      path.split("\\.").nn match
-          case Array(file, ext) =>
-            val out = file + " " + Clock.nowStr() + "." + ext
-            (open(out), out)
-          case _ => throw new Exception(s"Illegal path: $path")
+        path.split("\\.").nn match
+            case Array(file, ext) =>
+                val out = file + " " + Clock.nowStr() + "." + ext
+                (open(out), out)
+            case _ => throw new Exception(s"Illegal path: $path")
 
-    def close(writer: Writer): Unit = writer.close()
+    def close(writer: Writer): Unit = writer._1.close()
 
-    def setDefaultWriter(writer: Writer): Unit = defaultWriter = writer
-    def closeDefaultWriter(): Unit = defaultWriter.close()
-
-    def enableReporting(): Unit = report = true
-    def disableReporting(): Unit = report = false
+    def enableReporting(writer: Writer): Unit = writer.report = true
+    def disableReporting(writer: Writer): Unit = writer.report = false
 
     // Avoid output being buffered.
     def write(writer: Writer, data: String): String =
-        writer.write(data)
-        writer.flush()
-        if report then
+        writer.w.write(data)
+        writer.w.flush()
+        if writer.report then
             System.out.print(data)
             System.out.flush()
         data
-
     def writeln(writer: Writer, data: String): String = write(writer, data + "\n")
-
-    def write(data: String = "\n"): String = write(defaultWriter, data)
-    def writeln(data: String = "\n"): String = writeln(defaultWriter, data)
 
     def writeErr(writer: Writer, data: String): String =
         System.err.print(data)
         System.err.flush()
-        writer.write(data)
-        writer.flush()
+        writer.w.write(data)
+        writer.w.flush()
         data
-
     def writeErrln(writer: Writer, data: String): String = writeErr(writer, data + "\n")
 
-    def writeErr(data: String = "\n"): String = writeErr(defaultWriter, data)
-    def writeErrln(data: String = "\n"): String = writeErrln(defaultWriter, data)
+    def flush(writer: Writer): Unit = writer._1.flush()
 
 object Formatter:
 
@@ -114,20 +120,20 @@ object Logger:
 
         /** Logs a message to a file. */
         def log(string: String): Unit = if enabled then
-            writer.write(string + "\n")
-            writer.flush()
+            Writer.write(writer, string + "\n")
+            Writer.flush(writer)
 
         /** Logs a message to a file, and includes a timestamp. */
         def logT(string: String): Unit = if enabled then
-            writer.write(s"${Clock.nowStr()} : $string\n")
-            writer.flush()
+            Writer.write(writer, s"${Clock.nowStr()} : $string\n")
+            Writer.flush(writer)
 
         /** Logs an exception and its corresponding stacktrace to a file. */
         def logException(t: Throwable): Unit = if enabled then
-            writer.write(t.toString + "\n" + t.getStackTrace.map(_.toString).mkString("\n"))
-            writer.flush()
+            Writer.write(writer, t.toString + "\n" + t.getStackTrace.map(_.toString).mkString("\n"))
+            Writer.flush(writer)
 
-        def close(): Unit = writer.close()
+        def close(): Unit = Writer.close(writer)
 
     class NumberedLog(private val writer: Writer) extends Log(writer) with NumberedStrings:
 
@@ -173,24 +179,24 @@ object MAFLogger:
 
     private def configs(env: LogEnvironment): Map[LogLevel, LogLevelPolicy] = env match
         case LogEnvironment.CI =>
-          val logLocation: String = sys.env.get("LOG_LOCATION").getOrElse("log.txt")
-          Map(
-            AnalysisError -> FileLog(logLocation),
-            Info -> NoLog,
-            Debug -> NoLog
-          )
+            val logLocation: String = sys.env.get("LOG_LOCATION").getOrElse("log.txt")
+            Map(
+              AnalysisError -> NoLog, //FileLog(logLocation),
+              Info -> NoLog,
+              Debug -> NoLog
+            )
         case LogEnvironment.Local =>
-          Map(
-            AnalysisError -> Print,
-            Info -> Print,
-            Debug -> Print
-          )
+            Map(
+              AnalysisError -> Print,
+              Info -> Print,
+              Debug -> Print
+            )
         case LogEnvironment.Benchmarking =>
-          Map(
-            AnalysisError -> NoLog,
-            Info -> NoLog,
-            Debug -> NoLog
-          )
+            Map(
+              AnalysisError -> NoLog,
+              Info -> NoLog,
+              Debug -> NoLog
+            )
 
     /** A mapping from log levels to actual loggers, depending on the policy */
     private val loggers: mutable.Map[LogLevel, Option[Logger.Log]] = mutable.Map(
@@ -201,11 +207,11 @@ object MAFLogger:
 
     /** Loads the config that is applicable for the current environment */
     private def currentConfig: Map[LogLevel, LogLevelPolicy] =
-      sys.env.get("LOG_ENV").getOrElse("local") match
-          case "local" => configs(LogEnvironment.Local)
-          case "ci"    => configs(LogEnvironment.CI)
-          case "bench" => configs(LogEnvironment.Benchmarking)
-          case env     => throw new Exception(s"invalid logging environment $env")
+        sys.env.get("LOG_ENV").getOrElse("local") match
+            case "local" => configs(LogEnvironment.Local)
+            case "ci"    => configs(LogEnvironment.CI)
+            case "bench" => configs(LogEnvironment.Benchmarking)
+            case env     => throw new Exception(s"invalid logging environment $env")
 
     private var disabled: Boolean = false
     def enable(): Unit = disabled = false
@@ -217,14 +223,21 @@ object MAFLogger:
         val policy = currentConfig(level)
         val finalMsg = s"[$level]$msg"
         policy match
-            case Print => println(finalMsg)
-            case NoLog => ()
-            case FileLog(to) =>
-              val log = loggers(level)
-              log match
-                  case Some(log) => log.log(finalMsg)
-                  case None =>
-                    val logger = Logger.raw(to)
-                    logger.enable()
-                    loggers(level) = Some(logger)
-                    logger.log(finalMsg)
+            case Print       => println(finalMsg)
+            case NoLog       => ()
+            case FileLog(to) => () // disabled for the Javascript runtime for now
+//val log = loggers(level)
+//log match
+//    case Some(log) => log.log(finalMsg)
+//    case None =>
+//        val logger = Logger.raw(to)
+//        logger.enable()
+//        loggers(level) = Some(logger)
+//        logger.log(finalMsg)
+
+object FileOps:
+
+    def copy(source: String, destination: String): Unit =
+        java.nio.file.Files.copy(Paths.get(source), Paths.get(destination), StandardCopyOption.REPLACE_EXISTING)
+
+end FileOps

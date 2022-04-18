@@ -62,15 +62,15 @@ trait IncrementalPrecision[E <: Expression] extends IncrementalExperiment[E] wit
             if incr == rean then e += 1 // Both results are the same => equally precise.
             else if inc.lattice.subsumes(incr, rean.asInstanceOf[inc.Value]) then l += 1 // The incremental value subsumes the value of the full reanalysis => less precise.
             else {
-              //System.err.nn.println(s"$a: $incr < $rean") // Soundness error.
-              //System.err.nn.flush()
-              m += 1 // The incremental value is subsumed by the value of the full reanalysis => more precise.
+                //System.err.nn.println(s"$a: $incr < $rean") // Soundness error.
+                //System.err.nn.flush()
+                m += 1 // The incremental value is subsumed by the value of the full reanalysis => more precise.
             }
         })
         table
-          .add(file, columnName(eqS, cName), Formatter.withPercent(e, t))
-          .add(file, columnName(lpS, cName), Formatter.withPercent(l, t))
-          .add(file, columnName(mpS, cName), Formatter.withPercent(m, t))
+            .add(file, columnName(eqS, cName), Formatter.withPercent(e, t))
+            .add(file, columnName(lpS, cName), Formatter.withPercent(l, t))
+            .add(file, columnName(mpS, cName), Formatter.withPercent(m, t))
 
     def onBenchmark(file: String): Unit =
         compareToFullReanalysis(file)
@@ -91,7 +91,7 @@ trait IncrementalPrecision[E <: Expression] extends IncrementalExperiment[E] wit
         if runAnalysis("init ", timeOut => a1.analyzeWithTimeout(timeOut)) || runAnalysis("rean ", timeOut => a2.analyzeWithTimeout(timeOut)) then
             print("timed out.")
             columns.foreach(c => results = results.add(file, c, infS))
-            return
+            return ()
 
         configurations.foreach { config =>
             val copy = a1.deepCopy()
@@ -112,7 +112,7 @@ trait IncrementalPrecision[E <: Expression] extends IncrementalExperiment[E] wit
         if runAnalysis("init ", timeOut => a1.analyzeWithTimeout(timeOut)) then
             print("timed out.")
             columns.foreach(c => resultsNoOpt = resultsNoOpt.add(file, c, infS))
-            return
+            return ()
 
         // Update the analysis without optimisations. Needs to finish as well.
         val a2 = a1.deepCopy()
@@ -120,7 +120,7 @@ trait IncrementalPrecision[E <: Expression] extends IncrementalExperiment[E] wit
         if runAnalysis("noOpt ", timeOut => a2.updateAnalysis(timeOut)) then
             print("timed out.")
             columns.foreach(c => resultsNoOpt = resultsNoOpt.add(file, c, infS))
-            return
+            return ()
 
         configurations.foreach { config =>
             val copy = a1.deepCopy()
@@ -134,8 +134,8 @@ trait IncrementalPrecision[E <: Expression] extends IncrementalExperiment[E] wit
 
     def interestingAddress[A <: Address](a: A): Boolean
     def createOutput(): String =
-      s"Compared to full reanalysis:\n${results.toCSVString(columns = columns, rowName = "benchmark")}\n\nCompared to noOpt:\n${resultsNoOpt
-        .toCSVString(columns = columns, rowName = "benchmark")}"
+        s"Compared to full reanalysis:\n${results.toCSVString(columns = columns, rowName = "benchmark")}\n\nCompared to noOpt:\n${resultsNoOpt
+            .toCSVString(columns = columns, rowName = "benchmark")}"
 
 /* ************************** */
 /* ***** Instantiations ***** */
@@ -149,53 +149,81 @@ trait IncrementalSchemePrecision extends IncrementalPrecision[SchemeExp]:
     override def timeout(): Timeout.T = Timeout.start(Duration(30, MINUTES))
     val configurations: List[IncrementalConfiguration] = allConfigurations
 
-object IncrementalSchemeModFTypePrecision extends IncrementalSchemePrecision:
-    override def benchmarks(): Set[String] = IncrementalSchemeBenchmarkPrograms.sequential //Generated
+class IncrementalSchemeModFTypePrecision() extends IncrementalSchemePrecision:
     override def analysis(e: SchemeExp, config: IncrementalConfiguration): Analysis = new IncrementalSchemeModFAnalysisTypeLattice(e, config)
     val outputFile: String = "precision/modf-type.txt"
 
-object IncrementalSchemeModFCPPrecision extends IncrementalSchemePrecision:
-    override def benchmarks(): Set[String] = IncrementalSchemeBenchmarkPrograms.sequential
+class IncrementalSchemeModFCPPrecision() extends IncrementalSchemePrecision:
     override def analysis(e: SchemeExp, config: IncrementalConfiguration): Analysis = new IncrementalSchemeModFAnalysisCPLattice(e, config)
     val outputFile: String = "precision/modf-CP.txt"
 
-object IncrementalSchemeModConcTypePrecision extends IncrementalSchemePrecision:
-    override def benchmarks(): Set[String] = IncrementalSchemeBenchmarkPrograms.threads
+class IncrementalSchemeModConcTypePrecision() extends IncrementalSchemePrecision:
     override def analysis(e: SchemeExp, config: IncrementalConfiguration): Analysis = new IncrementalModConcAnalysisTypeLattice(e, config)
     val outputFile: String = "precision/modconc-type.txt"
     override val configurations: List[IncrementalConfiguration] = allConfigurations.filterNot(_.cyclicValueInvalidation)
 
-object IncrementalSchemeModConcCPPrecision extends IncrementalSchemePrecision:
-    override def benchmarks(): Set[String] = IncrementalSchemeBenchmarkPrograms.threads
+class IncrementalSchemeModConcCPPrecision() extends IncrementalSchemePrecision:
     override def analysis(e: SchemeExp, config: IncrementalConfiguration): Analysis = new IncrementalModConcAnalysisCPLattice(e, config)
     val outputFile: String = "precision/modconc-CP.txt"
     override val configurations: List[IncrementalConfiguration] = allConfigurations.filterNot(_.cyclicValueInvalidation)
 
 object IncrementalSchemeModXPrecision:
-    def splitOutput(output: String): (String, String) =
+    def splitOutput(output: String, fullName: String = "", nooptName: String = ""): (String, String) =
         val text: List[List[String]] = Reader.loadFile(output).split("\n\n").nn.toList.map(_.nn.split("\n").nn.toList.map(_.nn).tail)
         if !(text.length == 2) then throw new Exception("Unexpected format")
+
+        var outFull = s"${output.split("\\.").nn.head}-FULL.csv"
+        var outNoOpt = s"${output.split("\\.").nn.head}-NOOPT.csv"
+
+        if fullName.nonEmpty && nooptName.nonEmpty then
+            outFull = fullName
+            outNoOpt = nooptName
+        end if
+
         val full = text.head.mkString("\n")
         val noOpt = text(1).mkString("\n")
-        val outFull = s"${output.split("\\.").nn.head}-FULL.csv"
         val fullW = Writer.open(outFull)
         Writer.write(fullW, full)
         Writer.close(fullW)
-        val outNoOpt = s"${output.split("\\.").nn.head}-NOOPT.csv"
         val noOptW = Writer.open(outNoOpt)
         Writer.write(noOptW, noOpt)
         Writer.close(noOptW)
         (outFull, outNoOpt)
+    end splitOutput
 
-    def main(args: Array[String]): Unit =
-        val (curatedFull, curatedNoOpt) = splitOutput(
-          IncrementalSchemeModFTypePrecision.execute(IncrementalSchemeBenchmarkPrograms.sequential.toArray)
-        )
-        val (generatedFull, generatedNoOpt) = splitOutput(
-           IncrementalSchemeModFTypePrecision.execute(IncrementalSchemeBenchmarkPrograms.sequentialGenerated.toArray)
-        )
-//if args.contains("-graphs") then RBridge.runScript("scripts/R/scripts/precision.R", curatedFull, generatedFull, curatedNoOpt, generatedNoOpt)
-        splitOutput(IncrementalSchemeModFCPPrecision.execute(IncrementalSchemeBenchmarkPrograms.sequential.toArray))
-        splitOutput(IncrementalSchemeModFCPPrecision.execute(IncrementalSchemeBenchmarkPrograms.sequentialGenerated.toArray))
-//IncrementalSchemeModConcTypePrecision.execute(args)
-//IncrementalSchemeModConcCPPrecision.execute(args)
+    def main(args: IncArgs): Unit =
+        val outDir: String = "benchOutput/"
+
+        val (curatedSuite, generatedSuite) = args.count match {
+            case Some(n) =>
+                (IncrementalSchemeBenchmarkPrograms.sequentialCurated.take(n), IncrementalSchemeBenchmarkPrograms.sequentialGenerated.take(n))
+            case None => (IncrementalSchemeBenchmarkPrograms.sequentialCurated, IncrementalSchemeBenchmarkPrograms.sequentialGenerated)
+        }
+
+        if args.typeLattice then
+            if args.curated then
+                splitOutput((new IncrementalSchemeModFTypePrecision).execute(curatedSuite),
+                            s"${outDir}type-curated-precision.csv",
+                            s"${outDir}type-curated-precision-noopt.csv"
+                )
+            if args.generated then
+                splitOutput(
+                  (new IncrementalSchemeModFTypePrecision).execute(generatedSuite),
+                  s"${outDir}type-generated-precision.csv",
+                  s"${outDir}type-generated-precision-noopt.csv"
+                )
+        end if
+        if args.cpLattice then
+            if args.curated then
+                splitOutput((new IncrementalSchemeModFCPPrecision).execute(curatedSuite),
+                            s"${outDir}cp-curated-precision.csv",
+                            s"${outDir}cp-curated-precision-noopt.csv"
+                )
+            if args.generated then
+                splitOutput((new IncrementalSchemeModFCPPrecision).execute(generatedSuite),
+                            s"${outDir}cp-generated-precision.csv",
+                            s"${outDir}cp-generated-precision-noopt.csv"
+                )
+        end if
+    end main
+end IncrementalSchemeModXPrecision

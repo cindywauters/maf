@@ -1,13 +1,12 @@
 package maf.cli.experiments.incremental
 
 import maf.core.Expression
-import maf.modular.incremental._
-import maf.util.Writer._
+import maf.modular.incremental.*
+import maf.util.Writer.*
+import maf.util.Writer
 import maf.util.benchmarks.Timeout
 
 trait IncrementalExperiment[E <: Expression]:
-    // A list of programs on which the benchmark should be executed.
-    def benchmarks(): Set[String]
 
     // Type bound for an analysis.
     type Analysis <: IncrementalModAnalysis[E] with IncrementalGlobalStore[E]
@@ -41,34 +40,39 @@ trait IncrementalExperiment[E <: Expression]:
     val catchErrors: Boolean = true
 
     // Runs measurements on the benchmarks in a given trait, or uses specific benchmarks if passed as an argument.
-    def measure(bench: Option[Set[String]] = None): Unit =
-        val total = bench.getOrElse(benchmarks()).size
+    def measure(bench: Set[String]): Unit =
+        val total = bench.size
         var count = 0
-        bench.getOrElse(benchmarks()).toList.sorted.foreach { file =>
+        bench.toList.sorted.foreach { file =>
             try
                 count += 1
                 println(s"\nTesting $file ($count of $total)")
                 onBenchmark(file)
             catch
                 case e: Exception if catchErrors =>
-                  // writeErrln(s"Running $file resulted in an exception: ${e.getMessage}")
-                  //e.getStackTrace.nn.take(5).foreach(ste => writeErrln(ste.toString))
-                  reportError(file)
+                    // writeErrln(s"Running $file resulted in an exception: ${e.getMessage}")
+                    //e.getStackTrace.nn.take(5).foreach(ste => writeErrln(ste.toString))
+                    reportError(file)
                 case e: VirtualMachineError =>
-                  // writeErrln(s"Running $file resulted in an error: ${e.getMessage}\n")
-                  reportError(file)
+                    // writeErrln(s"Running $file resulted in an error: ${e.getMessage}\n")
+                    reportError(file)
             println()
         }
 
+    var output: Writer = _
+
+    /** Ensure that an instance of an evaluation class can be used only once, to avoid polluting the wrong state. */
+    private var executed = false
+
     /** Runs the benchmarks. Returns the path to the output file. */
-    def execute(args: Array[String]): String =
+    def execute(args: Set[String]): String =
+        if executed then throw new Exception("Evaluation using this instance already executed. Create new instance of evaluation class.")
+        executed = true
         val (writer, file): (Writer, String) = openTimeStampedGetName(outputDir + outputFile)
-        setDefaultWriter(writer)
-        enableReporting()
-        if args.isEmpty then measure()
-        else measure(Some(args.toSet))
+        output = writer
+        Writer.enableReporting(output)
+        measure(args)
         val out: String = createOutput()
-        writeln(out)
-        closeDefaultWriter()
-        disableReporting()
+        writeln(output, out)
+        Writer.close(output)
         file

@@ -25,7 +25,7 @@ object ScvInputGenerator:
      *   the program as a string
      */
     private def readProgram(path: String): String =
-      Reader.loadFile(path)
+        Reader.loadFile(path)
 
     /**
      * Replace the first line with <code>#lang reader random-scv</code> if that line starts with a <code>#lang</code>
@@ -55,21 +55,21 @@ object ScvInputGenerator:
         val tmpFile = Files.createTempFile(null, ".rkt")
         val openFile = Writer.open(tmpFile.toString)
         // Write to the tmpFile
-        openFile.write(program)
-        openFile.close
+        Writer.write(openFile, program)
+        Writer.close(openFile)
         // Run the file using Racket
         import scala.sys.process._
         try s"racket ${tmpFile}".!!
         catch
             case e: Exception =>
-              println(s"$benchmark $e")
-              "(fail)"
+                println(s"$benchmark $e")
+                "(fail)"
 
     /** Write the given contents to a file */
     private def writeToFile(contents: String, path: String = ""): Unit =
         val writer = Writer.open(s"input/generated/${path.replace("/", "_")}.scm")
-        writer.write(contents)
-        writer.close
+        Writer.write(writer, contents)
+        Writer.close(writer)
 
     def main(args: Array[String]): Unit =
         val programs = benchmarks

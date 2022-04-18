@@ -39,6 +39,14 @@ trait IncrementalGlobalStore[Expr <: Expression] extends IncrementalModAnalysis[
     /** Updates the provenance information for a specific component and address. */
     def updateProvenance(cmp: Component, addr: Addr, value: Value): Unit = provenance = provenance + (addr -> (provenance(addr) + (cmp -> value)))
 
+    /*
+    TODO Only update the provenance if the value is not bottom? Or remove the provenance when the value has become bottom?
+        // This is needed because the same happens for the store.
+        // If we allow bottom to be written as part of the provenance,
+        // then this will lead to a key not found error in deleteProvenance since the key (addr) might not be in the store.
+        // Currently solved by using getOrElse.
+    */
+
     /* ******************************************** */
     /* ***** Managing cyclic value provenance ***** */
     /* ******************************************** */
@@ -59,7 +67,7 @@ trait IncrementalGlobalStore[Expr <: Expression] extends IncrementalModAnalysis[
     var SCAs: Map[SCA, Value] = Map()
 
     def computeSCAs(): Set[SCA] =
-      Tarjan.scc[Addr](store.keySet, dataFlowR.values.flatten.groupBy(_._1).map({ case (w, wr) => (w, wr.flatMap(_._2).toSet) }))
+        Tarjan.scc[Addr](store.keySet, dataFlowR.values.flatten.groupBy(_._1).map({ case (w, wr) => (w, wr.flatMap(_._2).toSet) }))
 
     /*
     /**
@@ -281,7 +289,7 @@ trait IncrementalGlobalStore[Expr <: Expression] extends IncrementalModAnalysis[
                 dataFlow += (addr -> newDependencies)
 
             // WI: Update the intra-provenance: for every address, keep the join of the values written to the address. Do this only after possible removal of annotations.
-            intraProvenance += (addr -> lattice.join(intraProvenance(addr), value))
+            if !lattice.isBottom(value) then intraProvenance += (addr -> lattice.join(intraProvenance(addr), value))
 
             // Ensure the intra-store is updated so it can be used. TODO should updateAddrInc be used here (but working on the intra-store) for an improved precision?
             // Same than super.writeAddr(addr, value) except that we do not need to trigger when WI is enabled (all written addresses will be scrutinized later upon commit by doWriteIncremental).
@@ -305,7 +313,7 @@ trait IncrementalGlobalStore[Expr <: Expression] extends IncrementalModAnalysis[
          *   were written but for which the store did not change. This is needed to handle strictly anti-monotonic changes.
          */
         def doWriteIncremental(): Unit = intraProvenance.foreach({ case (addr, value) =>
-          if updateAddrInc(component, addr, value) then inter.trigger(AddrDependency(addr))
+            if updateAddrInc(component, addr, value) then inter.trigger(AddrDependency(addr))
         })
 
         /** Refines values in the store that are no longer written to by a component. */

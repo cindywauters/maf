@@ -27,7 +27,7 @@ import scala.concurrent.duration.*
  */
 // TODO: Require equality when all optimisations are enabled.
 trait IncrementalModXComparisonTests extends SchemeBenchmarkTests:
-    lazy val configurations: List[IncrementalConfiguration] = allConfigurations
+    def configurations: List[IncrementalConfiguration]
     def timeout(): Timeout.T = Timeout.start(Duration(150, SECONDS))
 
     def testTags(b: Benchmark, c: IncrementalConfiguration): Seq[Tag]
@@ -43,47 +43,51 @@ trait IncrementalModXComparisonTests extends SchemeBenchmarkTests:
     def checkSubsumption(a: Analysis, i: IncrementalAnalysis): Unit
 
     def onBenchmark(benchmark: Benchmark): Unit =
-        val text = Reader.loadFile(benchmark)
-        val program = CSchemeParser.parseProgram(text)
         for c <- configurations do
             property(s"Analysis results for $benchmark using $c are equal (initial analysis) or subsuming (incremental update).",
                      testTags(benchmark, c): _*
             ) {
-              try
-                  val a = analysis(program, Old)
-                  a.analyzeWithTimeout(timeout())
-                  assume(a.finished)
-                  val i = incAnalysis(program)
-                  i.configuration = c
-                  i.analyzeWithTimeout(timeout())
-                  assume(i.finished)
-                  checkEqual(a, i)
+                val text = Reader.loadFile(benchmark)
+                val program = CSchemeParser.parseProgram(text)
+                try
+                    val a = analysis(program, Old)
+                    a.analyzeWithTimeout(timeout())
+                    assume(a.finished)
+                    val i = incAnalysis(program)
+                    i.configuration = c
+                    i.analyzeWithTimeout(timeout())
+                    assume(i.finished)
+                    checkEqual(a, i)
 
-                  ////
+                    ////
 
-                  val b = analysis(program, New)
-                  b.analyzeWithTimeout(timeout())
-                  assume(b.finished)
-                  i.updateAnalysis(timeout())
-                  assume(i.finished)
-                  checkSubsumption(b, i)
+                    val b = analysis(program, New)
+                    b.analyzeWithTimeout(timeout())
+                    assume(b.finished)
+                    i.updateAnalysis(timeout())
+                    assume(i.finished)
+                    checkSubsumption(b, i)
 
-              catch
-                  case e: VirtualMachineError =>
-                    System.gc()
-                    cancel(s"Analysis of $benchmark encountered an error: $e.")
-              // case InvalidConfigurationException(msg, config)
-              //   info(s"Analysis of $benchmark cannot be run using $config: invalid configuration encountered.")
+                catch
+                    case e: VirtualMachineError =>
+                        System.gc()
+                        cancel(s"Analysis of $benchmark encountered an error: $e.")
+                // case InvalidConfigurationException(msg, config)
+                //   info(s"Analysis of $benchmark cannot be run using $config: invalid configuration encountered.")
             }
 
-class ModFComparisonTests extends IncrementalModXComparisonTests:
+trait withoutCIwithWI extends IncrementalModXComparisonTests:
+    override def configurations: List[IncrementalConfiguration] = allConfigurations.filter(c => c.writeInvalidation && !c.componentInvalidation)
+trait withCIWI extends IncrementalModXComparisonTests:
+    override def configurations: List[IncrementalConfiguration] = allConfigurations.filter(c => c.writeInvalidation && c.componentInvalidation)
+trait withoutWIWithCI extends IncrementalModXComparisonTests:
+    override def configurations: List[IncrementalConfiguration] = allConfigurations.filter(c => !c.writeInvalidation && c.componentInvalidation)
+trait withoutCIWI extends IncrementalModXComparisonTests:
+    override def configurations: List[IncrementalConfiguration] = allConfigurations.filter(c => !c.writeInvalidation && !c.componentInvalidation)
 
-    override def benchmarks: Set[Benchmark] =
-      SmartUnion.sunion(
-        SmartUnion.sunion(
-          super.benchmarks,
-          IncrementalSchemeBenchmarkPrograms.sequential),
-        IncrementalSchemeBenchmarkPrograms.sequentialGenerated)
+trait ModFComparisonTests extends IncrementalModXComparisonTests:
+
+    override def benchmarks: Set[Benchmark] = super.benchmarks ++ IncrementalSchemeBenchmarkPrograms.sequential
 
     abstract class BaseAnalysis(program: SchemeExp)
         extends ModAnalysis[SchemeExp](program)
@@ -97,7 +101,7 @@ class ModFComparisonTests extends IncrementalModXComparisonTests:
         extends BaseAnalysis(program)
         with IncrementalSchemeModFBigStepSemantics
         with IncrementalGlobalStore[SchemeExp]:
-        var configuration: IncrementalConfiguration = allOptimisations
+        var configuration: IncrementalConfiguration = ci_di_wi // allOptimisations
         override def intraAnalysis(
             cmp: Component
           ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis
@@ -106,10 +110,10 @@ class ModFComparisonTests extends IncrementalModXComparisonTests:
         override def intraAnalysis(
             cmp: Component
           ) = new IntraAnalysis(cmp) with BigStepModFIntra with GlobalStoreIntra {
-          override protected def eval(exp: SchemeExp): EvalM[Value] = exp match
-              case SchemeCodeChange(e, _, _) if version == Old => eval(e)
-              case SchemeCodeChange(_, e, _) if version == New => eval(e)
-              case _                                           => super.eval(exp)
+            override protected def eval(exp: SchemeExp): EvalM[Value] = exp match
+                case SchemeCodeChange(e, _, _) if version == Old => eval(e)
+                case SchemeCodeChange(_, e, _) if version == New => eval(e)
+                case _                                           => super.eval(exp)
         }
 
     def analysis(e: SchemeExp, version: Version) = new Analysis(e, version)
@@ -144,13 +148,16 @@ class ModFComparisonTests extends IncrementalModXComparisonTests:
         // Check store.
         assert(i.store.size >= a.store.size, "The incrementally updated store is smaller than the store after a full reanalysis.")
         a.store.foreach { case (addr, av) =>
-          val iv = i.store.getOrElse(addr, i.lattice.bottom)
-          assert(a.lattice.subsumes(iv.asInstanceOf[a.Value], av), s"Store mismatch at $addr: $av is not subsumed by $iv.")
+            val iv = i.store.getOrElse(addr, i.lattice.bottom)
+            assert(a.lattice.subsumes(iv.asInstanceOf[a.Value], av), s"Store mismatch at $addr: $av is not subsumed by $iv.")
         }
 
-class ModConcComparisonTests extends IncrementalModXComparisonTests with ConcurrentIncrementalBenchmarks:
+class ModFComparisonTestsWI extends ModFComparisonTests with withoutCIwithWI
+class ModFComparisonTestsCIWI extends ModFComparisonTests with withCIWI
+class ModFComparisonTestsCI extends ModFComparisonTests with withoutWIWithCI
+class ModFComparisonTestsNoCIWI extends ModFComparisonTests with withoutCIWI
 
-    override lazy val configurations: List[IncrementalConfiguration] = allConfigurations.filterNot(_.cyclicValueInvalidation)
+trait ModConcComparisonTests extends IncrementalModXComparisonTests with ConcurrentIncrementalBenchmarks:
 
     abstract class BaseModConcAnalysis(prg: SchemeExp)
         extends ModAnalysis[SchemeExp](prg)
@@ -176,14 +183,14 @@ class ModConcComparisonTests extends IncrementalModXComparisonTests with Concurr
         override def intraAnalysis(
             cmp: SmallStepModConcComponent
           ): KCFAIntra = new IntraAnalysis(cmp) with SmallStepIntra with KCFAIntra with GlobalStoreIntra {
-          override protected def evaluate(
-              exp: Exp,
-              env: Env,
-              stack: Stack
-            ): Set[State] = exp match
-              case SchemeCodeChange(e, _, _) if version == Old => Set(Eval(e, env, stack))
-              case SchemeCodeChange(_, e, _) if version == New => Set(Eval(e, env, stack))
-              case _                                           => super.evaluate(exp, env, stack)
+            override protected def evaluate(
+                exp: Exp,
+                env: Env,
+                stack: Stack
+              ): Set[State] = exp match
+                case SchemeCodeChange(e, _, _) if version == Old => Set(Eval(e, env, stack))
+                case SchemeCodeChange(_, e, _) if version == New => Set(Eval(e, env, stack))
+                case _                                           => super.evaluate(exp, env, stack)
         }
 
     // Are slow: SICP-compiler, msort, actors. All other can locally be completed with a timeout of 10 seconds.
@@ -218,6 +225,12 @@ class ModConcComparisonTests extends IncrementalModXComparisonTests with Concurr
         // Check store.
         assert(i.store.size >= a.store.size, "The incrementally updated store is smaller than the store after a full reanalysis.")
         a.store.foreach { case (addr, av) =>
-          val iv = i.store.getOrElse(addr, i.lattice.bottom)
-          assert(a.lattice.subsumes(iv.asInstanceOf[a.Value], av), s"Store mismatch at $addr: $av is not subsumed by $iv.")
+            val iv = i.store.getOrElse(addr, i.lattice.bottom)
+            assert(a.lattice.subsumes(iv.asInstanceOf[a.Value], av), s"Store mismatch at $addr: $av is not subsumed by $iv.")
         }
+
+class ModConcComparisonTestsWI extends ModConcComparisonTests with withoutCIwithWI
+class ModConcComparisonTestsCIWI extends ModConcComparisonTests with withCIWI
+class ModConcComparisonTestsCI extends ModConcComparisonTests with withoutWIWithCI
+class ModConcComparisonTestsNoCIWI extends ModConcComparisonTests with withoutCIWI
+

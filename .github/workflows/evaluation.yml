@@ -37,7 +37,7 @@ jobs:
   performance-evaluation:
     name: Execute performance evaluation with JMH
     runs-on: self-hosted
-    timeout-minutes: 60
+    timeout-minutes: 360
     strategy:
       fail-fast: false
     steps:
@@ -51,7 +51,7 @@ jobs:
         run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
       - name: Run performance benchmarks
         # 3 warmup runs (wi), 5 iterations afterwards (i), one fork (f), one thread (t)
-        run: sbt "maf/jmh:run -rf json -rff jmh-results-${GITHUB_SHA}-${{ steps.date.outputs.date }}.json -wi 3 -i 10 -f 1 -t 1"
+        run: sbt "maf/jmh:run -rf json -rff jmh-results-${GITHUB_SHA}-${{ steps.date.outputs.date }}.json -t 1"
         env:
           LOG_ENV: bench
       - name: Identify last successful run of performance evaluation
@@ -74,6 +74,10 @@ jobs:
         with:
           name: Performance evaluation results
           path: artifact/*.json
+      - name: Setup python
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.x'
       - name: Install python dependencies
         uses: BSFishy/pip-action@v1
         with:
