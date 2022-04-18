@@ -2,7 +2,7 @@ package maf.modular.incremental.update
 
 import maf.core.{Address, BasicEnvironment, Expression, Identifier, Position}
 import maf.language.change.CodeVersion.{New, Old}
-import maf.language.scheme.{SchemeChangePatterns, SchemeExp, SchemeLambda, SchemeLambdaExp, SchemeLetrec}
+import maf.language.scheme.{SchemeChangePatterns, SchemeExp, SchemeLambda, SchemeLambdaExp, SchemeLetrec, SchemeLettishExp}
 import maf.modular.incremental.IncrementalModAnalysis
 import maf.modular.scheme.{PrmAddr, modf}
 import maf.modular.scheme.modf.{NoContext, SchemeModFComponent}
@@ -16,9 +16,10 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
     var timeFindingChanges: Long = 0
     var timeUpdatingStructures: Long = 0
     var timeIncrementalReanalysis: Long = 0
-    
+
     def getTimes(): String =
         s"With updating refactorings: $withUpdating \nTime finding changes in program: $timeFindingChanges \nTime updating datastructures: $timeUpdatingStructures \nTime incremental reanalysis: $timeIncrementalReanalysis"
+
 
     override def updateAnalysis(timeout: Timeout.T): Unit =
         finder = new SchemeChangePatterns
@@ -58,12 +59,14 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
                         val timeBeforeU = System.nanoTime()
                         update.changeDataStructures(a, List(program, secondProgram), List(), List(), Map(), affectedLambdasPairs, changes.allLexicalEnvs, dontUpdate)
                         timeUpdatingStructures = System.nanoTime() - timeBeforeU
+            var enclosingLambdas: List[Expression] = List()
             var affected = affectedAll.flatMap(e => e match
                 case (Some(oldExpr: Expr), Some(nwExpr: Expr)) =>
                     (mapping.getOrElse(oldExpr, Set()), mapping.getOrElse(nwExpr, Set())) match
                         case (compold, compNew) if compold.nonEmpty || compNew.nonEmpty =>
                             compold ++ compNew
                         case _ =>
+                            enclosingLambdas = enclosingLambdas.::(finder.findEnclosingLambda(nwExpr)) // case is needed in case the change is in an if branch that is never reached (component has to be reanalysed or the mapping will be incorrect)
                             Set(initialComponent)
                 case (oldExpr: Expr, nwExpr: Expr) =>
                     (mapping.getOrElse(oldExpr, Set()), mapping.getOrElse(nwExpr, Set())) match
@@ -91,7 +94,7 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
             visited.foreach(v => v match
                 case SchemeModFComponent.Call((lam, env), ctx) =>
                     var allSubs = update.findAllSubExps(lam)
-                    if finder.reanalyse.exists(r => r._2.get == lam) || (!withUpdating && affectedLambdasPairs.exists((l1, l2) => l2 == lam)) then //(finder.rename.exists((exps, rest) => exps._2 == lam))) then//affectedLambdasPairs.exists((l1, l2) => lam == l2)) then //(finder.scopeChanges.exists(s => s._2._1 == lam) || finder.rename.exists(r => r._1._2 == lam))) then
+                    if finder.reanalyse.exists(r => r._2.get == lam) || enclosingLambdas.contains(lam) || (!withUpdating && affectedLambdasPairs.exists((l1, l2) => l2 == lam)) then //(finder.rename.exists((exps, rest) => exps._2 == lam))) then//affectedLambdasPairs.exists((l1, l2) => lam == l2)) then //(finder.scopeChanges.exists(s => s._2._1 == lam) || finder.rename.exists(r => r._1._2 == lam))) then
                         addToWorkList(v)
                         mapping.get(lam.asInstanceOf[Expr]) match // TODO: probably optimizable by only adding if lam is in the affected list
                             case Some(comp) => addToWorkList(comp)
@@ -102,6 +105,6 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
             if finder.inserts.nonEmpty && finder.inserts.size != changes.scopeChanges.size then  // Necessary because top-level functions might have been added
                 addToWorkList(initialComponent)
         println(workList)
-        val beforeUpdateAnalysis = System.nanoTime
+         val beforeUpdateAnalysis = System.nanoTime
         analyzeWithTimeout(timeout)
         timeIncrementalReanalysis = System.nanoTime - beforeUpdateAnalysis

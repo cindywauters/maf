@@ -321,6 +321,13 @@ class SchemeChangePatterns:
                     case Some(otherLam)     => (lam, Some(lam))
         }
 
+    def findEnclosingLambda(expr: Expression): Expression =
+        val possibilities: List[Expression] = allNewScopes.collect {
+            case (lam, _) if lam.idn.idn.line <= expr.idn.idn.line && up.findAllSubExps(lam).contains(expr) =>
+                lam
+        }.toList
+        possibilities.minBy(_.height)
+
 
     def allBindingsInProgramIdSchemeExp(expr: Expression): List[(Identifier, Expression)] =
         if expr.subexpressions.isEmpty && expr.height == 1 then
