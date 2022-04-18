@@ -391,7 +391,7 @@
 
 
 (define *primitives*
- (let ((<delete> (product (lambda (lst n)
+ (letrec ((<delete> (product (lambda (lst n)
          (if (null? lst)
            n
            (product (cdr lst) (* n (car lst))))))))

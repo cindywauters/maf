@@ -1,12 +1,13 @@
 package maf.cli.runnables
 
 import maf.bench.scheme.SchemeBenchmarkPrograms
-import maf.core.Expression
+import maf.core.{Expression, Identifier}
 import maf.language.scheme.SchemeCodeChange
+import maf.modular.incremental.IncrementalModAnalysis
 import maf.modular.{AddrDependency, Dependency, ReturnAddr}
 import maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain
 import maf.modular.incremental.update.{IncrementalGlobalStoreWithUpdate, IncrementalModAnalysisWithUpdate, IncrementalModAnalysisWithUpdateTwoVersions, IncrementalUpdateDatastructures, UpdateIncrementalSchemeModFBigStepSemantics}
-import maf.modular.scheme.SchemeAddr
+import maf.modular.scheme.{PtrAddr, SchemeAddr, VarAddr}
 import maf.util.Writer.close
 //import maf.cli.runnables.IncrementalRun.standardTimeout
 import maf.core.BasicEnvironment
@@ -17,6 +18,7 @@ import maf.language.scheme.interpreter.SchemeInterpreter
 import maf.language.scheme.primitives.SchemePrelude
 import maf.modular.ModAnalysis
 import maf.modular.incremental.IncrementalConfiguration.*
+import maf.modular.GlobalStore
 import maf.modular.scheme.modf.*
 import maf.modular.incremental.*
 import maf.modular.incremental.scheme.IncrementalSchemeAnalysisInstantiations.*
@@ -39,21 +41,22 @@ object TwoSeperateVersionsAnalyse extends App:
 
     def baseUpdates(oldProgram: SchemeExp, newProgram: SchemeExp) = new ModAnalysis[SchemeExp](oldProgram)
       with StandardSchemeModFComponents
-      with SchemeModFFullArgumentSensitivity
+     // with SchemeModFFullArgumentSensitivity
       //with SchemeModFCallSiteSensitivity
      // with SchemeModFFullArgumentCallSiteSensitivity
-     // with SchemeModFNoSensitivity
+      with SchemeModFNoSensitivity
       with SchemeModFSemanticsUpdate
       with LIFOWorklistAlgorithm[SchemeExp]
       with UpdateIncrementalSchemeModFBigStepSemantics
       with IncrementalSchemeTypeDomain
       with IncrementalModAnalysisWithUpdateTwoVersions(newProgram)
+    //  with IncrementalLogging[SchemeExp]
       with IncrementalGlobalStoreWithUpdate[SchemeExp]
     {
       var configuration: IncrementalConfiguration = noOptimisations
       override def intraAnalysis(
                                   cmp: Component
-                                ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis // {
+                                ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra  with IncrementalGlobalStoreIntraAnalysis // {
    /*     override protected def eval(exp: SchemeExp): EvalM[Value] =
           if version == New then
             println("intra")
@@ -62,6 +65,25 @@ object TwoSeperateVersionsAnalyse extends App:
           super.eval(exp)
       } */
       }
+
+    def newOnly(program: SchemeExp) = new ModAnalysis[SchemeExp](program)
+      with StandardSchemeModFComponents
+      //with SchemeModFCallSiteSensitivity
+      with SchemeModFNoSensitivity
+      with SchemeModFSemanticsM
+      with LIFOWorklistAlgorithm[SchemeExp]
+      with IncrementalSchemeModFBigStepSemantics
+      with IncrementalSchemeTypeDomain // IncrementalSchemeConstantPropagationDomain
+      with IncrementalGlobalStore[SchemeExp]
+     // with IncrementalLogging[SchemeExp]
+      //with IncrementalDataFlowVisualisation[SchemeExp]
+    {
+      var configuration: IncrementalConfiguration = noOptimisations
+      override def intraAnalysis(
+                                  cmp: Component
+                                ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis
+      //with IncrementalVisualIntra
+    }
 
 
     try {
@@ -74,14 +96,14 @@ object TwoSeperateVersionsAnalyse extends App:
       println(program._1.subexpressions)
 
 
-      /*for(i <- 1 to 4) {
+      for(i <- 1 to 4) {
         val analysisWithUpdates = baseUpdates(program._1, program._2)
         analysisWithUpdates.analyzeWithTimeout(timeout())
         val beforeUpdateAnalysis = System.nanoTime
-        analysisWithUpdates.version = New
-        analysisWithUpdates.updateAnalysis(timeout(), true)
+        analysisWithUpdates.withUpdating = true
+        analysisWithUpdates.updateAnalysis(timeout())
         val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
-      }*/
+      }
 
       val analysisWithUpdates = baseUpdates(program._1, program._2)
       analysisWithUpdates.analyzeWithTimeout(timeout())
@@ -90,7 +112,8 @@ object TwoSeperateVersionsAnalyse extends App:
       val beforeUpdateAnalysis = System.nanoTime
       analysisWithUpdates.version = New
      // analysisWithUpdates.analyzeWithTimeout(timeout())
-      analysisWithUpdates.updateAnalysis(timeout(), true)
+      analysisWithUpdates.withUpdating = true
+      analysisWithUpdates.updateAnalysis(timeout())
       val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
 
       val storeWithUpdate = analysisWithUpdates.store
@@ -266,6 +289,8 @@ object TwoSeperateVersionsAnalyse extends App:
             println(v)
             false).toString)
 
+
+
       println("Visited with update : " + visitedWithUpdate.toString)
       println("Visited new only    : " + visitedWithoutUpdate.toString)
       println("Visited reanalysis -> Update (subsumption): " + visitedWithoutUpdate.forall(e =>
@@ -299,8 +324,9 @@ object TwoSeperateVersionsAnalyse extends App:
       println(mappingWithUpdate.size + " (" + mappingWithoutUpdate.size + ")")
       println(visitedWithUpdate.size + "  (" + visitedWithoutUpdate.size + ")")
 
-
-
+      //println(analysisWithoutUpdates.getSummary())
+      //println(analysisWithUpdates.getSummary())
+      println(analysisWithUpdates.getTimes())
     } catch {
       case e: Exception =>
         println(e)
@@ -315,7 +341,7 @@ object TwoSeperateVersionsAnalyse extends App:
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_browse.scm")
  // val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_nboyer.scm")
   //val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
-  val modFbenchmarks: List[String] = List("test/changeDetectionTest/benchmarks/renamings/leval.scm")
+  val modFbenchmarks: List[String] = List("test/changeDetectionTest/benchmarks/renamings/browse.scm")
 
   val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 

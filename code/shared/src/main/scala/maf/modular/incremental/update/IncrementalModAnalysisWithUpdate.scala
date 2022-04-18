@@ -10,7 +10,7 @@ trait IncrementalModAnalysisWithUpdate[Expr <: Expression] extends IncrementalMo
 
   val update = new IncrementalUpdateDatastructures
   
-  val finder = new SchemeChangePatterns
+  var finder = new SchemeChangePatterns
   
   override def updateAnalysis(timeout: Timeout.T): Unit =
     version = New // Make sure the new program version is analysed upon reanalysis (i.e., 'apply' the changes).

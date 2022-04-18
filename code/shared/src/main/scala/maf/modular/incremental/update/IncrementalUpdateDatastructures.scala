@@ -494,6 +494,7 @@ class IncrementalUpdateDatastructures {
         case Some(prim: PrmAddr) =>
           newEnv = newEnv + (fv -> prim)
         case None =>
+          // TODO: look if a renaming is present instead so the ctx can be kept
           newEnvIds._2.get(fv) match
             case Some(identifier: Identifier) =>
               var newCtx = if initialEnvNew.exists(e => e._2.idn == identifier.idn)  then

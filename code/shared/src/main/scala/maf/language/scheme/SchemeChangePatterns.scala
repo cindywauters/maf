@@ -294,7 +294,7 @@ class SchemeChangePatterns:
         reanalyse.foreach(println)
         println(reanalyse.size)
         println("rename")
-        rename.foreach(println)
+        println(rename.size)
         println("ifs")
         println(ifs)
         println("scope changes")
