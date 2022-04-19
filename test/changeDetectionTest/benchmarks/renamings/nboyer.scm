@@ -412,16 +412,16 @@
           (else (add-lemma (car lst))
                 (add-lemma-lst (cdr lst)))))
 
-  (define add-lemma (lambda (term)
-    (if (and (pair? term)
-                (eq? (car term)
+  (define add-lemma (lambda ((<change> trm term))
+    (if (and (pair? (<change> trm term))
+                (eq? (car (<change> trm term))
                      (quote equal))
-                (pair? (cadr term)))
-           (put (car (cadr term))
+                (pair? (cadr (<change> trm term))))
+           (put (car (cadr (<change> trm term)))
                 (quote lemmas)
                 (cons
-                 (translate-term term)
-                 (get (car (cadr term)) (quote lemmas))))
+                 (translate-term (<change> trm term))
+                 (get (car (cadr (<change> trm term))) (quote lemmas))))
           (error "ADD-LEMMA did not like term "))))
 
 
