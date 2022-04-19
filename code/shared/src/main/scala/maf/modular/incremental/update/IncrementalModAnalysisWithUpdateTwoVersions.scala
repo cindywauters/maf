@@ -23,6 +23,7 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
 
     override def updateAnalysis(timeout: Timeout.T): Unit =
         finder = new SchemeChangePatterns
+        version = New
         (program, secondProgram) match
         case (old: SchemeExp, nw: SchemeExp) =>
             val time = System.nanoTime()
@@ -43,7 +44,7 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
                     if !withUpdating || finder.reanalyse.exists(k => k._1.contains(expr)) then
                         dontUpdate = dontUpdate.::(expr)
                 case (expr: Expr, Some(other: Expr)) =>
-                    dontUpdate = dontUpdate.::(expr)
+                   // dontUpdate = dontUpdate.::(expr)
                 case (expr: Expr, _) =>)
             if withUpdating then
                 this match
@@ -105,6 +106,6 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
             if finder.inserts.nonEmpty && finder.inserts.size != changes.scopeChanges.size then  // Necessary because top-level functions might have been added
                 addToWorkList(initialComponent)
         println(workList)
-         val beforeUpdateAnalysis = System.nanoTime
+        val beforeUpdateAnalysis = System.nanoTime
         analyzeWithTimeout(timeout)
         timeIncrementalReanalysis = System.nanoTime - beforeUpdateAnalysis

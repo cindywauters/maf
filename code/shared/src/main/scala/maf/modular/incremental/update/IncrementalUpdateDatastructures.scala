@@ -48,6 +48,7 @@ class IncrementalUpdateDatastructures {
   var allNewLexicalEnvs: BindingsWithScopes = Map()
   var lexEnvsBuildEnvs: Map[Expression, Map[String, Address]] = Map()
   var notToUpdate: List[Expression] = List()
+  var toAddComponents: Set[SchemeModFComponent] = Set()
 
   // Call this function when you want to update all the datastructures of an analysis
   // Arguments are an analysis and the expression that is being analysed
@@ -172,6 +173,11 @@ class IncrementalUpdateDatastructures {
            a.mapping = a.mapping + (e._1 -> toInsert)
          case _ =>
          )
+
+    toAddComponents.foreach(c =>
+        a.addToWorkList(cachedComponents.getOrElse(c, c).asInstanceOf[a.Component])
+
+    )
     true
 
   // Find all the subexpressions of an expression, and their subexpressions.
@@ -195,13 +201,13 @@ class IncrementalUpdateDatastructures {
     a.store.foreach((oldKey, oldValue) =>
       oldKey match
         case key: VarAddr =>
-          val newValue = getNewValues(a, oldValue)
+          val newValue = getNewValues(Some(key), a, oldValue)
           insertInStore(a, key, getNewVarAddr(a, key), oldValue, newValue)
         case key: RetAddr =>
-          val newValue = getNewValues(a, oldValue)
+          val newValue = getNewValues(Some(key), a, oldValue)
           insertInStore(a, key, getNewRetAddr(a, key), oldValue, newValue)
         case key: PtrAddr =>
-          val newValue = getNewValues(a, oldValue)
+          val newValue = getNewValues(Some(key), a, oldValue)
           insertInStore(a, key, getNewPointerAddr(a, key), oldValue, newValue)
         case _ =>
     )
@@ -398,71 +404,74 @@ class IncrementalUpdateDatastructures {
         addr.copy(ctx = newCtx)
 
   // A value can be either annotated elements or elements. In both cases, we want to get all the values within the elements and update each of them
-  def getNewValues(a: IncrementalGlobalStore[Expression], value: Serializable): a.Value =
+  def getNewValues(key: Option[Address], a: IncrementalGlobalStore[Expression], value: Serializable): a.Value =
     value match
       case element: IncrementalSchemeTypeDomain.modularLattice.AnnotatedElements =>
-        element.copy(values = element.values.map(e => getNewValueType(a, e))).asInstanceOf[a.Value]
+        element.copy(values = element.values.map(e => getNewValueType(key, a, e))).asInstanceOf[a.Value]
       case element: IncrementalSchemeTypeDomain.modularLattice.Elements =>
-        element.copy(vs = element.vs.map(e => getNewValueType(a, e))).asInstanceOf[a.Value]
+        element.copy(vs = element.vs.map(e => getNewValueType(key, a, e))).asInstanceOf[a.Value]
       case element: IncrementalSchemeConstantPropagationDomain.modularLattice.AnnotatedElements =>
-        element.copy(values = element.values.map(e => getNewValueCP(a, e))).asInstanceOf[a.Value]
+        element.copy(values = element.values.map(e => getNewValueCP(key, a, e))).asInstanceOf[a.Value]
       case element: IncrementalSchemeConstantPropagationDomain.modularLattice.Elements =>
-        element.copy(vs = element.vs.map(e => getNewValueCP(a, e))).asInstanceOf[a.Value]
+        element.copy(vs = element.vs.map(e => getNewValueCP(key, a, e))).asInstanceOf[a.Value]
       case _ =>
         value.asInstanceOf[a.Value]
 
-  def getNewClosure(a: IncrementalModAnalysis[Expression], lam: SchemeLambdaExp, env: Environment[Address]): (SchemeLambdaExp, Environment[Address]) =
+  def getNewClosure(a: IncrementalModAnalysis[Expression], lam: SchemeLambdaExp, env: Environment[Address], varAddr: Option[Address]): (SchemeLambdaExp, Environment[Address]) =
     var newEnv: Map[String, Address] = Map()
     env match // update the environment of the lambda if it needs changing
       case env : maf.core.BasicEnvironment[_] =>
         newEnv = createNewEnvironment(lam, a, env)
-    if notToUpdate.contains(lam) then
-      (lam, new BasicEnvironment[Address](newEnv))
-    else
-      allExpressionsInChange.get(lam) match // check if lambda is in a change expression
-        case Some(lambda: SchemeLambdaExp) =>
-          (lambda, new BasicEnvironment[Address](newEnv))
-        case _ =>
-          var nwLam = lam
-          if findAllSubExps(nwLam).exists(e => allExpressionsInChange.contains(e)) then
-            nwLam = buildNewExpr(nwLam).asInstanceOf[lam.type]
-          (nwLam, new BasicEnvironment[Address](newEnv))
+    if notToUpdate.contains(lam) && varAddr.isDefined then
+        a.deps.get(AddrDependency(varAddr.get)) match
+            case Some(deps: Set[SchemeModFComponent]) => toAddComponents = toAddComponents ++ deps
+            case _ =>
+      //(lam, new BasicEnvironment[Address](newEnv))
+    //else
+    allExpressionsInChange.get(lam) match // check if lambda is in a change expression
+      case Some(lambda: SchemeLambdaExp) =>
+        (lambda, new BasicEnvironment[Address](newEnv))
+      case _ =>
+        var nwLam = lam
+        if findAllSubExps(nwLam).exists(e => allExpressionsInChange.contains(e)) then
+          nwLam = buildNewExpr(nwLam).asInstanceOf[lam.type]
+        (nwLam, new BasicEnvironment[Address](newEnv))
 
   // If the value is a set of closures, we want to update both the lambda and enviroment within each closure (if necessary).
   // In case of a vector, we want to loop over each of the elements and update them each accordingly
   // If it is a set of pointers, each of the pointers might need updating. For this, getNewPointerAddr is used
-  def getNewValueType(a: IncrementalGlobalStore[Expression], value: TypeValue): TypeValue =
+  def getNewValueType(key: Option[Address], a: IncrementalGlobalStore[Expression], value: TypeValue): TypeValue =
     value match
       case clos : IncrementalSchemeTypeDomain.modularLattice.Clo =>
-        IncrementalSchemeTypeDomain.modularLattice.Clo(clos.closures.map(clos => getNewClosure(a, clos._1, clos._2)))
+        IncrementalSchemeTypeDomain.modularLattice.Clo(clos.closures.map(clos => getNewClosure(a, clos._1, clos._2, key)))
       case vector: IncrementalSchemeTypeDomain.modularLattice.Vec =>
         val newElementsVector = vector.elements.map((k, vecelem) =>
-          (k, getNewValues(a, vecelem)))
+          (k, getNewValues(key, a, vecelem)))
         IncrementalSchemeTypeDomain.modularLattice.Vec(size = vector.size, elements = newElementsVector.asInstanceOf[vector.elements.type])
       case pointer: IncrementalSchemeTypeDomain.modularLattice.Pointer =>
         IncrementalSchemeTypeDomain.modularLattice.Pointer(pointer.ptrs.map(p => p match
           case pa: PtrAddr => getNewPointerAddr(a, pa)))
       case cons: IncrementalSchemeTypeDomain.modularLattice.Cons =>
-        val newcar = getNewValues(a, cons.car).asInstanceOf[cons.car.type]
-        val newcdr = getNewValues(a, cons.cdr).asInstanceOf[cons.cdr.type]
+        val newcar = getNewValues(key, a, cons.car).asInstanceOf[cons.car.type]
+        val newcdr = getNewValues(key, a, cons.cdr).asInstanceOf[cons.cdr.type]
         IncrementalSchemeTypeDomain.modularLattice.Cons(newcar, newcdr)
       case _ =>
         value
 
-  def getNewValueCP(a: IncrementalGlobalStore[Expression], value: CPValue): CPValue =
+  def getNewValueCP(key: Option[Address], a: IncrementalGlobalStore[Expression], value: CPValue): CPValue =
     value match
       case clos : IncrementalSchemeConstantPropagationDomain.modularLattice.Clo =>
-        IncrementalSchemeConstantPropagationDomain.modularLattice.Clo(clos.closures.map(clos => getNewClosure(a, clos._1, clos._2)))
+        IncrementalSchemeConstantPropagationDomain.modularLattice.Clo(clos.closures.map(clos => getNewClosure(a, clos._1, clos._2, key)))
       case vector: IncrementalSchemeConstantPropagationDomain.modularLattice.Vec =>
         val newElementsVector = vector.elements.map((k, vecelem) =>
-          (k, getNewValues(a, vecelem)))
+          (k, getNewValues(key, a, vecelem)))
         IncrementalSchemeConstantPropagationDomain.modularLattice.Vec(size = vector.size, elements = newElementsVector.asInstanceOf[vector.elements.type])
       case pointer: IncrementalSchemeConstantPropagationDomain.modularLattice.Pointer =>
         IncrementalSchemeConstantPropagationDomain.modularLattice.Pointer(pointer.ptrs.map(p => p match
           case pa: PtrAddr => getNewPointerAddr(a, pa)))
       case cons: IncrementalSchemeConstantPropagationDomain.modularLattice.Cons =>
-        val newcar = getNewValues(a, cons.car).asInstanceOf[cons.car.type]
-        val newcdr = getNewValues(a, cons.cdr).asInstanceOf[cons.cdr.type]
+        val newcar = getNewValues(key, a, cons.car).asInstanceOf[cons.car.type]
+        val newcdr = getNewValues(key, a, cons.cdr).asInstanceOf[cons.cdr.type]
         IncrementalSchemeConstantPropagationDomain.modularLattice.Cons(newcar, newcdr)
       case _ =>
         value
@@ -616,7 +625,7 @@ class IncrementalUpdateDatastructures {
   def updateArgCtx(a: IncrementalGlobalStore[Expression], ctx: maf.modular.scheme.modf.ArgContext): maf.modular.scheme.modf.ArgContext =
     val newValues = ctx.values.map(elements => elements match
       case elements: Serializable =>
-        getNewValues(a, elements)
+        getNewValues(None, a, elements)
         )
     maf.modular.scheme.modf.ArgContext(newValues)
 
@@ -633,7 +642,7 @@ class IncrementalUpdateDatastructures {
   def updateArgCallSiteCtx(a: IncrementalGlobalStore[Expression], ctx: maf.modular.scheme.modf.ArgCallSiteContext): maf.modular.scheme.modf.ArgCallSiteContext =
     val newArgs = ctx.args.map(elements => elements match
       case elements: Serializable =>
-        getNewValues(a, elements)
+        getNewValues(None, a, elements)
     )
     val newCall = findNewPosition(ctx.call)
     val newFn = findNewPosition(ctx.fn)

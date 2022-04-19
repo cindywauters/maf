@@ -56,6 +56,7 @@ object TwoSeperateVersionsAnalyse extends App:
             var configuration: IncrementalConfiguration = noOptimisations
             var intraC = 0
             var intraCU = 0
+            var compsLookedAt: List[Component] = List()
             override def updateAnalysis(timeout: Timeout.T): Unit =
                 super.updateAnalysis(timeout)
             override def intraAnalysis(
@@ -63,7 +64,9 @@ object TwoSeperateVersionsAnalyse extends App:
                                       ) = new IntraAnalysis(cmp) with IncrementalSchemeModFBigStepIntra with IncrementalGlobalStoreIntraAnalysis {
                 override def analyzeWithTimeout(timeout: Timeout.T): Unit =
                     if version == Old then intraC += 1
-                    if version == New then intraCU += 1
+                    if version == New then
+                        intraCU += 1
+                        compsLookedAt = compsLookedAt.::(cmp)
                     super.analyzeWithTimeout(timeout)
             }// {
             /*     override protected def eval(exp: SchemeExp): EvalM[Value] =
@@ -106,14 +109,15 @@ object TwoSeperateVersionsAnalyse extends App:
             println(program._1.subexpressions)
 
 
-            for(i <- 1 to 4) {
+            /*for(i <- 1 to 4) {
                 val analysisWithUpdates = baseUpdates(program._1, program._2)
                 analysisWithUpdates.analyzeWithTimeout(timeout())
                 val beforeUpdateAnalysis = System.nanoTime
                 analysisWithUpdates.withUpdating = true
                 analysisWithUpdates.updateAnalysis(timeout())
                 val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
-            }
+                println(analysisWithUpdates.timeIncrementalReanalysis)
+            }*/
 
             val analysisWithUpdates = baseUpdates(program._1, program._2)
             analysisWithUpdates.analyzeWithTimeout(timeout())
@@ -125,6 +129,7 @@ object TwoSeperateVersionsAnalyse extends App:
             analysisWithUpdates.withUpdating = true
             analysisWithUpdates.updateAnalysis(timeout())
             val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
+            println(analysisWithUpdates.timeIncrementalReanalysis)
 
             val storeWithUpdate = analysisWithUpdates.store
             val depsWithUpdate = analysisWithUpdates.deps
@@ -228,6 +233,18 @@ object TwoSeperateVersionsAnalyse extends App:
                             println(v)
                         false).toString)
 
+           /* depsWithUpdate.foreach((k, upv) =>
+                depsWithoutUpdate.get(k) match
+                    case Some(comps) if upv.size > comps.size =>
+                        println("236")
+                        println(k)
+                        println(comps)
+                        println(upv)
+                    case _ =>
+
+
+            )*/
+
 
 
             println("Visited with update : " + visitedWithUpdate.toString)
@@ -275,13 +292,13 @@ object TwoSeperateVersionsAnalyse extends App:
 
     // val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm", "test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
     // val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/R5RS/various/NoSensitivity/SICP-compiler.scm")
-    //val modFbenchmarks: List[String] = List("test/changes/scheme/machine-simulator.scm")
-     //val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/NoSensitivity/trav1.scm")
+    //val modFbenchmarks: List[String] = List("test/changes/scheme/nboyer.scm")
+     val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/NoSensitivity/earley.scm")
     //val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/machine-simulator.scm")
     //val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_browse.scm")
     // val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_nboyer.scm")
     //val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
-    val modFbenchmarks: List[String] = List("test/changeDetectionTest/benchmarks/scope changes/mceval.scm")
+    //val modFbenchmarks: List[String] = List("test/changeDetectionTest/benchmarks/scope changes/nboyer.scm")
 
     val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 

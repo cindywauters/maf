@@ -1,13 +1,8 @@
-(define a 'a)
-(define b 10)
-(if (not a)
-    b
-    a)
+(define (f x) x)
 
-(<update>
-(if (not (number? a))
-    b
-    a)
-(if (number? a)
-        a
-        b))
+(define g
+    (lambda (a)
+    (+ a (<change> 1 2))))
+
+((f g) 5)
+
