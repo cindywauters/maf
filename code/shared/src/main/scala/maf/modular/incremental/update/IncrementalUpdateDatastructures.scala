@@ -237,6 +237,8 @@ class IncrementalUpdateDatastructures {
     allChanges.get(expr) match
       case Some(e: SchemeExp) =>
         e
+      case None if allNewLexicalEnvs.contains(expr) =>
+        expr // In this case the expression hasn't changes at all as it also exists in the new expressions
       case None =>
         var newExpression = expr
         expr match
@@ -399,7 +401,8 @@ class IncrementalUpdateDatastructures {
       case Some(newExp: SchemeExp) =>
         addr.copy(exp = newExp, ctx = newCtx)
       case _ =>
-        addr.copy(exp = buildNewExpr(addr.exp), ctx = newCtx)
+        addr.copy(ctx = newCtx)
+        //addr.copy(exp = buildNewExpr(addr.exp), ctx = newCtx)
 
   // A value can be either annotated elements or elements. In both cases, we want to get all the values within the elements and update each of them
   def getNewValues(key: Option[Address], a: IncrementalGlobalStore[Expression], value: Serializable): a.Value =
