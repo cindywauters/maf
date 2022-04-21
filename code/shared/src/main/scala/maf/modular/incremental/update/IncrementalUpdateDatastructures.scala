@@ -399,9 +399,7 @@ class IncrementalUpdateDatastructures {
       case Some(newExp: SchemeExp) =>
         addr.copy(exp = newExp, ctx = newCtx)
       case _ =>
-        if findAllSubExps(addr.exp).exists(e => allExpressionsInChange.contains(e)) then
-          return addr.copy(exp = buildNewExpr(addr.exp), ctx = newCtx)
-        addr.copy(ctx = newCtx)
+        addr.copy(exp = buildNewExpr(addr.exp), ctx = newCtx)
 
   // A value can be either annotated elements or elements. In both cases, we want to get all the values within the elements and update each of them
   def getNewValues(key: Option[Address], a: IncrementalGlobalStore[Expression], value: Serializable): a.Value =
@@ -422,7 +420,7 @@ class IncrementalUpdateDatastructures {
     env match // update the environment of the lambda if it needs changing
       case env : maf.core.BasicEnvironment[_] =>
         newEnv = createNewEnvironment(lam, a, env)
-    if notToUpdate.contains(lam) && varAddr.isDefined then
+      if notToUpdate.contains(lam) && varAddr.isDefined then
         a.deps.get(AddrDependency(varAddr.get)) match
             case Some(deps: Set[SchemeModFComponent]) => toAddComponents = toAddComponents ++ deps
             case _ =>
@@ -431,10 +429,12 @@ class IncrementalUpdateDatastructures {
     allExpressionsInChange.get(lam) match // check if lambda is in a change expression
       case Some(lambda: SchemeLambdaExp) =>
         (lambda, new BasicEnvironment[Address](newEnv))
+      case None if allNewLexicalEnvs.contains(lam) =>
+        (lam, new BasicEnvironment[Address](newEnv))
       case _ =>
-        var nwLam = lam
-        if findAllSubExps(nwLam).exists(e => allExpressionsInChange.contains(e)) then
-          nwLam = buildNewExpr(nwLam).asInstanceOf[lam.type]
+       // var nwLam = lam
+       // if findAllSubExps(nwLam).exists(e => allExpressionsInChange.contains(e)) then
+        var nwLam = buildNewExpr(lam).asInstanceOf[lam.type]
         (nwLam, new BasicEnvironment[Address](newEnv))
 
   // If the value is a set of closures, we want to update both the lambda and enviroment within each closure (if necessary).

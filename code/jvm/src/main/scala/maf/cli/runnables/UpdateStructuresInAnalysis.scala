@@ -108,13 +108,13 @@ object UpdateStructuresInAnalysis extends App:
             // analysisWithoutUpdates.analyzeWithTimeout(timeout())
             // analysisWithoutUpdates.analyzeWithTimeout(timeout())
 
-            for (i <- 1 to 10) {
+            /*for (i <- 1 to 10) {
                 val analysisWithoutUpdates = baseNoUpdates(program)
                 val beforeAnalysis = System.nanoTime
                 analysisWithoutUpdates.version = New
                 analysisWithoutUpdates.analyzeWithTimeout(timeout())
                 val timeAnalysis = System.nanoTime - beforeAnalysis
-            }
+            }*/
 
 
             val analysisWithUpdates = baseUpdates(program)

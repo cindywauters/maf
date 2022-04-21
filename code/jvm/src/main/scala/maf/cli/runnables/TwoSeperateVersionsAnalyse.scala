@@ -109,7 +109,7 @@ object TwoSeperateVersionsAnalyse extends App:
             println(program._1.subexpressions)
 
 
-            /*for(i <- 1 to 4) {
+            for(i <- 1 to 5) {
                 val analysisWithUpdates = baseUpdates(program._1, program._2)
                 analysisWithUpdates.analyzeWithTimeout(timeout())
                 val beforeUpdateAnalysis = System.nanoTime
@@ -117,7 +117,7 @@ object TwoSeperateVersionsAnalyse extends App:
                 analysisWithUpdates.updateAnalysis(timeout())
                 val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
                 println(analysisWithUpdates.timeIncrementalReanalysis)
-            }*/
+            }
 
             val analysisWithUpdates = baseUpdates(program._1, program._2)
             analysisWithUpdates.analyzeWithTimeout(timeout())
@@ -279,6 +279,7 @@ object TwoSeperateVersionsAnalyse extends App:
             println(depsWithUpdate.size + "  (" + depsWithoutUpdate.size + ")")
             println(mappingWithUpdate.size + " (" + mappingWithoutUpdate.size + ")")
             println(visitedWithUpdate.size + "  (" + visitedWithoutUpdate.size + ")")
+            println(analysisWithUpdates.getTimes())
 
             //println(analysisWithoutUpdates.getSummary())
             //println(analysisWithUpdates.getSummary())
