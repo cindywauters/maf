@@ -67,7 +67,17 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
                         case (compold, compNew) if compold.nonEmpty || compNew.nonEmpty =>
                             compold ++ compNew
                         case _ =>
-                            enclosingLambdas = enclosingLambdas.::(finder.findEnclosingLambda(nwExpr)) // case is needed in case the change is in an if branch that is never reached (component has to be reanalysed or the mapping will be incorrect)
+                            val enclosingnew = finder.findEnclosingLambda(nwExpr)
+                            val enclosingold = finder.findEnclosingLambda(oldExpr, false)
+                            println("71")
+                            println(oldExpr)
+                            println(nwExpr)
+                            println(enclosingnew)
+                            println(enclosingold)
+                            if enclosingnew.isDefined then
+                                enclosingLambdas = enclosingLambdas.::(enclosingnew.get) // case is needed in case the change is in an if branch that is never reached (component has to be reanalysed or the mapping will be incorrect)
+                            if enclosingold.isDefined then
+                                enclosingLambdas = enclosingLambdas.::(enclosingold.get)
                             Set(initialComponent)
                 case (oldExpr: Expr, nwExpr: Expr) =>
                     (mapping.getOrElse(oldExpr, Set()), mapping.getOrElse(nwExpr, Set())) match

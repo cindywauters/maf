@@ -232,7 +232,7 @@ class SchemeChangePatterns:
 
 
     // Returns a list of expressions that needs to be reanalysed (old and new), and a list of tuples of expressions that are just renamings together with their mappings
-    def comparePrograms(old: SchemeExp, nw: SchemeExp, analysis: Option[IncrementalModAnalysisWithUpdateTwoVersions[_]] = None): differentChanges =
+    def comparePrograms(old: SchemeExp, nw: SchemeExp, analysis: Option[IncrementalModAnalysisWithUpdateTwoVersions[_]] = None, refactoring: Boolean = true): differentChanges =
         allOldScopes = findLexicalScopes(old)
         allNewScopes = findLexicalScopes(nw)
         (old, nw) match
@@ -282,7 +282,14 @@ class SchemeChangePatterns:
                         case _ =>)
                 println("reanalyse")
                 reanalyse.foreach(println)
-                println(reanalyse.size)
+                maybeReanalyse.foreach(e => e match
+                    case (a: Identifier, (Some(oldEncapsulating), Some(nwEncapsulating))) =>
+                    case (a: SchemeExp, (Some(oldEncapsulating: Expression), Some(nwEncapsulating: Expression))) if !refactoring || !scopeChanges.exists(e => e._1._1 == a) =>
+                        reanalyse = reanalyse.::(Some(oldEncapsulating), Some(nwEncapsulating))
+                    case _ =>
+                )
+                reanalyse = reanalyse//.appendedAll(deletes)//.appendedAll(inserts)
+                reanalyse.foreach(println)
                 println("rename")
                 println(rename.size)
                 println("ifs")
@@ -321,19 +328,25 @@ class SchemeChangePatterns:
                     case Some(otherLam)     => (lam, Some(lam))
         }
 
-    def findEnclosingLambda(expr: Expression): Expression =
-        val possibilities: List[Expression] = allNewScopes.collect {
+    def findEnclosingLambda(expr: Expression, nw: Boolean = true): Option[Expression] =
+        val scopeToFind = if nw then allNewScopes else allOldScopes
+        val possibilities: List[Expression] = scopeToFind.collect {
+            case (lam, _) if expr.idn == NoCodeIdentity && up.findAllSubExps(lam).contains(expr) =>
+                lam
             case (lam, _) if lam.idn.idn.line <= expr.idn.idn.line && up.findAllSubExps(lam).contains(expr) =>
                 lam
         }.toList
-        possibilities.minBy(_.height)
+        if possibilities.isEmpty then
+            None
+        else
+            Some(possibilities.minBy(_.height))
 
 
     def allBindingsInProgramIdSchemeExp(expr: Expression): List[(Identifier, Expression)] =
         if expr.subexpressions.isEmpty && expr.height == 1 then
             List()
-        else if expr.subexpressions.isEmpty then
-            List()
+      //  else if expr.subexpressions.isEmpty then
+      //      List()
         else expr match
             case let: SchemeLettishExp => let.bindings.appendedAll(let.bindings.flatMap(b => allBindingsInProgramIdSchemeExp(b._2))).appendedAll(let.body.flatMap(allBindingsInProgramIdSchemeExp))
             case _ => expr.subexpressions.flatMap(e => allBindingsInProgramIdSchemeExp(e))
