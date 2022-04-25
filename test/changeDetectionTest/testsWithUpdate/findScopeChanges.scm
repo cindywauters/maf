@@ -1,13 +1,10 @@
-(define g (lambda ()
-(<insert>  (define a (lambda () 1)))
-(<delete> (define a (lambda () #f)))
+(<delete> (define g (lambda (x) (+ x 1))))
+
+(define (f x)
+    (let (((<update> z f) (lambda (y) (+ y x))))
+        (g ((<update> z f) x))))
+
+(f 5)
 
 
-(define f (lambda (z) (lambda (w)(lambda ((<update> y x))
-    (if (a)
-        (displayln (<update> y x))
-        (a))))))
 
-(((f 5) 1) 1)))
-
-(g)

@@ -69,11 +69,6 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
                         case _ =>
                             val enclosingnew = finder.findEnclosingLambda(nwExpr)
                             val enclosingold = finder.findEnclosingLambda(oldExpr, false)
-                            println("71")
-                            println(oldExpr)
-                            println(nwExpr)
-                            println(enclosingnew)
-                            println(enclosingold)
                             if enclosingnew.isDefined then
                                 enclosingLambdas = enclosingLambdas.::(enclosingnew.get) // case is needed in case the change is in an if branch that is never reached (component has to be reanalysed or the mapping will be incorrect)
                             if enclosingold.isDefined then
@@ -114,6 +109,8 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
             mapping = mapping + (secondProgram -> Set(initialComponent))
             affected.foreach(addToWorkList)
             if finder.inserts.nonEmpty && finder.inserts.size != changes.scopeChanges.size then  // Necessary because top-level functions might have been added
+                addToWorkList(initialComponent)
+            if finder.deletes.nonEmpty && finder.deletes.size != changes.scopeChanges.size then  // Necessary because top-level functions might have been added
                 addToWorkList(initialComponent)
         println(workList)
         val beforeUpdateAnalysis = System.nanoTime

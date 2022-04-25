@@ -2,7 +2,7 @@ package maf.cli.runnables
 
 import maf.bench.scheme.SchemeBenchmarkPrograms
 import maf.core.{Expression, Identifier}
-import maf.language.scheme.SchemeCodeChange
+import maf.language.scheme.{SchemeCodeChange, SchemeRenamer}
 import maf.modular.incremental.IncrementalModAnalysis
 import maf.modular.{AddrDependency, Dependency, ReturnAddr}
 import maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain
@@ -105,6 +105,9 @@ object TwoSeperateVersionsAnalyse extends App:
 
             println(program._1.prettyString())
             println(program._2.prettyString())
+
+            println(SchemeRenamer.rename(program._1).prettyString())
+            println(SchemeRenamer.rename(program._2).prettyString())
 
             println(program._1.subexpressions)
 
@@ -252,19 +255,25 @@ object TwoSeperateVersionsAnalyse extends App:
             println("Visited reanalysis -> Update (subsumption): " + visitedWithoutUpdate.forall(e =>
                 /* println(e)
                  e match
-                   case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
-                    println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
-                   case _ =>*/
-                visitedWithUpdate.contains(e)).toString)
+                     case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+                         println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
+                     case _ =>*/
+                 visitedWithUpdate.contains(e)).toString)
 
-            /* visitedWithUpdate.foreach(e => e match
-               case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
-                 println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
-                 println(lam.fv)
-               case _ =>
+            visitedWithUpdate.foreach(e => e match
+                case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+                    println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
+                case _ =>
              )
 
-             println()*/
+            visitedWithoutUpdate.foreach(e => e match
+                case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) =>
+                    println(lam.idn.toString + " " + lam.toString + " " + env.content.toString + " " + oldCtx.toString)
+                case _ =>
+            )
+
+
+             println()
 
             /*visitedWithUpdate.foreach(e =>
               if !visitedWithoutUpdate.contains(e) then
@@ -299,8 +308,8 @@ object TwoSeperateVersionsAnalyse extends App:
     //val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_browse.scm")
     // val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_nboyer.scm")
     val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
-    //val modFbenchmarks: List[String] = List("test/changeDetectionTest/benchmarks/scope changes/nboyer.scm")
-
+    //val modFbenchmarks: List[String] = List("test/changeDetectionTest/benchmarks/renamings/nboyer.scm")
+    //val modFbenchmarks: List[String] = List("test/changes/scheme/slip-0-to-1.scm")
     val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
 
     modFbenchmarks.foreach(modfAnalysis(_, standardTimeout))

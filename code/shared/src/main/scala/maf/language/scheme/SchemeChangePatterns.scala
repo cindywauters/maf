@@ -71,19 +71,23 @@ class SchemeChangePatterns:
     def checkRenamingsVariables(oldexp: Expression, newexp: Expression): (Boolean, Map[Identifier, Identifier]) =
         (oldexp, newexp) match
             case (oe: SchemeExp, ne: SchemeExp) =>
-                val renamedOld = SchemeRenamer.rename(oe)
-                val renamedNew = SchemeRenamer.rename(ne)
-                val variablesOld = findAllVarsInOrder(oe)
-                val variablesNew = findAllVarsInOrder(ne)
-                val variablesRenamedOld = findAllVarsInOrder(renamedOld)
-                val variablesRenamedNew = findAllVarsInOrder(renamedNew)
-                if variablesOld.length != variablesNew.length then
-                    return (false, Map())
-                var mappedVars = variablesNew.map(e => e.name).zip(variablesOld.map(e => e.name)).toMap
-                val mappedRenamedVars = variablesRenamedNew.map(e => e.name).zip(variablesRenamedOld.map(e => e.name)).toMap
-                val mappedIdentifiers = variablesNew.zip(variablesOld).toMap
-                if renamedOld.eql(SchemeChangeRenamerForPatterns.rename(renamedNew, mappedRenamedVars, Map[String, Int]())._1) then
-                    return (true, mappedIdentifiers)
+                try {
+                    val renamedOld = SchemeRenamer.rename(oe)
+                    val renamedNew = SchemeRenamer.rename(ne)
+                    val variablesOld = findAllVarsInOrder(oe)
+                    val variablesNew = findAllVarsInOrder(ne)
+                    val variablesRenamedOld = findAllVarsInOrder(renamedOld)
+                    val variablesRenamedNew = findAllVarsInOrder(renamedNew)
+                    if variablesOld.length != variablesNew.length then
+                        return (false, Map())
+                    var mappedVars = variablesNew.map(e => e.name).zip(variablesOld.map(e => e.name)).toMap
+                    val mappedRenamedVars = variablesRenamedNew.map(e => e.name).zip(variablesRenamedOld.map(e => e.name)).toMap
+                    val mappedIdentifiers = variablesNew.zip(variablesOld).toMap
+                    if renamedOld.eql(SchemeChangeRenamerForPatterns.rename(renamedNew, mappedRenamedVars, Map[String, Int]())._1) then
+                        return (true, mappedIdentifiers)
+                } catch {
+                    case e: _ => return (false, Map())
+                }
         return (false, Map())
 
     def checkForRenamingParameter(exp: SchemeExp): Set[((Expression, Expression), (Boolean, Map[Identifier, Identifier]))] =
@@ -103,10 +107,14 @@ class SchemeChangePatterns:
                 mappedVars = mappedVars ++ varsNew.map(_.name).zip(varsOld.map(_.name)).toMap
                 mappedIds = mappedIds ++ varsNew.zip(varsOld).toMap
             case _ =>
-        if oldexp.eql(SchemeChangeRenamerForPatterns.rename(nwexp, mappedVars, Map[String, Int]())._1) then
-            (true, mappedIds)
-        else
-            (false, Map())
+        try {
+            if oldexp.eql(SchemeChangeRenamerForPatterns.rename(nwexp, mappedVars, Map[String, Int]())._1) then
+                (true, mappedIds)
+            else
+                (false, Map())
+        } catch {
+            case e: _ => return (false, Map())
+        }
 
     // conditions are represented as a list as in case such as (not (...)) the arguments of not are used
     def comparePartialCondAndBranches(oldCond: List[SchemeExp], newCond: List[SchemeExp], oldTrue: SchemeExp, oldFalse: SchemeExp, newTrue: SchemeExp, newFalse: SchemeExp): Boolean =

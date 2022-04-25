@@ -60,8 +60,8 @@ object UpdatingPerformance extends App:
     var scopeChangesBenchmarks = "test/changeDetectionTest/benchmarks/scope changes"
     var ifsBenchmarks = "test/changeDetectionTest/benchmarks/ifs"
 
-    var warmup = 15
-    var rounds = 40
+    var warmup = 5
+    var rounds = 15
 
     def timeout(): Timeout.T = Timeout.start(Duration(2, MINUTES))
 
@@ -157,6 +157,7 @@ object UpdatingPerformance extends App:
     def onBenchmark(file: String): Unit =
         val (oldProgram, newProgram) = CSchemeParserWithSplitter.parseProgram(Reader.loadFile(file))
         val fullfilename = file.split("\\\\|\\.")
+        println(file)
         var writeToFile = ""
         if fullfilename != null then
             val dir = fullfilename(3)
