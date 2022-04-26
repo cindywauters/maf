@@ -46,7 +46,7 @@ class IncrementalUpdateDatastructures {
   var cachedComponents: Map[Serializable, SchemeModFComponent] = Map()
   var equivalentLambdas: Map[Expression, Expression] = Map()
   var allNewLexicalEnvs: BindingsWithScopes = Map()
-  var lexEnvsBuildEnvs: Map[Expression, Map[String, Address]] = Map()
+  var lexEnvsBuildEnvs: Map[(Expression, maf.core.BasicEnvironment[_]), Map[String, Address]] = Map()
   var notToUpdate: List[Expression] = List()
   var toAddComponents: Set[SchemeModFComponent] = Set()
 
@@ -327,9 +327,7 @@ class IncrementalUpdateDatastructures {
     var newCtx = updateCtx(a, addr.ctx)
     if changedVars contains addr.id then
       val newIdn = changedVars.getOrElse(addr.id, addr.id)
-      if !initialEnvNew.exists(e => e._2.idn == newIdn.idn) then
-        newCtx = Some(NoContext) // If something moved from toplevel to lower level (will not work for context sensitive)
-      else
+      if allScopeChanges.nonEmpty && initialEnvNew.exists(e => e._2.idn == newIdn.idn) then
         newCtx = None
       val newAddr = addr.copy(id = newIdn, ctx = newCtx)
       newAddr
@@ -352,7 +350,7 @@ class IncrementalUpdateDatastructures {
         val changeToLambda = allExpressionsInChange.get(lam)
         val newCtx = updateCtx(a, oldCtx)
         val newEnv = createNewEnvironment(lam, a, env)
-        val newCmp = getNewComponent(a, SchemeModFComponent.Call((lam, BasicEnvironment[Address](newEnv).restrictTo(lam.fv)), newCtx))
+        val newCmp = getNewComponent(a, SchemeModFComponent.Call((lam, BasicEnvironment[Address](newEnv)), newCtx))
         changeToLambda match
           case Some(lambda: SchemeLambdaExp) =>
             val newIdn = lambda.body.head.idn
@@ -380,15 +378,12 @@ class IncrementalUpdateDatastructures {
         changeToLambda match
           case Some(lambda: SchemeLambdaExp) =>
             val newEnv = createNewEnvironment(lambda, a, env)
-            val newCmp = SchemeModFComponent.Call(clo = (lambda, new BasicEnvironment[Address](newEnv).restrictTo(lambda.fv)), ctx = newCtx)
+            val newCmp = SchemeModFComponent.Call(clo = (lambda, new BasicEnvironment[Address](newEnv)), ctx = newCtx)
             cachedComponents = cachedComponents + (comp -> newCmp)
             newCmp
           case _ =>
-        //    var newLam = lam
-        //    if findAllSubExps(lam).exists(e => allExpressionsInChange.contains(e)) then
-        //      newLam = buildNewExpr(lam).asInstanceOf[lam.type]
             val newEnv = createNewEnvironment(lam, a, env)
-            val newCmp = SchemeModFComponent.Call(clo = (lam, new BasicEnvironment[Address](newEnv).restrictTo(lam.fv)), ctx = newCtx)
+            val newCmp = SchemeModFComponent.Call(clo = (lam, new BasicEnvironment[Address](newEnv)), ctx = newCtx)
             cachedComponents = cachedComponents + (comp -> newCmp)
             newCmp
 
@@ -480,7 +475,7 @@ class IncrementalUpdateDatastructures {
         value
 
   def createNewEnvironment(expr: SchemeLambdaExp, a: IncrementalModAnalysis[Expression], oldEnv: maf.core.BasicEnvironment[_]): Map[String, Address] =
-    lexEnvsBuildEnvs.get(expr) match
+    lexEnvsBuildEnvs.get((expr, oldEnv)) match
       case Some(env) => return env
       case _         =>
     val eqlLam = equivalentLambdas.find(l => l._1 == expr || l._2 == expr).getOrElse((expr, expr)).asInstanceOf[(SchemeExp, SchemeExp)]
@@ -497,7 +492,7 @@ class IncrementalUpdateDatastructures {
               val newVarAddr = getNewVarAddr(a, varAddr)
                 newEnv += (identifiers._2.name -> newVarAddr)
             case _ =>
-              val newCtx = if changedVars.exists(v => v._1.name == fv) && initialEnvNew.exists(e => e._2.idn == varAddr.idn.idn) then
+              val newCtx = if allScopeChanges.nonEmpty && changedVars.exists(v => v._1.name == fv) && initialEnvNew.exists(e => e._2.idn == varAddr.idn.idn) then
                 None
               else
                 updateCtx(a, varAddr.ctx)
@@ -506,19 +501,22 @@ class IncrementalUpdateDatastructures {
         case Some(prim: PrmAddr) =>
           newEnv = newEnv + (fv -> prim)
         case None =>
-          // TODO: look if a renaming is present instead so the ctx can be kept
           newEnvIds._2.get(fv) match
             case Some(identifier: Identifier) =>
-              var newCtx = if initialEnvNew.exists(e => e._2.idn == identifier.idn)  then
+              var newCtx = if allScopeChanges.nonEmpty && initialEnvNew.exists(e => e._2.idn == identifier.idn) then
                 None
               else
-                Some(NoContext)
+                oldEnv.content.find(e => e._2.idn == identifier.idn) match
+                    case Some(s, oldVar: VarAddr) =>
+                        updateCtx(a, oldVar.ctx)
+                    case _ =>
+                        Some(NoContext)
               newEnv = newEnv + (fv -> maf.modular.scheme.VarAddr(identifier, newCtx))
             case None =>
               println(expr)
               println(fv))
             //  throw new RuntimeException("please provide correct scopes to the environment builder"))
-    lexEnvsBuildEnvs = lexEnvsBuildEnvs + (expr -> newEnv)
+    lexEnvsBuildEnvs = lexEnvsBuildEnvs + ((expr, oldEnv) -> newEnv)
     newEnv
   // To create an new enviroment, loop over the old enviroment
   // If a variable did not change, it can be added to the new environment
@@ -598,6 +596,7 @@ class IncrementalUpdateDatastructures {
   // Update context. This currently supports SchemeModFNoSensitivity, SchemeModFFullArgumentCallSiteSensitivity, SchemeModFCallSiteSensitivity and SchemeModFFullArgumentSensitivity
   // Context can either be Some(context), None or just a context alone, and of type ArgContext, CallSiteContext or ArgCallSiteContext
   def updateCtx(a: IncrementalModAnalysis[Expression], ctx: Any): Any =
+   // return ctx
     a match
       case a: IncrementalGlobalStore[Expression] =>
         ctx match

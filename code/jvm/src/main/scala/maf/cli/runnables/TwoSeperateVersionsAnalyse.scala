@@ -42,9 +42,9 @@ object TwoSeperateVersionsAnalyse extends App:
         def baseUpdates(oldProgram: SchemeExp, newProgram: SchemeExp) = new ModAnalysis[SchemeExp](oldProgram)
             with StandardSchemeModFComponents
             // with SchemeModFFullArgumentSensitivity
-            //with SchemeModFCallSiteSensitivity
-            // with SchemeModFFullArgumentCallSiteSensitivity
-            with SchemeModFNoSensitivity
+            with SchemeModFCallSiteSensitivity
+            //with SchemeModFFullArgumentCallSiteSensitivity
+            //with SchemeModFNoSensitivity
             with SchemeModFSemanticsUpdate
             with LIFOWorklistAlgorithm[SchemeExp]
             with UpdateIncrementalSchemeModFBigStepSemantics
@@ -80,8 +80,9 @@ object TwoSeperateVersionsAnalyse extends App:
 
         def newOnly(program: SchemeExp) = new ModAnalysis[SchemeExp](program)
             with StandardSchemeModFComponents
-            //with SchemeModFCallSiteSensitivity
-            with SchemeModFNoSensitivity
+           // with SchemeModFFullArgumentCallSiteSensitivity
+            with SchemeModFCallSiteSensitivity
+            //with SchemeModFNoSensitivity
             with SchemeModFSemanticsM
             with LIFOWorklistAlgorithm[SchemeExp]
             with IncrementalSchemeModFBigStepSemantics
@@ -127,7 +128,7 @@ object TwoSeperateVersionsAnalyse extends App:
             val beforeUpdateAnalysis = System.nanoTime
             analysisWithUpdates.version = New
             // analysisWithUpdates.analyzeWithTimeout(timeout())
-            analysisWithUpdates.withUpdating = false
+            analysisWithUpdates.withUpdating = true
             analysisWithUpdates.updateAnalysis(timeout())
             val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
             println(analysisWithUpdates.timeIncrementalReanalysis)
@@ -172,8 +173,8 @@ object TwoSeperateVersionsAnalyse extends App:
                         println("old: " + v.toString + " " + k.toString())
                         false).toString)
             println("all missing: ")
-            /*storeWithUpdate.foreach((k, v) =>
-              storeWithoutUpdate.get(k) match
+            storeWithoutUpdate.foreach((k, v) =>
+              storeWithUpdate.get(k) match
                 case Some(updatedValue) =>
                   if !analysisWithUpdates.lattice.subsumes(updatedValue, v) then
                     println("store r -> u " + k.toString() + " " + v.toString + " " + updatedValue.toString)
@@ -182,7 +183,20 @@ object TwoSeperateVersionsAnalyse extends App:
                   analysisWithUpdates.lattice.subsumes(updatedValue, v)
                 case _ =>
                   println("old: " + v.toString + " " + k.toString())
-                  false)*/
+                  println(storeWithoutUpdate.zipWithIndex.find((k1, v1) => k == k1._1))
+                  false)
+            storeWithUpdate.foreach((k, v) =>
+                storeWithoutUpdate.get(k) match
+                    case Some(updatedValue) =>
+                        if !analysisWithUpdates.lattice.subsumes(updatedValue, v) then
+                            println("store r -> u " + k.toString() + " " + v.toString + " " + updatedValue.toString)
+                                println(storeWithUpdate.zipWithIndex.find((k1, v1) => k == k1._1))
+                                println(storeWithoutUpdate.zipWithIndex.find((k1, v1) => k == k1._1))
+                                analysisWithUpdates.lattice.subsumes(updatedValue, v)
+                    case _ =>
+                        println("old: " + v.toString + " " + k.toString())
+                            println(storeWithUpdate.zipWithIndex.find((k1, v1) => k == k1._1))
+                        false)
 
             //  println("Dependencies with update: " + depsWithUpdate.toString)
             //  println("Dependencies new only   : " + depsWithoutUpdate.toString)
