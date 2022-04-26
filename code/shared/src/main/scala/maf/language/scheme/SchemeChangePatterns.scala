@@ -71,19 +71,25 @@ class SchemeChangePatterns:
     def checkRenamingsVariables(oldexp: Expression, newexp: Expression): (Boolean, Map[Identifier, Identifier]) =
         (oldexp, newexp) match
             case (oe: SchemeExp, ne: SchemeExp) =>
+                if oldexp.height != newexp.height then // optimization, two expressions can not be alpha-equivalent if they don't have the same height
+                    return (false, Map())
+                if oldexp.label != newexp.label then // optimization, two expressions can not be alpha-equivalent if they don't have the same label
+                    return (false, Map())
                 try {
-                    val renamedOld = SchemeRenamer.rename(oe)
-                    val renamedNew = SchemeRenamer.rename(ne)
                     val variablesOld = findAllVarsInOrder(oe)
                     val variablesNew = findAllVarsInOrder(ne)
-                    val variablesRenamedOld = findAllVarsInOrder(renamedOld)
-                    val variablesRenamedNew = findAllVarsInOrder(renamedNew)
                     if variablesOld.length != variablesNew.length then
                         return (false, Map())
+                    val renamedOld = SchemeRenamer.rename(oe)
+                    val renamedNew = SchemeRenamer.rename(ne)
+                    val variablesRenamedOld = findAllVarsInOrder(renamedOld)
+                    val variablesRenamedNew = findAllVarsInOrder(renamedNew)
                     var mappedVars = variablesNew.map(e => e.name).zip(variablesOld.map(e => e.name)).toMap
                     val mappedRenamedVars = variablesRenamedNew.map(e => e.name).zip(variablesRenamedOld.map(e => e.name)).toMap
                     val mappedIdentifiers = variablesNew.zip(variablesOld).toMap
                     if renamedOld.eql(SchemeChangeRenamerForPatterns.rename(renamedNew, mappedRenamedVars, Map[String, Int]())._1) then
+                        println(renamedOld.eql(renamedNew))
+                        println(oldexp.eql(renamedOld))
                         return (true, mappedIdentifiers)
                 } catch {
                     case e: _ => return (false, Map())

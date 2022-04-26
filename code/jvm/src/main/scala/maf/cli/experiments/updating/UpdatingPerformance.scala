@@ -63,7 +63,7 @@ object UpdatingPerformance extends App:
     var warmup = 5
     var rounds = 15
 
-    def timeout(): Timeout.T = Timeout.start(Duration(2, MINUTES))
+    def timeout(): Timeout.T = Timeout.start(Duration(5, MINUTES))
 
     var resultsNoRefactoring: Table[Int] = Table.empty.withDefaultValue(0)
     var resultsWithRefactoring: Table[Int] = Table.empty.withDefaultValue(0)

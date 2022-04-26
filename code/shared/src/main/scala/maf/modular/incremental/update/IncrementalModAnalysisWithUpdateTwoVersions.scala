@@ -99,7 +99,7 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
                             case _ => affected = affected ++ Set(initialComponent))
             visited.foreach(v => v match
                 case SchemeModFComponent.Call((lam, env), ctx) =>
-                    var allSubs = update.findAllSubExps(lam)
+                   // var allSubs = update.findAllSubExps(lam)
                     if finder.reanalyse.exists(r => r._2.get == lam) || enclosingLambdas.contains(lam) || (!withUpdating && affectedLambdasPairs.exists((l1, l2) => l2 == lam)) then //(finder.rename.exists((exps, rest) => exps._2 == lam))) then//affectedLambdasPairs.exists((l1, l2) => lam == l2)) then //(finder.scopeChanges.exists(s => s._2._1 == lam) || finder.rename.exists(r => r._1._2 == lam))) then
                         addToWorkList(v)
                         mapping.get(lam.asInstanceOf[Expr]) match // TODO: probably optimizable by only adding if lam is in the affected list
