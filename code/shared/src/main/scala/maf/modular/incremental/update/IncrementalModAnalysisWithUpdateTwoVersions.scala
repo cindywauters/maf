@@ -22,7 +22,8 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
 
 
     override def updateAnalysis(timeout: Timeout.T): Unit =
-        finder = new SchemeChangePatterns
+        val finder = new SchemeChangePatterns
+        val update = new IncrementalUpdateDatastructures
         version = New
         (program, secondProgram) match
         case (old: SchemeExp, nw: SchemeExp) =>

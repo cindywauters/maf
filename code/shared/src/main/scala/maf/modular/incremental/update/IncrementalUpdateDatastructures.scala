@@ -43,10 +43,11 @@ class IncrementalUpdateDatastructures {
   var allScopeChanges: ScopeChanges = Map()
  // var allExprs: List[Expression] = List()
   var initialEnvNew: Map[String, Identifier] = Map()
-  var cachedComponents: Map[Serializable, SchemeModFComponent] = Map()
+  var cachedComponents: mutable.LongMap[SchemeModFComponent] = mutable.LongMap()
+  var unchangedComponents: Set[Int] = Set()
   var equivalentLambdas: Map[Expression, Expression] = Map()
   var allNewLexicalEnvs: BindingsWithScopes = Map()
-  var lexEnvsBuildEnvs: Map[(Expression, maf.core.BasicEnvironment[_]), Map[String, Address]] = Map()
+  var lexEnvsBuildEnvs: mutable.LongMap[Map[String, Address]] = mutable.LongMap()
   var notToUpdate: List[Expression] = List()
   var toAddComponents: Set[SchemeModFComponent] = Set()
 
@@ -175,7 +176,7 @@ class IncrementalUpdateDatastructures {
          )
 
     toAddComponents.foreach(c =>
-        a.addToWorkList(cachedComponents.getOrElse(c, c).asInstanceOf[a.Component])
+        a.addToWorkList(cachedComponents.getOrElse(c.hashCode().toLong, c).asInstanceOf[a.Component])
 
     )
     true
@@ -365,7 +366,10 @@ class IncrementalUpdateDatastructures {
   // In the case of a function call, only change the component if it exists within a changed expression (otherwise return the old component)
   // Also create a new environment making use of createNewEnvironment
   def getNewComponent(a: IncrementalModAnalysis[Expression], comp: Serializable): SchemeModFComponent =
-    cachedComponents.get(comp) match
+    val compHash = comp.hashCode()
+    if unchangedComponents.contains(compHash) then
+        return comp.asInstanceOf[SchemeModFComponent]
+    cachedComponents.get(comp.hashCode().toLong) match
       case Some(newComp) =>
         return newComp
       case _             =>
@@ -379,12 +383,16 @@ class IncrementalUpdateDatastructures {
           case Some(lambda: SchemeLambdaExp) =>
             val newEnv = createNewEnvironment(lambda, a, env)
             val newCmp = SchemeModFComponent.Call(clo = (lambda, new BasicEnvironment[Address](newEnv)), ctx = newCtx)
-            cachedComponents = cachedComponents + (comp -> newCmp)
+            if newCmp.equals(comp) then
+                unchangedComponents = unchangedComponents + compHash
+            else cachedComponents = cachedComponents + (compHash.toLong -> newCmp)
             newCmp
           case _ =>
             val newEnv = createNewEnvironment(lam, a, env)
             val newCmp = SchemeModFComponent.Call(clo = (lam, new BasicEnvironment[Address](newEnv)), ctx = newCtx)
-            cachedComponents = cachedComponents + (comp -> newCmp)
+              if newCmp.equals(comp) then
+                  unchangedComponents = unchangedComponents + compHash
+              else cachedComponents = cachedComponents + (compHash.toLong -> newCmp)
             newCmp
 
 
@@ -475,7 +483,7 @@ class IncrementalUpdateDatastructures {
         value
 
   def createNewEnvironment(expr: SchemeLambdaExp, a: IncrementalModAnalysis[Expression], oldEnv: maf.core.BasicEnvironment[_]): Map[String, Address] =
-    lexEnvsBuildEnvs.get((expr, oldEnv)) match
+    lexEnvsBuildEnvs.get((expr, oldEnv).hashCode().toLong) match
       case Some(env) => return env
       case _         =>
     val eqlLam = equivalentLambdas.find(l => l._1 == expr || l._2 == expr).getOrElse((expr, expr)).asInstanceOf[(SchemeExp, SchemeExp)]
@@ -516,7 +524,7 @@ class IncrementalUpdateDatastructures {
               println(expr)
               println(fv))
             //  throw new RuntimeException("please provide correct scopes to the environment builder"))
-    lexEnvsBuildEnvs = lexEnvsBuildEnvs + ((expr, oldEnv) -> newEnv)
+    lexEnvsBuildEnvs = lexEnvsBuildEnvs + ((expr, oldEnv).hashCode().toLong -> newEnv)
     newEnv
   // To create an new enviroment, loop over the old enviroment
   // If a variable did not change, it can be added to the new environment

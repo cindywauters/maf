@@ -1,10 +1,8 @@
-(<delete> (define g (lambda (x) (+ x 1))))
+(define (g x) (dislayln x))
 
 (define (f x)
-    (let (((<update> z f) (lambda (y) (+ y x))))
-        (g ((<update> z f) x))))
+  (define g (lambda (x) (+ x 1)))
+  (g x))
+
 
 (f 5)
-
-
-

@@ -60,8 +60,8 @@ object UpdatingPerformance extends App:
     var scopeChangesBenchmarks = "test/changeDetectionTest/benchmarks/scope changes"
     var ifsBenchmarks = "test/changeDetectionTest/benchmarks/ifs"
 
-    var warmup = 5
-    var rounds = 15
+    var warmup = 15
+    var rounds = 25
 
     def timeout(): Timeout.T = Timeout.start(Duration(5, MINUTES))
 
@@ -195,6 +195,23 @@ object UpdatingPerformance extends App:
         val initialAnalysis = AnalysisType(oldProgram, newProgram)
         initialAnalysis.analyzeWithTimeout(timeout())
 
+        warmUp("incremental analysis without refactoring updates", timeout => {
+            val withUpdates = initialAnalysis.deepCopy()
+            withUpdates.withUpdating = false
+            println(withUpdates.hashCode())
+            withUpdates.updateAnalysis(timeout)
+        })
+
+        runBenchmarks(
+            "incremental analysis without refactoring updates",
+            () => {
+                val withUpdates = initialAnalysis.deepCopy()
+                withUpdates.withUpdating = false
+                withUpdates
+            },
+            (timeout, analysis) => analysis.updateAnalysis(timeout),
+            incremental = true)
+
         warmUp("incremental analysis with refactoring updates", timeout => {
             val withUpdates = initialAnalysis.deepCopy()
             withUpdates.withUpdating = true
@@ -212,21 +229,6 @@ object UpdatingPerformance extends App:
             incremental = true,
             withRefactorings = true)
 
-        warmUp("incremental analysis without refactoring updates", timeout => {
-            val withUpdates = initialAnalysis.deepCopy()
-            withUpdates.withUpdating = false
-            withUpdates.updateAnalysis(timeout)
-        })
-
-        runBenchmarks(
-            "incremental analysis without refactoring updates",
-            () => {
-                val withUpdates = initialAnalysis.deepCopy()
-                withUpdates.withUpdating = false
-                withUpdates
-            },
-            (timeout, analysis) => analysis.updateAnalysis(timeout),
-            incremental = true)
 
         val noRefactoringString = resultsNoRefactoring.toCSVString(rows = resultsWithRefactoring.allRows.toList.sortBy(_.toInt))
         val withRefactoringString = resultsWithRefactoring.toCSVString(rows = resultsWithRefactoring.allRows.toList.sortBy(_.toInt))

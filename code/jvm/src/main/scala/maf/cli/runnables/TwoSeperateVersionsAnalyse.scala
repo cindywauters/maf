@@ -42,9 +42,9 @@ object TwoSeperateVersionsAnalyse extends App:
         def baseUpdates(oldProgram: SchemeExp, newProgram: SchemeExp) = new ModAnalysis[SchemeExp](oldProgram)
             with StandardSchemeModFComponents
             // with SchemeModFFullArgumentSensitivity
-            with SchemeModFCallSiteSensitivity
+            //with SchemeModFCallSiteSensitivity
             //with SchemeModFFullArgumentCallSiteSensitivity
-            //with SchemeModFNoSensitivity
+            with SchemeModFNoSensitivity
             with SchemeModFSemanticsUpdate
             with LIFOWorklistAlgorithm[SchemeExp]
             with UpdateIncrementalSchemeModFBigStepSemantics
@@ -108,11 +108,12 @@ object TwoSeperateVersionsAnalyse extends App:
             println(program._2.prettyString())
 
 
-            println(program._1.subexpressions)
-
+            //println(program._1.subexpressions)
+            //println(SchemeRenamer.rename(program._1).prettyString())
+            val test = baseUpdates(program._1, program._2)
 
             for(i <- 1 to 5) {
-                val analysisWithUpdates = baseUpdates(program._1, program._2)
+                val analysisWithUpdates = test.deepCopy()
                 analysisWithUpdates.analyzeWithTimeout(timeout())
                 val beforeUpdateAnalysis = System.nanoTime
                 analysisWithUpdates.withUpdating = true
@@ -128,7 +129,7 @@ object TwoSeperateVersionsAnalyse extends App:
             val beforeUpdateAnalysis = System.nanoTime
             analysisWithUpdates.version = New
             // analysisWithUpdates.analyzeWithTimeout(timeout())
-            analysisWithUpdates.withUpdating = true
+            analysisWithUpdates.withUpdating = false
             analysisWithUpdates.updateAnalysis(timeout())
             val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
             println(analysisWithUpdates.timeIncrementalReanalysis)
@@ -185,18 +186,7 @@ object TwoSeperateVersionsAnalyse extends App:
                   println("old: " + v.toString + " " + k.toString())
                   println(storeWithoutUpdate.zipWithIndex.find((k1, v1) => k == k1._1))
                   false)
-            storeWithUpdate.foreach((k, v) =>
-                storeWithoutUpdate.get(k) match
-                    case Some(updatedValue) =>
-                        if !analysisWithUpdates.lattice.subsumes(updatedValue, v) then
-                            println("store r -> u " + k.toString() + " " + v.toString + " " + updatedValue.toString)
-                                println(storeWithUpdate.zipWithIndex.find((k1, v1) => k == k1._1))
-                                println(storeWithoutUpdate.zipWithIndex.find((k1, v1) => k == k1._1))
-                                analysisWithUpdates.lattice.subsumes(updatedValue, v)
-                    case _ =>
-                        println("old: " + v.toString + " " + k.toString())
-                            println(storeWithUpdate.zipWithIndex.find((k1, v1) => k == k1._1))
-                        false)
+
 
             //  println("Dependencies with update: " + depsWithUpdate.toString)
             //  println("Dependencies new only   : " + depsWithoutUpdate.toString)
@@ -307,7 +297,7 @@ object TwoSeperateVersionsAnalyse extends App:
     //val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_browse.scm")
     // val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_nboyer.scm")
     //val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
-    val modFbenchmarks: List[String] = List("test/changeDetectionTest/benchmarks/renamings/mceval.scm")
+     val modFbenchmarks: List[String] = List("test/changeDetectionTest/benchmarks/renamings/leval.scm")
     //val modFbenchmarks: List[String] = List("test/changes/scheme/slip-0-to-1.scm")
     //val modFbenchmarks: List[String] = List("test/changes/scheme/multiple-dwelling (fine).scm")
     val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))

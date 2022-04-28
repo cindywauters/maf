@@ -8,12 +8,10 @@ import maf.util.benchmarks.Timeout
 
 trait IncrementalModAnalysisWithUpdate[Expr <: Expression] extends IncrementalModAnalysis[Expr]:
 
-    val update = new IncrementalUpdateDatastructures
-
-    var finder = new SchemeChangePatterns
-
     override def updateAnalysis(timeout: Timeout.T): Unit =
         version = New // Make sure the new program version is analysed upon reanalysis (i.e., 'apply' the changes).
+        val finder = new SchemeChangePatterns
+        val update = new IncrementalUpdateDatastructures
         program match
             case expr: SchemeExp =>
                 //println(program)
