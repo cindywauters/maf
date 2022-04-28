@@ -16,7 +16,7 @@ import maf.modular.incremental.update.{IncrementalGlobalStoreWithUpdate, Increme
 import maf.modular.scheme.modf.{SchemeModFComponent, SchemeModFNoSensitivity, StandardSchemeModFComponents}
 import maf.modular.worklist.LIFOWorklistAlgorithm
 import maf.util.Reader
-import maf.util.benchmarks.{Table, Timeout, Timer}
+import maf.util.benchmarks.{Statistics, Table, Timeout, Timer}
 
 import java.io.{BufferedWriter, File, FileWriter}
 import scala.concurrent.duration.{Duration, MINUTES}
@@ -69,6 +69,7 @@ object UpdatingPerformance extends App:
     var resultsWithRefactoring: Table[Int] = Table.empty.withDefaultValue(0)
     var resultsNonIncremental: Table[Int] = Table.empty.withDefaultValue(0)
     var resultAverages: Table[Int] = Table.empty.withDefaultValue(0)
+    var resultStdDev: Table[Double] = Table.empty.withDefaultValue(0)
 
     def addToIncrementalInitial(table: Table[Int], a: IncrementalModAnalysisWithUpdateTwoVersions[SchemeExp], index: String, totalTime: Double): Table[Int] =
         var outputTable = table.add(index, "total time", totalTime.toInt)
@@ -76,6 +77,19 @@ object UpdatingPerformance extends App:
         outputTable = outputTable.add(index, "updating datastructures", (a.timeUpdatingStructures / 1000000).toInt)
         outputTable = outputTable.add(index, "incremental analysis" , (a.timeIncrementalReanalysis / 1000000).toInt)
         outputTable
+
+    def addToAverages(withRefactoring: Boolean, allTimes: List[Double],  allFinding: List[Double], allUpdating: List[Double], allAnalysis: List[Double]): Unit =
+        val row = if withRefactoring then "With updating" else "No updating"
+
+        def addToOne(stats: Statistics.Stats, typeTime: String): Unit =
+            resultAverages = resultAverages.add(row, "avg " + typeTime, stats.mean.toInt)
+            resultStdDev = resultStdDev.add(row, "std dev " + typeTime, stats.stddev)
+
+        addToOne(Statistics.all(allTimes), "full")
+        addToOne(Statistics.all(allFinding), "finding")
+        addToOne(Statistics.all(allUpdating), "updating")
+        addToOne(Statistics.all(allAnalysis), "incremental analysis")
+
 
     def addToNonIncrementalInitial(index: String, totalTime: Double): Unit =
         resultsNonIncremental = resultsNonIncremental.add(index, "Initial: total time", totalTime.toInt)
@@ -110,9 +124,9 @@ object UpdatingPerformance extends App:
                      ): Option[List[Double]] =
         print(s"Measuring: $msg ")
         var times: List[Double] = List()
-        var timesFinding: List[Int] = List()
-        var timesUpdating: List[Int] = List()
-        var timesIncremental: List[Int] = List()
+        var timesFinding: List[Double] = List()
+        var timesUpdating: List[Double] = List()
+        var timesIncremental: List[Double] = List()
         for i <- 1 to rounds do
             print(s"$i ")
             val analysis = createAnalysis()
@@ -129,29 +143,23 @@ object UpdatingPerformance extends App:
                             resultsWithRefactoring = addToIncrementalInitial(resultsWithRefactoring, analysis, i.toString, t)
                         else
                             resultsNoRefactoring = addToIncrementalInitial(resultsNoRefactoring, analysis, i.toString, t)
-                        timesFinding     = (analysis.timeFindingChanges / 1000000).toInt :: timesFinding
-                        timesUpdating    = (analysis.timeUpdatingStructures / 1000000).toInt :: timesUpdating
-                        timesIncremental = (analysis.timeIncrementalReanalysis / 1000000).toInt :: timesIncremental
+                        timesFinding     = (analysis.timeFindingChanges / 1000000).toDouble :: timesFinding
+                        timesUpdating    = (analysis.timeUpdatingStructures / 1000000).toDouble :: timesUpdating
+                        timesIncremental = (analysis.timeIncrementalReanalysis / 1000000).toDouble :: timesIncremental
                 case None =>
                     println(" timed out.")
                     return None
             println()
         if incremental then
-            if withRefactorings then
-                resultAverages = resultAverages.add("With refactorings",  "avg finding", timesFinding.sum / timesFinding.length)
-                resultAverages = resultAverages.add("With refactorings", "avg incremental analysis", timesIncremental.sum / timesIncremental.length)
-                resultAverages = resultAverages.add("With refactorings", "avg updating", timesUpdating.sum / timesUpdating.length)
-                resultAverages = resultAverages.add("With refactorings", "avg full", (times.sum / times.length).toInt)
-            else
-                resultAverages = resultAverages.add("No refactorings", "avg finding", timesFinding.sum / timesFinding.length)
-                resultAverages = resultAverages.add("No refactorings", "avg incremental analysis", timesIncremental.sum / timesIncremental.length)
-                resultAverages = resultAverages.add("No refactorings", "avg updating", timesUpdating.sum / timesUpdating.length)
-                resultAverages = resultAverages.add("No refactorings", "avg full", (times.sum / times.length).toInt)
+            addToAverages(withRefactorings,times, timesFinding, timesUpdating, timesIncremental)
         else
+            val stats = Statistics.all(times)
             if oldVersion then
-                resultAverages = resultAverages.add("Intial analysis", "avg full", (times.sum / times.length).toInt)
+                resultAverages = resultAverages.add("Intial analysis", "avg full", stats.mean.toInt)
+                resultStdDev = resultStdDev.add("Intial analysis", "std dev full", stats.stddev)
             else
-                resultAverages = resultAverages.add("New analysis", "avg full", (times.sum / times.length).toInt)
+                resultAverages = resultAverages.add("New analysis", "avg full", stats.mean.toInt)
+                resultStdDev = resultStdDev.add("New analysis", "std dev full", stats.stddev)
         Some(times)
 
     def onBenchmark(file: String): Unit =
@@ -195,23 +203,6 @@ object UpdatingPerformance extends App:
         val initialAnalysis = AnalysisType(oldProgram, newProgram)
         initialAnalysis.analyzeWithTimeout(timeout())
 
-        warmUp("incremental analysis without refactoring updates", timeout => {
-            val withUpdates = initialAnalysis.deepCopy()
-            withUpdates.withUpdating = false
-            println(withUpdates.hashCode())
-            withUpdates.updateAnalysis(timeout)
-        })
-
-        runBenchmarks(
-            "incremental analysis without refactoring updates",
-            () => {
-                val withUpdates = initialAnalysis.deepCopy()
-                withUpdates.withUpdating = false
-                withUpdates
-            },
-            (timeout, analysis) => analysis.updateAnalysis(timeout),
-            incremental = true)
-
         warmUp("incremental analysis with refactoring updates", timeout => {
             val withUpdates = initialAnalysis.deepCopy()
             withUpdates.withUpdating = true
@@ -229,11 +220,27 @@ object UpdatingPerformance extends App:
             incremental = true,
             withRefactorings = true)
 
+        warmUp("incremental analysis without refactoring updates", timeout => {
+            val withUpdates = initialAnalysis.deepCopy()
+            withUpdates.withUpdating = false
+            withUpdates.updateAnalysis(timeout)
+        })
+
+        runBenchmarks(
+            "incremental analysis without refactoring updates",
+            () => {
+                val withUpdates = initialAnalysis.deepCopy()
+                withUpdates.withUpdating = false
+                withUpdates
+            },
+            (timeout, analysis) => analysis.updateAnalysis(timeout),
+            incremental = true)
+
 
         val noRefactoringString = resultsNoRefactoring.toCSVString(rows = resultsWithRefactoring.allRows.toList.sortBy(_.toInt))
         val withRefactoringString = resultsWithRefactoring.toCSVString(rows = resultsWithRefactoring.allRows.toList.sortBy(_.toInt))
         val fullRunsString = resultsNonIncremental.toCSVString(rows = resultsWithRefactoring.allRows.toList.sortBy(_.toInt))
-        val fullString = "\nIncremental analysis without refactoring updates\n\n" ++ noRefactoringString ++ "\n\nIncremental analysis with refactoring updates\n\n" ++ withRefactoringString + "\n\nFull analysis\n\n" + fullRunsString + "\n\n All Averages\n\n" + resultAverages.toCSVString()
+        val fullString = "\nIncremental analysis without refactoring updates\n\n" ++ noRefactoringString ++ "\n\nIncremental analysis with refactoring updates\n\n" ++ withRefactoringString + "\n\nFull analysis\n\n" + fullRunsString + "\n\n All Standard devs\n\n" + resultStdDev.toCSVString() + "\n\n All Averages\n\n" + resultAverages.toCSVString()
         println(fullString)
         val outFile = new File(writeToFile)
         val bw = new BufferedWriter(new FileWriter(outFile))
