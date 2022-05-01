@@ -503,7 +503,10 @@ class IncrementalUpdateDatastructures {
               val newCtx = if allScopeChanges.nonEmpty && changedVars.exists(v => v._1.name == fv) && initialEnvNew.exists(e => e._2.idn == varAddr.idn.idn) then
                 None
               else
-                updateCtx(a, varAddr.ctx)
+                  val newCtx = updateCtx(a, varAddr.ctx)
+                  if newCtx == None then
+                      initialEnvNew = initialEnvNew + (varAddr.id.name -> varAddr.id)
+                  newCtx
               val newVarAddr = varAddr.copy(ctx= newCtx) // bugfix for some context sensitive things, context might update even if the actual var addr does not
                 newEnv = newEnv + (fv -> newVarAddr)
         case Some(prim: PrmAddr) =>
@@ -516,7 +519,10 @@ class IncrementalUpdateDatastructures {
               else
                 oldEnv.content.find(e => e._2.idn == identifier.idn) match
                     case Some(s, oldVar: VarAddr) =>
-                        updateCtx(a, oldVar.ctx)
+                        val newCtx = updateCtx(a, oldVar.ctx)
+                        if newCtx == None then
+                            initialEnvNew = initialEnvNew + (oldVar.id.name -> oldVar.id)
+                        newCtx
                     case _ =>
                         Some(NoContext)
               newEnv = newEnv + (fv -> maf.modular.scheme.VarAddr(identifier, newCtx))
@@ -526,6 +532,7 @@ class IncrementalUpdateDatastructures {
             //  throw new RuntimeException("please provide correct scopes to the environment builder"))
     lexEnvsBuildEnvs = lexEnvsBuildEnvs + ((expr, oldEnv).hashCode().toLong -> newEnv)
     newEnv
+
   // To create an new enviroment, loop over the old enviroment
   // If a variable did not change, it can be added to the new environment
   // If it did change, the variable that it changed into needs to be added to the environment

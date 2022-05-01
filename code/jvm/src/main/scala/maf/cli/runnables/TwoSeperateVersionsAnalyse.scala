@@ -129,7 +129,7 @@ object TwoSeperateVersionsAnalyse extends App:
             val beforeUpdateAnalysis = System.nanoTime
             analysisWithUpdates.version = New
             // analysisWithUpdates.analyzeWithTimeout(timeout())
-            analysisWithUpdates.withUpdating = false
+            analysisWithUpdates.withUpdating = true
             analysisWithUpdates.updateAnalysis(timeout())
             val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
             println(analysisWithUpdates.timeIncrementalReanalysis)
@@ -306,7 +306,7 @@ object TwoSeperateVersionsAnalyse extends App:
     //val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_browse.scm")
     // val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_nboyer.scm")
     //val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
-     val modFbenchmarks: List[String] = List("test/changeDetectionTest/benchmarks/renamings/browse.scm")
+     val modFbenchmarks: List[String] = List("test/changeDetectionTest/benchmarks/scope changes/nboyer.scm")
     //val modFbenchmarks: List[String] = List("test/changes/scheme/slip-0-to-1.scm")
     //val modFbenchmarks: List[String] = List("test/changes/scheme/multiple-dwelling (fine).scm")
     val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(10, MINUTES))

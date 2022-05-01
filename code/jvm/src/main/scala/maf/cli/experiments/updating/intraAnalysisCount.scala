@@ -96,7 +96,10 @@ object intraAnalysisCount extends App:
              "test/changeDetectionTest/benchmarks/renamings/nbody-processed.scm",
              "test/changeDetectionTest/benchmarks/scope changes/nboyer.scm",
              "test/changeDetectionTest/benchmarks/ifs/nboyer.scm",
-             "test/changeDetectionTest/benchmarks/renamings/nboyer.scm")
+             "test/changeDetectionTest/benchmarks/renamings/nboyer.scm",
+             "test/changeDetectionTest/benchmarks/scope changes/peval.scm",
+             "test/changeDetectionTest/benchmarks/ifs/peval.scm",
+             "test/changeDetectionTest/benchmarks/renamings/peval.scm")
 
     benchmarks.foreach(file =>
         onBenchmark(file)

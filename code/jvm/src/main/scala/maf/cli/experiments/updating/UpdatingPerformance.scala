@@ -257,16 +257,16 @@ object UpdatingPerformance extends App:
    // onBenchmark("test/changeDetectionTest/benchmarks/Scope Changes/browse.scm")
     //val benchmarks = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/benchmarks/renamings")()
     val benchmarks: List[String] =
-        List(/*"test/changeDetectionTest/benchmarks/scope changes/nbody-processed.scm",
+        List(//"test/changeDetectionTest/benchmarks/scope changes/nbody-processed.scm",
              "test/changeDetectionTest/benchmarks/scope changes/nboyer.scm",
-             "test/changeDetectionTest/benchmarks/scope changes/mceval.scm",
+             /*"test/changeDetectionTest/benchmarks/scope changes/mceval.scm",
              "test/changeDetectionTest/benchmarks/scope changes/browse.scm",
-             "test/changeDetectionTest/benchmarks/scope changes/leval.scm",*/
+             "test/changeDetectionTest/benchmarks/scope changes/leval.scm",
              "test/changeDetectionTest/benchmarks/scope changes/peval.scm",
              "test/changeDetectionTest/benchmarks/scope changes/matrix.scm",
              "test/changeDetectionTest/benchmarks/scope changes/freeze.scm",
              //"test/changeDetectionTest/benchmarks/scope changes/machine-simulator.scm",
-             "test/changeDetectionTest/benchmarks/scope changes/multiple-dwelling.scm")
+             "test/changeDetectionTest/benchmarks/scope changes/multiple-dwelling.scm"*/)
     benchmarks.foreach(file =>
         onBenchmark(file)
     )
