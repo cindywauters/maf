@@ -186,7 +186,7 @@ class IncrementalAnalysisUpdateSplitVersions extends AnyPropSpec:
     )
 
     def callAnalysisOnBenchmark(benchmark: String, newOnly: IncrementalModAnalysisWithUpdateTwoVersions[SchemeExp], withUpdates: IncrementalModAnalysisWithUpdateTwoVersions[SchemeExp], withoutUpdates: IncrementalModAnalysisWithUpdateTwoVersions[SchemeExp]): Unit =
-        val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
+        val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(5, MINUTES))
 
         newOnly.version = New
         newOnly.analyzeWithTimeout(standardTimeout())

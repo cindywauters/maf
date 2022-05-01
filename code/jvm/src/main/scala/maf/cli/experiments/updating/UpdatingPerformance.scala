@@ -60,10 +60,10 @@ object UpdatingPerformance extends App:
     var scopeChangesBenchmarks = "test/changeDetectionTest/benchmarks/scope changes"
     var ifsBenchmarks = "test/changeDetectionTest/benchmarks/ifs"
 
-    var warmup = 15
-    var rounds = 25
+    var warmup = 10
+    var rounds = 20
 
-    def timeout(): Timeout.T = Timeout.start(Duration(5, MINUTES))
+    def timeout(): Timeout.T = Timeout.start(Duration(10, MINUTES))
 
     var resultsNoRefactoring: Table[Int] = Table.empty.withDefaultValue(0)
     var resultsWithRefactoring: Table[Int] = Table.empty.withDefaultValue(0)
@@ -164,8 +164,9 @@ object UpdatingPerformance extends App:
 
     def onBenchmark(file: String): Unit =
         val (oldProgram, newProgram) = CSchemeParserWithSplitter.parseProgram(Reader.loadFile(file))
-        val fullfilename = file.split("\\\\|\\.")
-        println(file)
+        val fullfilename = file.split("\\\\|\\.|\\/")
+      //  println(file)
+      //  println(fullfilename)
         var writeToFile = ""
         if fullfilename != null then
             val dir = fullfilename(3)
@@ -181,7 +182,8 @@ object UpdatingPerformance extends App:
             () => {
                 val initial = AnalysisType(oldProgram, newProgram)
                 initial},
-            (timeout, analysis) => analysis.analyzeWithTimeout(timeout))
+            (timeout, analysis) => analysis.analyzeWithTimeout(timeout),
+            oldVersion = true)
 
         warmUp("analysis new only", timeout => {
             val newOnly = AnalysisType(oldProgram, newProgram)
@@ -196,8 +198,7 @@ object UpdatingPerformance extends App:
                 newOnly.version = New
                 newOnly
             },
-            (timeout, analysis) => analysis.analyzeWithTimeout(timeout),
-            oldVersion = true)
+            (timeout, analysis) => analysis.analyzeWithTimeout(timeout))
 
 
         val initialAnalysis = AnalysisType(oldProgram, newProgram)
@@ -254,7 +255,18 @@ object UpdatingPerformance extends App:
 
     //onBenchmark("test/changeDetectionTest/benchmarks/renamings/browse.scm")
    // onBenchmark("test/changeDetectionTest/benchmarks/Scope Changes/browse.scm")
-    val benchmarks = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/benchmarks/renamings")()
+    //val benchmarks = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/benchmarks/renamings")()
+    val benchmarks: List[String] =
+        List(/*"test/changeDetectionTest/benchmarks/scope changes/nbody-processed.scm",
+             "test/changeDetectionTest/benchmarks/scope changes/nboyer.scm",
+             "test/changeDetectionTest/benchmarks/scope changes/mceval.scm",
+             "test/changeDetectionTest/benchmarks/scope changes/browse.scm",
+             "test/changeDetectionTest/benchmarks/scope changes/leval.scm",*/
+             "test/changeDetectionTest/benchmarks/scope changes/peval.scm",
+             "test/changeDetectionTest/benchmarks/scope changes/matrix.scm",
+             "test/changeDetectionTest/benchmarks/scope changes/freeze.scm",
+             //"test/changeDetectionTest/benchmarks/scope changes/machine-simulator.scm",
+             "test/changeDetectionTest/benchmarks/scope changes/multiple-dwelling.scm")
     benchmarks.foreach(file =>
         onBenchmark(file)
     )

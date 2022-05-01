@@ -112,7 +112,7 @@ object TwoSeperateVersionsAnalyse extends App:
             //println(SchemeRenamer.rename(program._1).prettyString())
             val test = baseUpdates(program._1, program._2)
 
-            for(i <- 1 to 5) {
+           /* for(i <- 1 to 5) {
                 val analysisWithUpdates = test.deepCopy()
                 analysisWithUpdates.analyzeWithTimeout(timeout())
                 val beforeUpdateAnalysis = System.nanoTime
@@ -120,7 +120,7 @@ object TwoSeperateVersionsAnalyse extends App:
                 analysisWithUpdates.updateAnalysis(timeout())
                 val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
                 println(analysisWithUpdates.timeIncrementalReanalysis)
-            }
+            }*/
 
             val analysisWithUpdates = baseUpdates(program._1, program._2)
             analysisWithUpdates.analyzeWithTimeout(timeout())
@@ -142,11 +142,20 @@ object TwoSeperateVersionsAnalyse extends App:
             println("next")
 
 
-            val analysisWithoutUpdates = baseUpdates(program._1, program._2)
+
             //   println(analysisWithoutUpdates.store)
             //   println(analysisWithoutUpdates.mainBody)
             //   println(analysisWithoutUpdates.secondMainBody)
 
+          /*  for(i <- 1 to 10){
+                val analysisWithoutUpdates = baseUpdates(program._1, program._2)
+                val beforeNewAnalysis = System.nanoTime
+               // analysisWithoutUpdates.version = olf
+                analysisWithoutUpdates.analyzeWithTimeout(timeout())
+                val timeNewAnalysis = System.nanoTime - beforeNewAnalysis
+
+            }*/
+            val analysisWithoutUpdates = baseUpdates(program._1, program._2)
             val beforeNewAnalysis = System.nanoTime
             analysisWithoutUpdates.version = New
             analysisWithoutUpdates.analyzeWithTimeout(timeout())
@@ -297,10 +306,10 @@ object TwoSeperateVersionsAnalyse extends App:
     //val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_browse.scm")
     // val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_nboyer.scm")
     //val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
-     val modFbenchmarks: List[String] = List("test/changeDetectionTest/benchmarks/renamings/leval.scm")
+     val modFbenchmarks: List[String] = List("test/changeDetectionTest/benchmarks/renamings/browse.scm")
     //val modFbenchmarks: List[String] = List("test/changes/scheme/slip-0-to-1.scm")
     //val modFbenchmarks: List[String] = List("test/changes/scheme/multiple-dwelling (fine).scm")
-    val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(2, MINUTES))
+    val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(10, MINUTES))
 
     modFbenchmarks.foreach(modfAnalysis(_, standardTimeout))
     println("Done")
