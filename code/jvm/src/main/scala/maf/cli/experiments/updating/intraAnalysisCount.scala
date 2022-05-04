@@ -1,6 +1,8 @@
 package maf.cli.experiments.updating
 
 import maf.cli.experiments.updating.UpdatingPerformance.AnalysisType
+import maf.core
+import maf.core.{Identifier, Monad, MonadError, MonadJoin}
 import maf.language.CScheme.CSchemeParserWithSplitter
 import maf.language.change.CodeVersion.{New, Old}
 import maf.language.scheme.SchemeExp
@@ -9,11 +11,13 @@ import maf.modular.incremental.IncrementalConfiguration
 import maf.modular.incremental.IncrementalConfiguration.noOptimisations
 import maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain
 import maf.modular.incremental.update.{IncrementalGlobalStoreWithUpdate, IncrementalModAnalysisWithUpdateTwoVersions, SchemeModFSemanticsUpdate, UpdateIncrementalSchemeModFBigStepSemantics}
-import maf.modular.scheme.modf.{SchemeModFNoSensitivity, StandardSchemeModFComponents}
-import maf.modular.worklist.LIFOWorklistAlgorithm
+import maf.modular.scheme.{PtrAddr, VarAddr}
+import maf.modular.scheme.modf.{SchemeModFCallSiteSensitivity, SchemeModFComponent, SchemeModFNoSensitivity, StandardSchemeModFComponents}
+import maf.modular.worklist.{FIFOWorklistAlgorithm, LIFOWorklistAlgorithm}
 import maf.util.Reader
 import maf.util.benchmarks.{Table, Timeout}
 
+import java.io.{BufferedWriter, File, FileWriter}
 import scala.concurrent.duration.{Duration, MINUTES}
 
 object intraAnalysisCount extends App:
@@ -22,9 +26,9 @@ object intraAnalysisCount extends App:
 
     def AnalysisType(oldProgram: SchemeExp, newProgram: SchemeExp) = new ModAnalysis[SchemeExp](oldProgram)
         with StandardSchemeModFComponents
-        with SchemeModFNoSensitivity
+        with SchemeModFCallSiteSensitivity
         with SchemeModFSemanticsUpdate
-        with LIFOWorklistAlgorithm[SchemeExp]
+        with FIFOWorklistAlgorithm[SchemeExp]
         with UpdateIncrementalSchemeModFBigStepSemantics
         with IncrementalSchemeTypeDomain
         with IncrementalModAnalysisWithUpdateTwoVersions(newProgram)
@@ -56,7 +60,6 @@ object intraAnalysisCount extends App:
         if fullfilename != null && fullfilename.length > 4 then
             dir = fullfilename(3).asInstanceOf[String]
             filename = fullfilename(4).asInstanceOf[String]
-        var writeToFile = "benchOutput/UpdatingPerformance/intraAnalyses.csv"
 
         val initialOnly = AnalysisType(oldProgram, newProgram)
         initialOnly.analyzeWithTimeout(timeout())
@@ -91,7 +94,7 @@ object intraAnalysisCount extends App:
 
 
     val benchmarks: List[String] =
-        List("test/changeDetectionTest/benchmarks/scope changes/nbody-processed.scm",
+        List(/*"test/changeDetectionTest/benchmarks/scope changes/nbody-processed.scm",
              "test/changeDetectionTest/benchmarks/ifs/nbody-processed.scm",
              "test/changeDetectionTest/benchmarks/renamings/nbody-processed.scm",
              "test/changeDetectionTest/benchmarks/scope changes/nboyer.scm",
@@ -99,10 +102,37 @@ object intraAnalysisCount extends App:
              "test/changeDetectionTest/benchmarks/renamings/nboyer.scm",
              "test/changeDetectionTest/benchmarks/scope changes/peval.scm",
              "test/changeDetectionTest/benchmarks/ifs/peval.scm",
-             "test/changeDetectionTest/benchmarks/renamings/peval.scm")
+             "test/changeDetectionTest/benchmarks/renamings/peval.scm",
+             "test/changeDetectionTest/benchmarks/scope changes/mceval.scm",
+             "test/changeDetectionTest/benchmarks/ifs/mceval.scm",
+             "test/changeDetectionTest/benchmarks/renamings/mceval.scm"*/
+             "test/changeDetectionTest/benchmarks/scope changes/browse.scm",
+             "test/changeDetectionTest/benchmarks/ifs/browse.scm",
+             "test/changeDetectionTest/benchmarks/renamings/browse.scm",
+           /*  "test/changeDetectionTest/benchmarks/scope changes/freeze.scm",
+             "test/changeDetectionTest/benchmarks/ifs/freeze.scm",
+             "test/changeDetectionTest/benchmarks/renamings/freeze.scm",
+             "test/changeDetectionTest/benchmarks/scope changes/matrix.scm",
+             "test/changeDetectionTest/benchmarks/ifs/matrix.scm",
+             "test/changeDetectionTest/benchmarks/renamings/matrix.scm",
+             "test/changeDetectionTest/benchmarks/scope changes/leval.scm",
+             "test/changeDetectionTest/benchmarks/ifs/leval.scm",
+             "test/changeDetectionTest/benchmarks/renamings/leval.scm",
+             "test/changeDetectionTest/benchmarks/scope changes/multiple-dwelling.scm",
+             "test/changeDetectionTest/benchmarks/ifs/multiple-dwelling.scm",
+             "test/changeDetectionTest/benchmarks/renamings/multiple-dwelling.scm",
+             "test/changeDetectionTest/benchmarks/scope changes/machine-simulator.scm",
+             "test/changeDetectionTest/benchmarks/ifs/machine-simulator.scm",
+             "test/changeDetectionTest/benchmarks/renamings/machine-simulator.scm"*/
+        )
 
     benchmarks.foreach(file =>
         onBenchmark(file)
     )
 
     println(results.prettyString())
+  /*  var writeToFile = "benchOutput/UpdatingPerformance/intraAnalyses.csv"
+    val outFile = new File(writeToFile)
+    val bw = new BufferedWriter(new FileWriter(outFile))
+    bw.write(results.toCSVString())
+    bw.close(*/

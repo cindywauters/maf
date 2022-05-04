@@ -24,7 +24,7 @@ import maf.modular.incremental.*
 import maf.modular.incremental.scheme.IncrementalSchemeAnalysisInstantiations.*
 import maf.modular.incremental.scheme.lattice.*
 import maf.modular.incremental.scheme.modf.IncrementalSchemeModFBigStepSemantics
-import maf.modular.worklist.LIFOWorklistAlgorithm
+import maf.modular.worklist.FIFOWorklistAlgorithm
 import maf.util.{Reader, Writer}
 import maf.util.Writer.Writer
 import maf.util.benchmarks.Timeout
@@ -41,12 +41,12 @@ object TwoSeperateVersionsAnalyse extends App:
 
         def baseUpdates(oldProgram: SchemeExp, newProgram: SchemeExp) = new ModAnalysis[SchemeExp](oldProgram)
             with StandardSchemeModFComponents
-            // with SchemeModFFullArgumentSensitivity
-            //with SchemeModFCallSiteSensitivity
-            //with SchemeModFFullArgumentCallSiteSensitivity
-            with SchemeModFNoSensitivity
+           // with SchemeModFFullArgumentSensitivity
+            with SchemeModFCallSiteSensitivity
+           // with SchemeModFFullArgumentCallSiteSensitivity
+            //with SchemeModFNoSensitivity
             with SchemeModFSemanticsUpdate
-            with LIFOWorklistAlgorithm[SchemeExp]
+            with FIFOWorklistAlgorithm[SchemeExp]
             with UpdateIncrementalSchemeModFBigStepSemantics
             with IncrementalSchemeTypeDomain
             with IncrementalModAnalysisWithUpdateTwoVersions(newProgram)
@@ -80,11 +80,11 @@ object TwoSeperateVersionsAnalyse extends App:
 
         def newOnly(program: SchemeExp) = new ModAnalysis[SchemeExp](program)
             with StandardSchemeModFComponents
-           // with SchemeModFFullArgumentCallSiteSensitivity
+            //with SchemeModFFullArgumentCallSiteSensitivity
             with SchemeModFCallSiteSensitivity
             //with SchemeModFNoSensitivity
             with SchemeModFSemanticsM
-            with LIFOWorklistAlgorithm[SchemeExp]
+            with FIFOWorklistAlgorithm[SchemeExp]
             with IncrementalSchemeModFBigStepSemantics
             with IncrementalSchemeTypeDomain // IncrementalSchemeConstantPropagationDomain
             with IncrementalGlobalStore[SchemeExp]
@@ -305,8 +305,8 @@ object TwoSeperateVersionsAnalyse extends App:
     //val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/machine-simulator.scm")
     //val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_browse.scm")
     // val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_nboyer.scm")
-    //val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
-     val modFbenchmarks: List[String] = List("test/changeDetectionTest/benchmarks/scope changes/nboyer.scm")
+    val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
+    // val modFbenchmarks: List[String] = List("test/changeDetectionTest/benchmarks/ifs/browse.scm")
     //val modFbenchmarks: List[String] = List("test/changes/scheme/slip-0-to-1.scm")
     //val modFbenchmarks: List[String] = List("test/changes/scheme/multiple-dwelling (fine).scm")
     val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(10, MINUTES))

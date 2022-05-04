@@ -1,8 +1,5 @@
-(define (g x) (dislayln x))
+(define (<update> f g) (lambda (x) 5))
 
-(define (f x)
-  (define g (lambda (x) (+ x 1)))
-  (g x))
+(define z (lambda (x) (g x)))
 
-
-(f 5)
+z
