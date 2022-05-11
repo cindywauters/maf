@@ -175,6 +175,22 @@ class IncrementalUpdateDatastructures {
          case _ =>
          )
 
+    //List[((SchemeIf, SchemeIf),  List[Identifier], (Expression, Expression))]
+    ifs.foreach(ifstatement =>
+        if ifstatement._2.nonEmpty then
+            var depVar = AddrDependency(maf.modular.scheme.VarAddr(ifstatement._2.head, None))
+            var depRet = a.visited.collect{ case comp@SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: _) if lam.name.contains(ifstatement._2.head.name) => ReturnAddr(comp, lam.body.head.idn)}
+            a.deps.get(depVar) match
+                case Some(deps) =>
+                    a.mapping.get(ifstatement._1._2) match
+                        case Some(mappings) =>
+                            a.deps = a.deps + (depVar -> (deps ++ mappings))
+                            depRet.foreach(ret =>
+                                a.deps = a.deps + (AddrDependency(ret) -> (deps ++ mappings)))
+                case _ =>
+
+    )
+
     toAddComponents.foreach(c =>
         a.addToWorkList(cachedComponents.getOrElse(c.hashCode().toLong, c).asInstanceOf[a.Component])
 
@@ -524,7 +540,9 @@ class IncrementalUpdateDatastructures {
                             initialEnvNew = initialEnvNew + (oldVar.id.name -> oldVar.id)
                         newCtx
                     case _ =>
-                        Some(NoContext)
+                        if initialEnvNew.exists(e => e._2.idn == identifier.idn) then
+                            None
+                        else Some(NoContext)
               newEnv = newEnv + (fv -> maf.modular.scheme.VarAddr(identifier, newCtx))
             case None =>
               println(expr)

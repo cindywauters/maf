@@ -1,5 +1,10 @@
-(define (<update> f g) (lambda (x) 5))
+(define (close-enough-guess? guess x)
+  (< (abs (-  (* guess guess) x)) (<change> 0.0001 0.01)))
 
-(define z (lambda (x) (g x)))
+(define (sqrt guess x)
+  (let ((next-guess (/ (+ guess (/ x guess)) 2.0)))
+    (if (close-enough-guess? next-guess x)
+         next-guess
+        (sqrt next-guess x))))
 
-z
+(sqrt 1.0 9)

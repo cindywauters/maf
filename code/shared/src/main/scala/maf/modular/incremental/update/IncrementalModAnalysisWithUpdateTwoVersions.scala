@@ -28,7 +28,7 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
         (program, secondProgram) match
         case (old: SchemeExp, nw: SchemeExp) =>
             val time = System.nanoTime()
-            val changes = finder.comparePrograms(old, nw, Some(this))
+            val changes = finder.comparePrograms(old, nw, Some(this), withUpdating)
             timeFindingChanges = System.nanoTime() - time
             var affectedAll = changes.reanalyse.appendedAll(changes.renamings.map(_._1)).appendedAll(changes.ifs.map(_._1)).appendedAll(changes.scopeChanges.map((k, v) => (k._1, v._1)))
             val affectedLambdas: List[Expr] = visited.collect {

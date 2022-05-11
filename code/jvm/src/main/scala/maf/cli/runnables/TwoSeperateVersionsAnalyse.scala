@@ -42,9 +42,9 @@ object TwoSeperateVersionsAnalyse extends App:
         def baseUpdates(oldProgram: SchemeExp, newProgram: SchemeExp) = new ModAnalysis[SchemeExp](oldProgram)
             with StandardSchemeModFComponents
            // with SchemeModFFullArgumentSensitivity
-            with SchemeModFCallSiteSensitivity
+           // with SchemeModFCallSiteSensitivity
            // with SchemeModFFullArgumentCallSiteSensitivity
-            //with SchemeModFNoSensitivity
+            with SchemeModFNoSensitivity
             with SchemeModFSemanticsUpdate
             with FIFOWorklistAlgorithm[SchemeExp]
             with UpdateIncrementalSchemeModFBigStepSemantics
@@ -112,11 +112,11 @@ object TwoSeperateVersionsAnalyse extends App:
             //println(SchemeRenamer.rename(program._1).prettyString())
             val test = baseUpdates(program._1, program._2)
 
-           /* for(i <- 1 to 5) {
+         /*   for(i <- 1 to 5) {
                 val analysisWithUpdates = test.deepCopy()
                 analysisWithUpdates.analyzeWithTimeout(timeout())
                 val beforeUpdateAnalysis = System.nanoTime
-                analysisWithUpdates.withUpdating = true
+                analysisWithUpdates.withUpdating = false
                 analysisWithUpdates.updateAnalysis(timeout())
                 val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
                 println(analysisWithUpdates.timeIncrementalReanalysis)
@@ -305,8 +305,8 @@ object TwoSeperateVersionsAnalyse extends App:
     //val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/machine-simulator.scm")
     //val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_browse.scm")
     // val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_nboyer.scm")
-    val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
-    // val modFbenchmarks: List[String] = List("test/changeDetectionTest/benchmarks/ifs/browse.scm")
+    // val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
+     val modFbenchmarks: List[String] = List("test/changeDetectionTest/benchmarks/ifs/nbody-processed.scm")
     //val modFbenchmarks: List[String] = List("test/changes/scheme/slip-0-to-1.scm")
     //val modFbenchmarks: List[String] = List("test/changes/scheme/multiple-dwelling (fine).scm")
     val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(10, MINUTES))

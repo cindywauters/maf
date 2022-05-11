@@ -15,7 +15,7 @@ import maf.modular.incremental.update.{IncrementalGlobalStoreWithUpdate, Increme
 import maf.modular.scheme.modf
 import maf.modular.scheme.modf.*
 import maf.modular.scheme.ssmodconc.*
-import maf.modular.worklist.LIFOWorklistAlgorithm
+import maf.modular.worklist.{FIFOWorklistAlgorithm, LIFOWorklistAlgorithm}
 import maf.test.*
 import maf.util.Reader
 import maf.util.benchmarks.Timeout
@@ -33,7 +33,7 @@ class IncrementalAnalysisUpdateSplitVersions extends AnyPropSpec:
         with StandardSchemeModFComponents
         with SchemeModFNoSensitivity
         with SchemeModFSemanticsUpdate
-        with LIFOWorklistAlgorithm[SchemeExp]
+        with FIFOWorklistAlgorithm[SchemeExp]
         with UpdateIncrementalSchemeModFBigStepSemantics
         with IncrementalSchemeTypeDomain
         with IncrementalModAnalysisWithUpdateTwoVersions(newProgram)
@@ -186,7 +186,7 @@ class IncrementalAnalysisUpdateSplitVersions extends AnyPropSpec:
     )
 
     def callAnalysisOnBenchmark(benchmark: String, newOnly: IncrementalModAnalysisWithUpdateTwoVersions[SchemeExp], withUpdates: IncrementalModAnalysisWithUpdateTwoVersions[SchemeExp], withoutUpdates: IncrementalModAnalysisWithUpdateTwoVersions[SchemeExp]): Unit =
-        val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(5, MINUTES))
+        val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(10, MINUTES))
 
         newOnly.version = New
         newOnly.analyzeWithTimeout(standardTimeout())

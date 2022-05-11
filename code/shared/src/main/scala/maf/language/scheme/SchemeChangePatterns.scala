@@ -302,7 +302,8 @@ class SchemeChangePatterns:
                         reanalyse = reanalyse.::(Some(oldEncapsulating), Some(nwEncapsulating))
                     case _ =>
                 )
-                checkAffectedEnvs()
+                if refactoring && (rename.nonEmpty || scopeChanges.nonEmpty) then
+                    checkAffectedEnvs()
                 reanalyse = reanalyse//.appendedAll(deletes)//.appendedAll(inserts)
                 reanalyse.foreach(println)
                 println("rename")
@@ -315,12 +316,12 @@ class SchemeChangePatterns:
             case _ => differentChanges(reanalyse, rename, ifs, scopeChanges, allNewScopes)
 
     def checkAffectedEnvs(): Unit =
-        var allToCheckVar: Map[Identifier, Identifier] = rename.flatMap(_._2._2).toMap ++ scopeChanges.map((old, nw) => (old._2._1, nw._2._1)).toMap
+        var allToCheckVar: Map[Identifier, Identifier] = rename.flatMap(_._2._2).toMap ++ scopeChanges.map((old, nw) => (nw._2._1, old._2._1)).toMap
         allOldScopes.foreach((e, env) =>
             allNewScopes.get(e) match
                 case Some(newid, newenv) =>
-                    var allToCheckOld = env._2.filter(fv => allToCheckVar.exists(e => e._2 == fv._2))
-                    var allToCheckNew = newenv.filter(fv => allToCheckVar.contains(fv._2))
+                    val allToCheckOld = env._2.filter(fv => allToCheckVar.exists(e => e._2 == fv._2))
+                    val allToCheckNew = newenv.filter(fv => allToCheckVar.contains(fv._2))
                     if allToCheckOld.size != allToCheckNew.size then
                         reanalyse = reanalyse.::(Some(e), Some(e))
                 case _ =>)
