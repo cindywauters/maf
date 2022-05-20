@@ -6,7 +6,7 @@ import maf.language.scheme.{SchemeCodeChange, SchemeRenamer}
 import maf.modular.incremental.IncrementalModAnalysis
 import maf.modular.{AddrDependency, Dependency, ReturnAddr}
 import maf.modular.incremental.scheme.lattice.IncrementalSchemeTypeDomain
-import maf.modular.incremental.update.{IncrementalGlobalStoreWithUpdate, IncrementalModAnalysisWithUpdate, IncrementalModAnalysisWithUpdateTwoVersions, IncrementalUpdateDatastructures, UpdateIncrementalSchemeModFBigStepSemantics}
+import maf.modular.incremental.update.{IncrementalGlobalStoreWithUpdate, IncrementalModAnalysisWithUpdate, IncrementalModAnalysisWithUpdateTwoVersions, IncrementalUpdateDatastructures, SchemeChangeRenamerForPatterns, UpdateIncrementalSchemeModFBigStepSemantics}
 import maf.modular.scheme.{PtrAddr, SchemeAddr, VarAddr}
 import maf.util.Writer.close
 //import maf.cli.runnables.IncrementalRun.standardTimeout
@@ -112,15 +112,18 @@ object TwoSeperateVersionsAnalyse extends App:
             //println(SchemeRenamer.rename(program._1).prettyString())
             val test = baseUpdates(program._1, program._2)
 
-         /*   for(i <- 1 to 5) {
+           // println(SchemeChangeRenamerForPatterns.renameIndex(program._1).prettyString())
+           // println(SchemeChangeRenamerForPatterns.renameIndex(program._2).prettyString())
+
+            for(i <- 1 to 5) {
                 val analysisWithUpdates = test.deepCopy()
                 analysisWithUpdates.analyzeWithTimeout(timeout())
                 val beforeUpdateAnalysis = System.nanoTime
-                analysisWithUpdates.withUpdating = false
+                analysisWithUpdates.withUpdating = true
                 analysisWithUpdates.updateAnalysis(timeout())
                 val timeUpdateAnalysis = System.nanoTime - beforeUpdateAnalysis
                 println(analysisWithUpdates.timeIncrementalReanalysis)
-            }*/
+            }
 
             val analysisWithUpdates = baseUpdates(program._1, program._2)
             analysisWithUpdates.analyzeWithTimeout(timeout())
@@ -306,7 +309,7 @@ object TwoSeperateVersionsAnalyse extends App:
     //val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_browse.scm")
     // val modFbenchmarks: List[String] = List("test/changeDetectionTest/scopeChangesManual/gambit_nboyer.scm")
     // val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
-     val modFbenchmarks: List[String] = List("test/changeDetectionTest/benchmarks/ifs/nbody-processed.scm")
+     val modFbenchmarks: List[String] = List("test/changeDetectionTest/benchmarks/renamings/nbody-processed.scm")
     //val modFbenchmarks: List[String] = List("test/changes/scheme/slip-0-to-1.scm")
     //val modFbenchmarks: List[String] = List("test/changes/scheme/multiple-dwelling (fine).scm")
     val standardTimeout: () => Timeout.T = () => Timeout.start(Duration(10, MINUTES))

@@ -94,35 +94,35 @@ object intraAnalysisCount extends App:
 
 
     val benchmarks: List[String] =
-        List("test/changeDetectionTest/benchmarks/scope changes/nbody-processed.scm",
-             "test/changeDetectionTest/benchmarks/ifs/nbody-processed.scm",
+        List(//"test/changeDetectionTest/benchmarks/scope changes/nbody-processed.scm",
+             //"test/changeDetectionTest/benchmarks/ifs/nbody-processed.scm",
              "test/changeDetectionTest/benchmarks/renamings/nbody-processed.scm",
-             "test/changeDetectionTest/benchmarks/scope changes/nboyer.scm",
-             "test/changeDetectionTest/benchmarks/ifs/nboyer.scm",
+             //"test/changeDetectionTest/benchmarks/scope changes/nboyer.scm",
+             //"test/changeDetectionTest/benchmarks/ifs/nboyer.scm",
              "test/changeDetectionTest/benchmarks/renamings/nboyer.scm",
-             "test/changeDetectionTest/benchmarks/scope changes/peval.scm",
-             "test/changeDetectionTest/benchmarks/ifs/peval.scm",
+             //"test/changeDetectionTest/benchmarks/scope changes/peval.scm",
+             //"test/changeDetectionTest/benchmarks/ifs/peval.scm",
              "test/changeDetectionTest/benchmarks/renamings/peval.scm",
-             "test/changeDetectionTest/benchmarks/scope changes/mceval.scm",
-             "test/changeDetectionTest/benchmarks/ifs/mceval.scm",
+             //"test/changeDetectionTest/benchmarks/scope changes/mceval.scm",
+             //"test/changeDetectionTest/benchmarks/ifs/mceval.scm",
              "test/changeDetectionTest/benchmarks/renamings/mceval.scm",
-             "test/changeDetectionTest/benchmarks/scope changes/browse.scm",
-             "test/changeDetectionTest/benchmarks/ifs/browse.scm",
+             //"test/changeDetectionTest/benchmarks/scope changes/browse.scm",
+             //"test/changeDetectionTest/benchmarks/ifs/browse.scm",
              "test/changeDetectionTest/benchmarks/renamings/browse.scm",
-             "test/changeDetectionTest/benchmarks/scope changes/freeze.scm",
-             "test/changeDetectionTest/benchmarks/ifs/freeze.scm",
+             //"test/changeDetectionTest/benchmarks/scope changes/freeze.scm",
+             //"test/changeDetectionTest/benchmarks/ifs/freeze.scm",
              "test/changeDetectionTest/benchmarks/renamings/freeze.scm",
-             "test/changeDetectionTest/benchmarks/scope changes/matrix.scm",
-             "test/changeDetectionTest/benchmarks/ifs/matrix.scm",
+             //"test/changeDetectionTest/benchmarks/scope changes/matrix.scm",
+             //"test/changeDetectionTest/benchmarks/ifs/matrix.scm",
              "test/changeDetectionTest/benchmarks/renamings/matrix.scm",
-             "test/changeDetectionTest/benchmarks/scope changes/leval.scm",
-             "test/changeDetectionTest/benchmarks/ifs/leval.scm",
+             //"test/changeDetectionTest/benchmarks/scope changes/leval.scm",
+             //"test/changeDetectionTest/benchmarks/ifs/leval.scm",
              "test/changeDetectionTest/benchmarks/renamings/leval.scm",
-             "test/changeDetectionTest/benchmarks/scope changes/multiple-dwelling.scm",
-             "test/changeDetectionTest/benchmarks/ifs/multiple-dwelling.scm",
+             //"test/changeDetectionTest/benchmarks/scope changes/multiple-dwelling.scm",
+             //"test/changeDetectionTest/benchmarks/ifs/multiple-dwelling.scm",
              "test/changeDetectionTest/benchmarks/renamings/multiple-dwelling.scm",
-             "test/changeDetectionTest/benchmarks/scope changes/machine-simulator.scm",
-             "test/changeDetectionTest/benchmarks/ifs/machine-simulator.scm",
+             //"test/changeDetectionTest/benchmarks/scope changes/machine-simulator.scm",
+             //"test/changeDetectionTest/benchmarks/ifs/machine-simulator.scm",
              "test/changeDetectionTest/benchmarks/renamings/machine-simulator.scm"
         )
 
@@ -131,8 +131,8 @@ object intraAnalysisCount extends App:
     )
 
     println(results.prettyString())
-    var writeToFile = "benchOutput/UpdatingPerformance/intraAnalyses2.csv"
+   /* var writeToFile = "benchOutput/UpdatingPerformance/intraAnalyses2.csv"
     val outFile = new File(writeToFile)
     val bw = new BufferedWriter(new FileWriter(outFile))
     bw.write(results.toCSVString())
-    bw.close()
+    bw.close()*/

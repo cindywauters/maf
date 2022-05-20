@@ -14,7 +14,7 @@ import maf.modular.incremental.IncrementalConfiguration.noOptimisations
 import maf.modular.incremental.scheme.lattice.{IncrementalSchemeConstantPropagationDomain, IncrementalSchemeTypeDomain}
 import maf.modular.incremental.update.{IncrementalGlobalStoreWithUpdate, IncrementalModAnalysisWithUpdateTwoVersions, SchemeModFSemanticsUpdate, UpdateIncrementalSchemeModFBigStepSemantics}
 import maf.modular.scheme.modf.{SchemeModFComponent, SchemeModFNoSensitivity, StandardSchemeModFComponents}
-import maf.modular.worklist.LIFOWorklistAlgorithm
+import maf.modular.worklist.{FIFOWorklistAlgorithm, LIFOWorklistAlgorithm}
 import maf.util.Reader
 import maf.util.benchmarks.{Statistics, Table, Timeout, Timer}
 
@@ -26,7 +26,7 @@ object UpdatingPerformance extends App:
         with StandardSchemeModFComponents
         with SchemeModFNoSensitivity
         with SchemeModFSemanticsUpdate
-        with LIFOWorklistAlgorithm[SchemeExp]
+        with FIFOWorklistAlgorithm[SchemeExp]
         with UpdateIncrementalSchemeModFBigStepSemantics
         with IncrementalSchemeTypeDomain
         with IncrementalModAnalysisWithUpdateTwoVersions(newProgram)
@@ -61,7 +61,7 @@ object UpdatingPerformance extends App:
     var ifsBenchmarks = "test/changeDetectionTest/benchmarks/ifs"
 
     var warmup = 10
-    var rounds = 20
+    var rounds = 25
 
     def timeout(): Timeout.T = Timeout.start(Duration(10, MINUTES))
 
@@ -256,17 +256,37 @@ object UpdatingPerformance extends App:
     //onBenchmark("test/changeDetectionTest/benchmarks/renamings/browse.scm")
    // onBenchmark("test/changeDetectionTest/benchmarks/Scope Changes/browse.scm")
     //val benchmarks = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/benchmarks/renamings")()
-    val benchmarks: List[String] =
-        List(//"test/changeDetectionTest/benchmarks/scope changes/nbody-processed.scm",
-             "test/changeDetectionTest/benchmarks/scope changes/nboyer.scm",
-             /*"test/changeDetectionTest/benchmarks/scope changes/mceval.scm",
-             "test/changeDetectionTest/benchmarks/scope changes/browse.scm",
-             "test/changeDetectionTest/benchmarks/scope changes/leval.scm",
-             "test/changeDetectionTest/benchmarks/scope changes/peval.scm",
-             "test/changeDetectionTest/benchmarks/scope changes/matrix.scm",
-             "test/changeDetectionTest/benchmarks/scope changes/freeze.scm",
-             //"test/changeDetectionTest/benchmarks/scope changes/machine-simulator.scm",
-             "test/changeDetectionTest/benchmarks/scope changes/multiple-dwelling.scm"*/)
+    val benchmarks: List[String] = List(/*"test/changeDetectionTest/benchmarks/scope changes/nbody-processed.scm",
+       "test/changeDetectionTest/benchmarks/ifs/nbody-processed.scm",
+       "test/changeDetectionTest/benchmarks/renamings/nbody-processed.scm",
+        "test/changeDetectionTest/benchmarks/scope changes/nboyer.scm",
+        "test/changeDetectionTest/benchmarks/ifs/nboyer.scm",
+        "test/changeDetectionTest/benchmarks/renamings/nboyer.scm",
+        "test/changeDetectionTest/benchmarks/scope changes/peval.scm",
+        "test/changeDetectionTest/benchmarks/ifs/peval.scm",
+        "test/changeDetectionTest/benchmarks/renamings/peval.scm",
+        "test/changeDetectionTest/benchmarks/scope changes/mceval.scm",
+        "test/changeDetectionTest/benchmarks/ifs/mceval.scm",
+        "test/changeDetectionTest/benchmarks/renamings/mceval.scm",
+        "test/changeDetectionTest/benchmarks/scope changes/browse.scm",
+        "test/changeDetectionTest/benchmarks/ifs/browse.scm",
+        "test/changeDetectionTest/benchmarks/renamings/browse.scm",
+        "test/changeDetectionTest/benchmarks/scope changes/freeze.scm",
+        "test/changeDetectionTest/benchmarks/ifs/freeze.scm",
+        "test/changeDetectionTest/benchmarks/renamings/freeze.scm",
+        "test/changeDetectionTest/benchmarks/scope changes/matrix.scm",
+        "test/changeDetectionTest/benchmarks/ifs/matrix.scm",
+        "test/changeDetectionTest/benchmarks/renamings/matrix.scm",
+        "test/changeDetectionTest/benchmarks/scope changes/leval.scm",
+        "test/changeDetectionTest/benchmarks/ifs/leval.scm",
+        "test/changeDetectionTest/benchmarks/renamings/leval.scm",
+        "test/changeDetectionTest/benchmarks/scope changes/multiple-dwelling.scm",
+        "test/changeDetectionTest/benchmarks/ifs/multiple-dwelling.scm",*/
+        "test/changeDetectionTest/benchmarks/renamings/multiple-dwelling.scm",
+        "test/changeDetectionTest/benchmarks/scope changes/machine-simulator.scm",
+        "test/changeDetectionTest/benchmarks/ifs/machine-simulator.scm",
+        "test/changeDetectionTest/benchmarks/renamings/machine-simulator.scm"
+   )
     benchmarks.foreach(file =>
         onBenchmark(file)
     )

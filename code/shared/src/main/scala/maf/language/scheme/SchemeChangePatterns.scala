@@ -80,16 +80,14 @@ class SchemeChangePatterns:
                     val variablesNew = findAllVarsInOrder(ne)
                     if variablesOld.length != variablesNew.length then
                         return (false, Map())
-                    val renamedOld = SchemeRenamer.rename(oe)
+                   /* val renamedOld = SchemeRenamer.rename(oe)
                     val renamedNew = SchemeRenamer.rename(ne)
                     val variablesRenamedOld = findAllVarsInOrder(renamedOld)
                     val variablesRenamedNew = findAllVarsInOrder(renamedNew)
                     var mappedVars = variablesNew.map(e => e.name).zip(variablesOld.map(e => e.name)).toMap
-                    val mappedRenamedVars = variablesRenamedNew.map(e => e.name).zip(variablesRenamedOld.map(e => e.name)).toMap
+                    val mappedRenamedVars = variablesRenamedNew.map(e => e.name).zip(variablesRenamedOld.map(e => e.name)).toMap*/
                     val mappedIdentifiers = variablesNew.zip(variablesOld).toMap
-                    if renamedOld.eql(SchemeChangeRenamerForPatterns.rename(renamedNew, mappedRenamedVars, Map[String, Int]())._1) then
-                        println(renamedOld.eql(renamedNew))
-                        println(oldexp.eql(renamedOld))
+                    if SchemeChangeRenamerForPatterns.renameIndex(oldexp.asInstanceOf[SchemeExp]).eql(SchemeChangeRenamerForPatterns.renameIndex(newexp.asInstanceOf[SchemeExp])) then
                         return (true, mappedIdentifiers)
                 } catch {
                     case e: _ => return (false, Map())
@@ -114,7 +112,7 @@ class SchemeChangePatterns:
                 mappedIds = mappedIds ++ varsNew.zip(varsOld).toMap
             case _ =>
         try {
-            if oldexp.eql(SchemeChangeRenamerForPatterns.rename(nwexp, mappedVars, Map[String, Int]())._1) then
+            if SchemeChangeRenamerForPatterns.renameIndex(oldexp, List(oldname.name))._1.eql(SchemeChangeRenamerForPatterns.renameIndex(nwexp,List(newname.name))._1) then
                 (true, mappedIds)
             else
                 (false, Map())

@@ -1,6 +1,6 @@
 package maf.modular.incremental.update
 
-import maf.core.Identifier
+import maf.core.{Identifier, NoCodeIdentity}
 import maf.language.scheme.*
 
 /**
@@ -148,3 +148,130 @@ object SchemeChangeRenamerForPatterns:
             }
         ) match
             case (l, ns, cs) => (l.reverse, ns, cs)
+
+    def renameIndex(exp: SchemeExp): SchemeExp =
+        renameIndex(exp, List[String]()) match
+            case (e, _) => e
+
+    def getNewName(name: Option[String], names: List[String]): Option[String] =
+        if names.isEmpty then
+            return None
+        names.indexOf(name.getOrElse("")) match
+            case -1 => name
+            case i: Int => Some(i.toString)
+
+    def renameIndex(
+                  exp: SchemeExp,
+                  names: List[String],
+          ): (SchemeExp, List[String]) = exp match
+        case SchemeLambda(name, args, body, annotation, pos) =>
+            var names1: List[String] = args.map(_.name).reverse.appendedAll(names)
+            renameListIndex(body, names1) match
+                        case (body1, names2) => (SchemeLambda(getNewName(name, names), List(Identifier("", NoCodeIdentity)), body1, annotation, pos), names)
+        case SchemeFuncall(f, args, pos) =>
+            renameIndex(f, names) match
+                case (f1, names2) =>
+                    renameListIndex(args, names) match
+                        case (args1, names3) => (SchemeFuncall(f1, args1, pos), names)
+        case SchemeIf(cond, cons, alt, pos) =>
+            renameIndex(cond, names) match
+                case (cond1, names1) =>
+                    renameIndex(cons, names) match
+                        case (cons1, names2) =>
+                            renameIndex(alt, names) match
+                                case (alt1, names3) => (SchemeIf(cond1, cons1, alt1, pos), names)
+        case SchemeLet(bindings, body, pos) =>
+            countlIndex(bindings.map(_._1), names) match
+                case (variables, names1) =>
+                    renameListIndex(bindings.map(_._2), names) match
+                        case (exps, names2) =>
+                            renameListIndex(body, names1) match
+                                case (body1, names3) => (SchemeLet(variables.zip(exps), body1, pos) ,names)
+        case SchemeLetStar(bindings, body, pos) =>
+            renameLetStarBindingsIndex(bindings, names) match
+                case (bindings1, names1) =>
+                    renameListIndex(body, names1) match
+                        case (body1, count2) => (SchemeLetStar(bindings1, body1, pos), names)
+        case SchemeLetrec(bindings, body, pos) =>
+            countlIndex(bindings.map(_._1), names) match
+                case (variables, names1) =>
+                    renameListIndex(bindings.map(_._2), names1) match
+                        case (exps, count2) =>
+                            renameListIndex(body, names1) match
+                                case (body1, count3) => (SchemeLetrec(variables.zip(exps), body1, pos), names)
+        case SchemeSet(variable, value, pos) =>
+            renameIndex(value, names) match
+                case (value1, count1) =>
+                    (SchemeSet(getNewName(Some(variable.name), names) match {
+                        case Some(n) => Identifier(n, variable.idn)
+                        case None    => variable
+                    },
+                        value1,
+                        pos
+                    ),
+                        count1
+                    )
+        case SchemeBegin(body, pos) =>
+            renameListIndex(body, names) match
+                case (body1, count1) => (SchemeBegin(body1, pos), names)
+        case SchemeAssert(exp, pos) =>
+            renameIndex(exp, names) match
+                case (exp1, count1) => (SchemeAssert(exp1, pos), names)
+        case SchemeVar(id) =>
+            getNewName(Some(id.name), names) match
+                case Some(n) => (SchemeVar(Identifier(n, id.idn)), names)
+                case None    => (SchemeVar(Identifier(id.name, id.idn)), names) /* keep original name */
+        case SchemeValue(v, pos) =>
+            (SchemeValue(v, pos), names)
+        case _ => throw new Exception(s"Unhandled expression in renamer: $exp")
+
+    /** Renames a list of expressions executed sequentially (eg. within a begin) */
+    def renameListIndex(
+                      exps: List[SchemeExp],
+                      names: List[String],
+                  ): (List[SchemeExp], List[String]) = exps match
+        case exp :: rest =>
+            val (exp1, names1) = renameIndex(exp, names)
+            val (rest1, names2) = renameListIndex(rest, names)
+            (exp1 :: rest1, names)
+        case Nil => (Nil, names)
+
+    def renameLetStarBindingsIndex(
+                                 bindings: List[(Identifier, SchemeExp)],
+                                 names: List[String],
+                             ): (List[(Identifier, SchemeExp)], List[String]) =
+        bindings match
+            case (v, e) :: rest =>
+                count1Index(v, names) match
+                    case (v1, names1) =>
+                        renameIndex(e, names) match
+                            case (e1, names2) =>
+                                renameLetStarBindingsIndex(rest, v.name :: names) match
+                                    case (rest1, names2) =>
+                                        ((v1, e1) :: rest1, names2)
+            case Nil => (Nil, names)
+
+    def count1Index(
+                  variable: Identifier,
+                  names: List[String]
+              ): (Identifier, List[String]) =
+        val c = getNewName(Some(variable.name), names.reverse) match
+            case Some(x) => if x.forall(_.isDigit) then x else 0
+            case None    => 0
+        val n = c.toString //s"_$variable$c")
+        (Identifier(n, variable.idn), names) // + (variable.name -> n), count + (variable.name -> c))
+
+    /** Same as count1 but for a list of variables */
+    def countlIndex(
+                  variables: List[Identifier],
+                  names: List[String],
+              ): (List[Identifier], List[String]) =
+        variables.foldLeft((List[Identifier](), names))((st: (List[Identifier], List[String]), v: Identifier) =>
+            st match {
+                case (l, ns) =>
+                    count1Index(v, v.name :: ns) match {
+                        case (v1, ns1) => (v1 :: l, ns1)
+                    }
+            }
+        ) match
+            case (l, ns) => (l.reverse, ns)

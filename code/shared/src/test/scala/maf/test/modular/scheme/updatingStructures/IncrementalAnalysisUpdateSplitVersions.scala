@@ -177,7 +177,8 @@ class IncrementalAnalysisUpdateSplitVersions extends AnyPropSpec:
     val benchmarksIfs: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/benchmarks/ifs")()
     val benchmarksNames: Set[String] = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/benchmarks/renamings")()
 
-    val modFbenchmarks: Set[String] = gambitGenerated ++ gambitGeneratedContextInsensitive ++ others ++ manualScopeChanges ++ benchmarksScopes ++ benchmarksIfs ++ benchmarksNames
+   // val modFbenchmarks: Set[String] = gambitGenerated ++ gambitGeneratedContextInsensitive ++ others ++ manualScopeChanges ++ benchmarksScopes ++ benchmarksIfs ++ benchmarksNames
+    val modFbenchmarks: Set[String] = benchmarksScopes ++ benchmarksNames
 
     modFbenchmarks.foreach(benchmark =>
         val twoPrograms = CSchemeParserWithSplitter.parseProgram(Reader.loadFile(benchmark))
