@@ -186,19 +186,19 @@ object SchemeChangeRenamerForPatterns:
                     renameListIndex(bindings.map(_._2), names) match
                         case (exps, names2) =>
                             renameListIndex(body, names1) match
-                                case (body1, names3) => (SchemeLet(variables.zip(exps), body1, pos) ,names)
+                                case (body1, names3) => (SchemeLet(bindings.map(e => Identifier("_", NoCodeIdentity)).zip(exps), body1, pos) ,names)
         case SchemeLetStar(bindings, body, pos) =>
             renameLetStarBindingsIndex(bindings, names) match
                 case (bindings1, names1) =>
                     renameListIndex(body, names1) match
-                        case (body1, count2) => (SchemeLetStar(bindings1, body1, pos), names)
+                        case (body1, count2) => (SchemeLetStar(bindings.map(e => Identifier("_", NoCodeIdentity)).zip(bindings1.map(_._2)), body1, pos), names)
         case SchemeLetrec(bindings, body, pos) =>
             countlIndex(bindings.map(_._1), names) match
                 case (variables, names1) =>
                     renameListIndex(bindings.map(_._2), names1) match
                         case (exps, count2) =>
                             renameListIndex(body, names1) match
-                                case (body1, count3) => (SchemeLetrec(variables.zip(exps), body1, pos), names)
+                                case (body1, count3) => (SchemeLetrec(renameLetrecBindings(variables).zip(exps), body1, pos), names)
         case SchemeSet(variable, value, pos) =>
             renameIndex(value, names) match
                 case (value1, count1) =>
@@ -250,6 +250,9 @@ object SchemeChangeRenamerForPatterns:
                                     case (rest1, names2) =>
                                         ((v1, e1) :: rest1, names2)
             case Nil => (Nil, names)
+
+    def renameLetrecBindings(bindings: List[Identifier]): List[Identifier] =
+        bindings.zipWithIndex.map(e => Identifier(e._2.toString, e._1.idn))
 
     def count1Index(
                   variable: Identifier,

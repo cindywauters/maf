@@ -130,7 +130,7 @@ class SchemeChangePatterns:
                 (oldFun.f, newFun.f) match
                     case (SchemeVar(oldId), _) if oldId.name == "not" =>
                         if comparePartialCondAndBranches(oldFun.args, List(newFun), oldIf.cons, oldIf.alt, newIf.cons, newIf.alt) then
-                            println("119")
+                          //  println("119")
                             Some(List(), (oldFun.args.head, newFun))
                         else None
                     /*     case (_, SchemeVar(newId)) if newId.name == "not" =>
@@ -141,8 +141,8 @@ class SchemeChangePatterns:
                     case (SchemeVar(oldId), SchemeVar(newId)) =>
                         if oldId.name == ">=" && newId.name == "<" || oldId.name == ">" && newId.name == "<=" then //oldId.name == "<=" && newId.name == ">"|| oldId.name == ">" && newId.name == "<=" || oldId.name == ">=" && newId.name == "<" || oldId.name == "<" && newId.name == ">=" then
                             if comparePartialCondAndBranches(oldFun.args, newFun.args, oldIf.cons, oldIf.alt, newIf.cons, newIf.alt) then
-                                println(prims)
-                                println(newId.name)
+                            //    println(prims)
+                            //    println(newId.name)
                                 return Some(prims.filter(e => e.name == newId.name), (oldFun, newFun))
                         None
                     case (_, _) =>
@@ -152,7 +152,7 @@ class SchemeChangePatterns:
                     case SchemeVar(oldId) =>
                         if oldId.name == "not" then
                             if comparePartialCondAndBranches(oldFun.args, List(newVal), oldIf.cons, oldIf.alt, newIf.cons, newIf.alt) then
-                                println("148")
+                             //   println("148")
                                 return Some(List(), (oldFun.args.head, newVal))
                         None
                     case _ => None
@@ -222,19 +222,22 @@ class SchemeChangePatterns:
                 case _ =>
             var addToMaybe: List[Expression] = List()
             old.subexpressions.foreach(oe =>
-                nw.subexpressions.find(ne => oe.idn == ne.idn) match
+                nw.subexpressions.find(ne => oe.idn == ne.idn && ne.label == oe.label) match
                     case Some(ne) =>
                         if oe.subexpressions.exists(oe => ne.subexpressions.exists(ne => oe.idn == ne.idn)) then
                             findLowestChangedSubExpressions(oe, ne)
                         else if oe != ne then
                             findLowestChangedSubExpressions(oe, ne)
-                    /*  println("adding to reanalysis")
-                      println(oe.idn)
-                      println(ne.idn)
-                      reanalyse = reanalyse.::((Some(oe), Some(ne)))*/
                     case None =>
-                        deletes = deletes.::(oe)
-                            addToMaybe = addToMaybe.::(oe))
+                        nw.subexpressions.find(ne => oe.idn == ne.idn) match
+                            case Some(ne) =>
+                                if oe.subexpressions.exists(oe => ne.subexpressions.exists(ne => oe.idn == ne.idn)) then
+                                    findLowestChangedSubExpressions(oe, ne)
+                                else if oe != ne then
+                                    findLowestChangedSubExpressions(oe, ne)
+                            case None =>
+                                deletes = deletes.::(oe)
+                                addToMaybe = addToMaybe.::(oe))
             nw.subexpressions.foreach(ne =>
                 if !old.subexpressions.exists(oe => oe.idn == ne.idn) then
                     inserts = inserts.::(ne)
@@ -274,7 +277,8 @@ class SchemeChangePatterns:
                         needed_prims = needed_prims.::(ne._1))
                 relatedBindings.foreach(related =>
                     findLowestChangedSubExpressions(related._1, related._2))
-                deletes.foreach(deleted =>
+                if refactoring then
+                    deletes.foreach(deleted =>
                     inserts.find(i => i.eql(deleted)) match
                         case Some(inserted) =>
                             val oldEnv = allOldScopes.get(deleted)
@@ -292,8 +296,8 @@ class SchemeChangePatterns:
                                         scopeChanges = scopeChanges + ((deleted, oenv) -> (inserted, nenv))
                                 case _ =>
                         case _ =>)
-                println("reanalyse")
-                reanalyse.foreach(println)
+              //  println("reanalyse")
+              //  reanalyse.foreach(println)
                 maybeReanalyse.foreach(e => e match
                     case (a: Identifier, (Some(oldEncapsulating), Some(nwEncapsulating))) =>
                     case (a: SchemeExp, (Some(oldEncapsulating: Expression), Some(nwEncapsulating: Expression))) if !refactoring || !scopeChanges.exists(e => e._1._1 == a) =>
@@ -303,13 +307,13 @@ class SchemeChangePatterns:
                 if refactoring && (rename.nonEmpty || scopeChanges.nonEmpty) then
                     checkAffectedEnvs()
                 reanalyse = reanalyse//.appendedAll(deletes)//.appendedAll(inserts)
-                reanalyse.foreach(println)
+                println(reanalyse.size)
                 println("rename")
                 println(rename.size)
                 println("ifs")
-                println(ifs)
+                println(ifs.size)
                 println("scope changes")
-                println(scopeChanges)
+                println(scopeChanges.size)
                 differentChanges(reanalyse, rename, ifs, scopeChanges, allNewScopes)
             case _ => differentChanges(reanalyse, rename, ifs, scopeChanges, allNewScopes)
 

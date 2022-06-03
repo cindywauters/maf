@@ -50,6 +50,8 @@ class IncrementalUpdateDatastructures {
   var lexEnvsBuildEnvs: mutable.LongMap[Map[String, Address]] = mutable.LongMap()
   var notToUpdate: List[Expression] = List()
   var toAddComponents: Set[SchemeModFComponent] = Set()
+  var withRefactoring = true
+  var cachedValues: mutable.LongMap[TypeValue] = mutable.LongMap()
 
   // Call this function when you want to update all the datastructures of an analysis
   // Arguments are an analysis and the expression that is being analysed
@@ -70,6 +72,7 @@ class IncrementalUpdateDatastructures {
  //   allExprs = exp
 
     notToUpdate = doNotUpdate
+    withRefactoring = scopeChangesExprs.nonEmpty || renamings.nonEmpty || ifs.nonEmpty
 
     // get all expressions that exist within an old expression and in a new expression and zip them together to know what has changed to what
     val allOldExps = changedExpressions.flatMap(e => findAllSubExps(e._1)).toList//.appendedAll(otherChanges.map(_._1))
@@ -140,7 +143,7 @@ class IncrementalUpdateDatastructures {
           (i._2.head, mapping)).toMap
 
     a match
-      case analysis: IncrementalGlobalStore[Expression] =>//if renamings.nonEmpty || ifs.nonEmpty || scopeChanges.nonEmpty => // Update the store
+      case analysis: IncrementalGlobalStore[Expression] => //if renamings.nonEmpty || ifs.nonEmpty || scopeChanges.nonEmpty => // Update the store
         updateStore(analysis)
       case _ =>
     updateDependencies(a) // Update the dependencies
@@ -193,7 +196,6 @@ class IncrementalUpdateDatastructures {
 
     toAddComponents.foreach(c =>
         a.addToWorkList(cachedComponents.getOrElse(c.hashCode().toLong, c).asInstanceOf[a.Component])
-
     )
     true
 
@@ -220,10 +222,10 @@ class IncrementalUpdateDatastructures {
         case key: VarAddr =>
           val newValue = getNewValues(Some(key), a, oldValue)
           insertInStore(a, key, getNewVarAddr(a, key), oldValue, newValue)
-        case key: RetAddr =>
+        case key: RetAddr =>//if withRefactoring =>
           val newValue = getNewValues(Some(key), a, oldValue)
           insertInStore(a, key, getNewRetAddr(a, key), oldValue, newValue)
-        case key: PtrAddr =>
+        case key: PtrAddr => //if withRefactoring =>
           val newValue = getNewValues(Some(key), a, oldValue)
           insertInStore(a, key, getNewPointerAddr(a, key), oldValue, newValue)
         case _ =>
@@ -243,6 +245,7 @@ class IncrementalUpdateDatastructures {
             case k: VarAddr =>
               insertInDeps(a, addrDep, addrDep.copy(addr = getNewVarAddr(a, k)), oldValue, newValue)
             case k: RetAddr =>
+         //     if !refactoring && allNewLexicalEnvs.contains()
               insertInDeps(a, addrDep, addrDep.copy(addr = getNewRetAddr(a, k)), oldValue, newValue)
             case k: PtrAddr =>
               insertInDeps(a, addrDep, addrDep.copy(addr = getNewPointerAddr(a, k)), oldValue, newValue)
@@ -320,8 +323,7 @@ class IncrementalUpdateDatastructures {
   //  or if there is a new key (in this case: remove the old key)
   def insertInStore(a: IncrementalGlobalStore[Expression], oldKey: Address, newKey: Address, oldValue: a.Value, newValue: a.Value): Unit =
     if newKey.equals(oldKey) then
-      if !newValue.equals(oldValue) then
-        a.store = a.store + (oldKey -> newValue)
+      a.store = a.store + (oldKey -> newValue)
     else
       a.store = a.store - oldKey
       a.store = a.store + (newKey -> newValue)
@@ -331,8 +333,7 @@ class IncrementalUpdateDatastructures {
   //  or if there is a new key (in this case: remove the old key)
   def insertInDeps(a: IncrementalModAnalysis[Expression], oldKey: maf.modular.Dependency, newKey: maf.modular.Dependency, oldValue: Set[a.Component], newValue: Set[a.Component]): Unit =
     if newKey.equals(oldKey) then
-      if !newValue.equals(oldValue) then
-        a.deps = a.deps + (oldKey -> newValue)
+      a.deps = a.deps + (oldKey -> newValue)
     else
       a.deps = a.deps - oldKey
       a.deps = a.deps + (newKey -> newValue)
@@ -344,8 +345,10 @@ class IncrementalUpdateDatastructures {
     var newCtx = updateCtx(a, addr.ctx)
     if changedVars contains addr.id then
       val newIdn = changedVars.getOrElse(addr.id, addr.id)
+      if allScopeChanges.nonEmpty && newCtx == None && !initialEnvNew.exists(e => e._2.idn == newIdn.idn) then
+          newCtx = Some(NoContext)
       if allScopeChanges.nonEmpty && initialEnvNew.exists(e => e._2.idn == newIdn.idn) then
-        newCtx = None
+          newCtx = None
       val newAddr = addr.copy(id = newIdn, ctx = newCtx)
       newAddr
     else
@@ -414,13 +417,13 @@ class IncrementalUpdateDatastructures {
 
   // See if the expression is an expression that exists within a change expression. If not, nothing needs to happen. If so, it now becomes the expression of the new version
   def getNewPointerAddr(a: IncrementalModAnalysis[Expression], addr: PtrAddr): PtrAddr =
-    val changeToExp = allExpressionsInChange.get(addr.exp)
+    val changeToExp = buildNewExpr(addr.exp)
     val newCtx = updateCtx(a, addr.ctx)
-    changeToExp match
-      case Some(newExp: SchemeExp) =>
-        addr.copy(exp = newExp, ctx = newCtx)
-      case _ =>
-        addr.copy(ctx = newCtx)
+   // changeToExp match
+     // case Some(newExp: SchemeExp) =>
+    addr.copy(exp = changeToExp, ctx = newCtx)
+     // case _ =>
+       // addr.copy(ctx = newCtx)
         //addr.copy(exp = buildNewExpr(addr.exp), ctx = newCtx)
 
   // A value can be either annotated elements or elements. In both cases, we want to get all the values within the elements and update each of them
@@ -465,18 +468,40 @@ class IncrementalUpdateDatastructures {
   def getNewValueType(key: Option[Address], a: IncrementalGlobalStore[Expression], value: TypeValue): TypeValue =
     value match
       case clos : IncrementalSchemeTypeDomain.modularLattice.Clo =>
-        IncrementalSchemeTypeDomain.modularLattice.Clo(clos.closures.map(clos => getNewClosure(a, clos._1, clos._2, key)))
+        if clos.closures.size > 5 then
+          cachedValues.get(value.hashCode().toLong) match
+            case Some(newVal) => return newVal
+            case None =>
+        var newclos = IncrementalSchemeTypeDomain.modularLattice.Clo(clos.closures.map(clos => getNewClosure(a, clos._1, clos._2, key)))
+        if newclos.closures.size > 5 then
+            cachedValues = cachedValues + (value.hashCode().toLong -> newclos)
+        newclos
       case vector: IncrementalSchemeTypeDomain.modularLattice.Vec =>
+        cachedValues.get(value.hashCode().toLong) match
+          case Some(newVal) => return newVal
+          case None =>
         val newElementsVector = vector.elements.map((k, vecelem) =>
           (k, getNewValues(key, a, vecelem)))
-        IncrementalSchemeTypeDomain.modularLattice.Vec(size = vector.size, elements = newElementsVector.asInstanceOf[vector.elements.type])
+        var newVec = IncrementalSchemeTypeDomain.modularLattice.Vec(size = vector.size, elements = newElementsVector.asInstanceOf[vector.elements.type])
+        cachedValues = cachedValues + (value.hashCode().toLong -> newVec)
+        newVec
       case pointer: IncrementalSchemeTypeDomain.modularLattice.Pointer =>
-        IncrementalSchemeTypeDomain.modularLattice.Pointer(pointer.ptrs.map(p => p match
+        cachedValues.get(value.hashCode().toLong) match
+          case Some(newVal) => return newVal
+          case None =>
+        var newPointer = IncrementalSchemeTypeDomain.modularLattice.Pointer(pointer.ptrs.map(p => p match
           case pa: PtrAddr => getNewPointerAddr(a, pa)))
+        cachedValues = cachedValues + (value.hashCode().toLong -> newPointer)
+        newPointer
       case cons: IncrementalSchemeTypeDomain.modularLattice.Cons =>
+        cachedValues.get(value.hashCode().toLong) match
+          case Some(newVal) => return newVal
+          case None =>
         val newcar = getNewValues(key, a, cons.car).asInstanceOf[cons.car.type]
         val newcdr = getNewValues(key, a, cons.cdr).asInstanceOf[cons.cdr.type]
-        IncrementalSchemeTypeDomain.modularLattice.Cons(newcar, newcdr)
+        var newCons = IncrementalSchemeTypeDomain.modularLattice.Cons(newcar, newcdr)
+        cachedValues = cachedValues + (value.hashCode().toLong -> newCons)
+        newCons
       case _ =>
         value
 
@@ -506,7 +531,7 @@ class IncrementalUpdateDatastructures {
     var newEnv: Map[String, Address] = Map()
     val newEnvIds: (Identifier, Map[String, Identifier]) = allNewLexicalEnvs.getOrElse(eqlLam._2, (Identifier("", NoCodeIdentity), Map()))
     eqlLam._2.fv.foreach(fv =>
-      if allPrimitives.contains(fv) && !newEnvIds._2.contains(fv) then
+      if allPrimitives.contains(fv) && !newEnvIds._2.contains(fv) && !oldEnv.content.contains(fv) then // Check for oldEnv is necessary if there is, for example, "vector" used as a variable rather than a primitive
         newEnv = newEnv + (fv -> PrmAddr(fv))
       else oldEnv.content.get(fv) match
         case Some(varAddr: VarAddr) =>
@@ -540,13 +565,17 @@ class IncrementalUpdateDatastructures {
                             initialEnvNew = initialEnvNew + (oldVar.id.name -> oldVar.id)
                         newCtx
                     case _ =>
-                        if initialEnvNew.exists(e => e._2.idn == identifier.idn) then
-                            None
-                        else Some(NoContext)
+                        changedVars.find((k , v) => v.idn == identifier.idn) match
+                            case Some(oldId) =>
+                                oldEnv.content.get(oldId._1.name) match
+                                    case Some(varAddr: VarAddr) =>
+                                        varAddr.ctx
+                            case None =>  if initialEnvNew.exists(e => e._2.idn == identifier.idn) then None else Some(NoContext)
               newEnv = newEnv + (fv -> maf.modular.scheme.VarAddr(identifier, newCtx))
             case None =>
-              println(expr)
-              println(fv))
+              /*println(expr)
+              println(fv)*/
+    )
             //  throw new RuntimeException("please provide correct scopes to the environment builder"))
     lexEnvsBuildEnvs = lexEnvsBuildEnvs + ((expr, oldEnv).hashCode().toLong -> newEnv)
     newEnv

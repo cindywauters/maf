@@ -13,8 +13,8 @@ trait UpdateIncrementalSchemeModFBigStepSemantics extends IncrementalSchemeModFB
     trait UpdateIncrementalSchemeModFBigStepIntra extends IncrementalSchemeModFBigStepIntra:
         override protected def eval(exp: SchemeExp): EvalM[Value] = exp match
             case e if version == Old =>
-                registerComponent(e, component)
                 super.eval(e)
             case e if version == New =>
-                registerComponent(e, component)
-                super.eval(e)
+                equivalentLams.get(e) match
+                    case Some(expr) => super.eval(expr.asInstanceOf[SchemeExp])
+                    case None => super.eval(e)

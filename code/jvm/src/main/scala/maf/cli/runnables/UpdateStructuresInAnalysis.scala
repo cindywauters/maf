@@ -63,10 +63,10 @@ object UpdateStructuresInAnalysis extends App:
         // Analysis from soundness tests.
         def baseNoUpdates(program: SchemeExp) = new ModAnalysis[SchemeExp](program)
             with StandardSchemeModFComponents
-            with SchemeModFFullArgumentSensitivity
+            //with SchemeModFFullArgumentSensitivity
             //with SchemeModFCallSiteSensitivity
             //with SchemeModFFullArgumentCallSiteSensitivity
-            //with SchemeModFNoSensitivity
+            with SchemeModFNoSensitivity
             with SchemeModFSemanticsM
             with LIFOWorklistAlgorithm[SchemeExp]
             with IncrementalSchemeModFBigStepSemantics
@@ -89,8 +89,8 @@ object UpdateStructuresInAnalysis extends App:
             with LIFOWorklistAlgorithm[SchemeExp]
             with IncrementalSchemeModFBigStepSemantics
             with IncrementalSchemeTypeDomain
-            with IncrementalGlobalStore[SchemeExp]
-            // with IncrementalGlobalStoreWithUpdate[SchemeExp]
+           // with IncrementalGlobalStore[SchemeExp]
+            with IncrementalGlobalStoreWithUpdate[SchemeExp]
         {
             var configuration: IncrementalConfiguration = noOptimisations
             override def intraAnalysis(
@@ -168,7 +168,7 @@ object UpdateStructuresInAnalysis extends App:
                     case Some(updatedValue) => updatedValue.==(v)
                     case _ => false).toString)
 
-            /* storeWithoutUpdate.foreach((k, v) =>
+            storeWithoutUpdate.foreach((k, v) =>
                storeWithUpdate.get(k) match
                  case Some(updatedValue) =>
                    if updatedValue.!=(v) then
@@ -195,8 +195,8 @@ object UpdateStructuresInAnalysis extends App:
                          println(lam.toString + " " + env.toString + " " + oldCtx.toString)
                    case _ =>
              )
-       */
-            /*    println()
+
+                println()
           
                 //println("Dependencies with updating: " + depsWithUpdate.toString)
                 //  println("Dependencies with regular reanalysis: " + depsWithoutUpdate.toString)
@@ -417,7 +417,7 @@ object UpdateStructuresInAnalysis extends App:
                   if !visitedWithoutUpdate.contains(e) then
                     e match
                       case SchemeModFComponent.Call((lam: SchemeLambdaExp, env: BasicEnvironment[_]), oldCtx: maf.modular.scheme.modf.ArgContext) =>
-                        println("missing in reanalysis: "))// + e.toString()))*/
+                        println("missing in reanalysis: "))// + e.toString()))
 
             val update = new IncrementalUpdateDatastructures
 
@@ -439,9 +439,9 @@ object UpdateStructuresInAnalysis extends App:
 
     val modConcbenchmarks: List[String] = List()
     //val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/testfile.scm")
-    val modFbenchmarks: List[String] = List("test/changes/scheme/multiple-dwelling (fine).scm")
+    //val modFbenchmarks: List[String] = List("test/changes/scheme/multiple-dwelling (fine).scm")
     //val modFbenchmarks: List[String] = List("test/changeDetectionTest/testsWithUpdate/findScopeChanges.scm")
-    //val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/array1.scm")
+    val modFbenchmarks: List[String] = List("test/changeDetectionTest/mixOfChanges/R5RS/gambit/array1.scm")
     // val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm", "test/changeDetectionTest/onlyConsistentRenaming/Vectors.scm", "test/changeDetectionTest/onlyConsistentRenaming/Lists.scm")
     //val modFbenchmarks: List[String] = List("test/changeDetectionTest/ConRenamingLambdas.scm")
     //val modFbenchmarks: List[String] = List("test/changeDetectionTest/onlyConsistentRenaming/symbols.scm")

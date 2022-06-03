@@ -17,9 +17,10 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
     var timeUpdatingStructures: Long = 0
     var timeIncrementalReanalysis: Long = 0
 
+    var equivalentLams: Map[Expression, Expression] = Map()
+
     def getTimes(): String =
         s"With updating refactorings: $withUpdating \nTime finding changes in program: $timeFindingChanges \nTime updating datastructures: $timeUpdatingStructures \nTime incremental reanalysis: $timeIncrementalReanalysis"
-
 
     override def updateAnalysis(timeout: Timeout.T): Unit =
         val finder = new SchemeChangePatterns
@@ -47,6 +48,7 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
                 case (expr: Expr, Some(other: Expr)) =>
                    // dontUpdate = dontUpdate.::(expr)
                 case (expr: Expr, _) =>)
+            equivalentLams = affectedLambdasPairs.toMap
             if withUpdating then
                 this match
                     case a: IncrementalModAnalysis[Expression] =>
@@ -113,7 +115,7 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
                 addToWorkList(initialComponent)
             if finder.deletes.nonEmpty && finder.deletes.size != changes.scopeChanges.size then  // Necessary because top-level functions might have been added
                 addToWorkList(initialComponent)
-        println(workList)
+       // println(workList)
         val beforeUpdateAnalysis = System.nanoTime
-        analyzeWithTimeout(timeout)
+       // analyzeWithTimeout(timeout)
         timeIncrementalReanalysis = System.nanoTime - beforeUpdateAnalysis

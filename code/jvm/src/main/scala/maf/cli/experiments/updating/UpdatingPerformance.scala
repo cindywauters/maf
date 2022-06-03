@@ -60,8 +60,8 @@ object UpdatingPerformance extends App:
     var scopeChangesBenchmarks = "test/changeDetectionTest/benchmarks/scope changes"
     var ifsBenchmarks = "test/changeDetectionTest/benchmarks/ifs"
 
-    var warmup = 10
-    var rounds = 25
+    var warmup = 10//10
+    var rounds = 25//25
 
     def timeout(): Timeout.T = Timeout.start(Duration(10, MINUTES))
 
@@ -173,7 +173,7 @@ object UpdatingPerformance extends App:
             val filename = fullfilename(4)
             writeToFile = "benchOutput/UpdatingPerformance/" + dir + "/" + filename + ".csv"
 
-        warmUp("initial analysis", timeout => {
+      /*  warmUp("initial analysis", timeout => {
             val initial = AnalysisType(oldProgram, newProgram)
             initial.analyzeWithTimeout(timeout)
         })
@@ -198,7 +198,7 @@ object UpdatingPerformance extends App:
                 newOnly.version = New
                 newOnly
             },
-            (timeout, analysis) => analysis.analyzeWithTimeout(timeout))
+            (timeout, analysis) => analysis.analyzeWithTimeout(timeout)) */
 
 
         val initialAnalysis = AnalysisType(oldProgram, newProgram)
@@ -248,6 +248,19 @@ object UpdatingPerformance extends App:
         bw.write(fullString)
         bw.close()
 
+        val initialFull = resultAverages.get("Intial analysis", "avg full").getOrElse(0).toString
+        val newFull = resultAverages.get("New analysis", "avg full").getOrElse(0).toString
+        val noUp = resultAverages.get("No updating", "avg full").getOrElse(0).toString
+        val wiUp = resultAverages.get("With updating", "avg full").getOrElse(0).toString
+
+        if fullfilename != null then
+            val dir = fullfilename(3)
+            val filename = fullfilename(4)
+            val outFileAvg = new File("benchOutput/UpdatingPerformance/avgs2.csv")
+            val bwavg = new BufferedWriter(new FileWriter(outFileAvg, true))
+            bwavg.write("\n" + dir.toString + filename.toString + "," + initialFull + "," + newFull + "," + noUp + "," + wiUp)
+            bwavg.close()
+
         println(resultAverages.prettyString())
 
 
@@ -256,36 +269,37 @@ object UpdatingPerformance extends App:
     //onBenchmark("test/changeDetectionTest/benchmarks/renamings/browse.scm")
    // onBenchmark("test/changeDetectionTest/benchmarks/Scope Changes/browse.scm")
     //val benchmarks = SchemeBenchmarkPrograms.fromFolder("test/changeDetectionTest/benchmarks/renamings")()
-    val benchmarks: List[String] = List(/*"test/changeDetectionTest/benchmarks/scope changes/nbody-processed.scm",
-       "test/changeDetectionTest/benchmarks/ifs/nbody-processed.scm",
-       "test/changeDetectionTest/benchmarks/renamings/nbody-processed.scm",
-        "test/changeDetectionTest/benchmarks/scope changes/nboyer.scm",
-        "test/changeDetectionTest/benchmarks/ifs/nboyer.scm",
-        "test/changeDetectionTest/benchmarks/renamings/nboyer.scm",
+    val benchmarks: List[String] = List(//"test/changeDetectionTest/benchmarks/scope changes/nbody-processed.scm",
+      // "test/changeDetectionTest/benchmarks/ifs/nbody-processed.scm",
+      // "test/changeDetectionTest/benchmarks/renamings/nbody-processed.scm",
+    ////    "test/changeDetectionTest/benchmarks/scope changes/nboyer.scm",
+     //   "test/changeDetectionTest/benchmarks/ifs/nboyer.scm",
+      //  "test/changeDetectionTest/benchmarks/renamings/nboyer.scm",
+      //  "test/changeDetectionTest/benchmarks/renamings/nboyer.scm",
         "test/changeDetectionTest/benchmarks/scope changes/peval.scm",
         "test/changeDetectionTest/benchmarks/ifs/peval.scm",
         "test/changeDetectionTest/benchmarks/renamings/peval.scm",
-        "test/changeDetectionTest/benchmarks/scope changes/mceval.scm",
-        "test/changeDetectionTest/benchmarks/ifs/mceval.scm",
-        "test/changeDetectionTest/benchmarks/renamings/mceval.scm",
+    /*    "test/changeDetectionTest/benchmarks/scope changes/mceval.scm",
+         "test/changeDetectionTest/benchmarks/ifs/mceval.scm",
+         "test/changeDetectionTest/benchmarks/renamings/mceval.scm",
         "test/changeDetectionTest/benchmarks/scope changes/browse.scm",
-        "test/changeDetectionTest/benchmarks/ifs/browse.scm",
-        "test/changeDetectionTest/benchmarks/renamings/browse.scm",
-        "test/changeDetectionTest/benchmarks/scope changes/freeze.scm",
-        "test/changeDetectionTest/benchmarks/ifs/freeze.scm",
-        "test/changeDetectionTest/benchmarks/renamings/freeze.scm",
-        "test/changeDetectionTest/benchmarks/scope changes/matrix.scm",
-        "test/changeDetectionTest/benchmarks/ifs/matrix.scm",
-        "test/changeDetectionTest/benchmarks/renamings/matrix.scm",
-        "test/changeDetectionTest/benchmarks/scope changes/leval.scm",
-        "test/changeDetectionTest/benchmarks/ifs/leval.scm",
-        "test/changeDetectionTest/benchmarks/renamings/leval.scm",
-        "test/changeDetectionTest/benchmarks/scope changes/multiple-dwelling.scm",
-        "test/changeDetectionTest/benchmarks/ifs/multiple-dwelling.scm",*/
-        "test/changeDetectionTest/benchmarks/renamings/multiple-dwelling.scm",
-        "test/changeDetectionTest/benchmarks/scope changes/machine-simulator.scm",
-        "test/changeDetectionTest/benchmarks/ifs/machine-simulator.scm",
-        "test/changeDetectionTest/benchmarks/renamings/machine-simulator.scm"
+         "test/changeDetectionTest/benchmarks/ifs/browse.scm",
+         "test/changeDetectionTest/benchmarks/renamings/browse.scm",*/
+         "test/changeDetectionTest/benchmarks/scope changes/freeze.scm",
+         "test/changeDetectionTest/benchmarks/ifs/freeze.scm",
+         "test/changeDetectionTest/benchmarks/renamings/freeze.scm",
+  /*       "test/changeDetectionTest/benchmarks/scope changes/matrix.scm",
+         "test/changeDetectionTest/benchmarks/ifs/matrix.scm",
+         "test/changeDetectionTest/benchmarks/renamings/matrix.scm",
+         "test/changeDetectionTest/benchmarks/scope changes/leval.scm",
+         "test/changeDetectionTest/benchmarks/ifs/leval.scm",
+         "test/changeDetectionTest/benchmarks/renamings/leval.scm",
+         "test/changeDetectionTest/benchmarks/scope changes/multiple-dwelling.scm",
+         "test/changeDetectionTest/benchmarks/ifs/multiple-dwelling.scm",
+         "test/changeDetectionTest/benchmarks/renamings/multiple-dwelling.scm",*/
+         "test/changeDetectionTest/benchmarks/scope changes/machine-simulator.scm",
+         "test/changeDetectionTest/benchmarks/ifs/machine-simulator.scm",
+         "test/changeDetectionTest/benchmarks/renamings/machine-simulator.scm"
    )
     benchmarks.foreach(file =>
         onBenchmark(file)

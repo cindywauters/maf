@@ -13,7 +13,7 @@ object CSchemeParserWithSplitter:
   /** Parse a string representing a CScheme program. */
   def parse(s: String, tag: PTag = noTag): (List[SchemeExp], List[SchemeExp]) =
     val bothVersions = SExpParser.parse(s, tag).map(ExtractOldNew.getOldNewVersions)
-    println(bothVersions)
+    //println(bothVersions)
     val oldVersion = bothVersions.map(_._1).filter(e => e match
       case SExpTombstone(_) => false
       case _ => true).map(CSchemeParser.compile)
