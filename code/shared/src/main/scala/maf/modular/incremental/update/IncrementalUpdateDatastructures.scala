@@ -225,7 +225,7 @@ class IncrementalUpdateDatastructures {
         case key: RetAddr =>//if withRefactoring =>
           val newValue = getNewValues(Some(key), a, oldValue)
           insertInStore(a, key, getNewRetAddr(a, key), oldValue, newValue)
-        case key: PtrAddr => //if withRefactoring =>
+        case key: PtrAddr if withRefactoring =>
           val newValue = getNewValues(Some(key), a, oldValue)
           insertInStore(a, key, getNewPointerAddr(a, key), oldValue, newValue)
         case _ =>
