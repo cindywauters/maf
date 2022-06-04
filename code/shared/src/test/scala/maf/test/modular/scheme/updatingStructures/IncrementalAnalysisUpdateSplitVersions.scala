@@ -131,17 +131,18 @@ class IncrementalAnalysisUpdateSplitVersions extends AnyPropSpec:
         newOnly.analyzeWithTimeout(standardTimeout())
 
         withUpdates.analyzeWithTimeout(standardTimeout())
-       // withUpdates.version = New
-        var without = withoutUpdates.deepCopy()
+        withUpdates.version = New
+        var without = withUpdates.deepCopy()
         withUpdates.withUpdating = true
         withUpdates.updateAnalysis(standardTimeout())
+        checkSubsumptionForUpdate(newOnly, withUpdates)
 
        // without.analyzeWithTimeout(standardTimeout())
-        withoutUpdates.version = New
+       // withoutUpdates.version = New
         without.withUpdating = false
         without.updateAnalysis(standardTimeout())
 
-        checkSubsumptionForUpdate(newOnly, withUpdates)
+
         checkSubsumptionForUpdate(newOnly, without)
 // checkSubsumptionForUpdate(twoVersionsWithUpdate, twoVersions)
 

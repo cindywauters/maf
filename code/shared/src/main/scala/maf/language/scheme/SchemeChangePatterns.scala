@@ -320,13 +320,14 @@ class SchemeChangePatterns:
     def checkAffectedEnvs(): Unit =
         var allToCheckVar: Map[Identifier, Identifier] = rename.flatMap(_._2._2).toMap ++ scopeChanges.map((old, nw) => (nw._2._1, old._2._1)).toMap
         allOldScopes.foreach((e, env) =>
-            allNewScopes.get(e) match
-                case Some(newid, newenv) =>
-                    val allToCheckOld = env._2.filter(fv => allToCheckVar.exists(e => e._2 == fv._2))
-                    val allToCheckNew = newenv.filter(fv => allToCheckVar.contains(fv._2))
-                    if allToCheckOld.size != allToCheckNew.size then
-                        reanalyse = reanalyse.::(Some(e), Some(e))
-                case _ =>)
+            if !allNewScopes.contains(e) then
+                allNewScopes.find((ne, nenv) => e.idn == ne.idn && e.label == ne.label) match
+                    case Some(newid, newenv) =>
+                        val allToCheckOld = env._2.filter(fv => allToCheckVar.exists(e => e._2 == fv._2))
+                        val allToCheckNew = newenv._2.filter(fv => allToCheckVar.contains(fv._2))
+                        if allToCheckOld.size != allToCheckNew.size then
+                            reanalyse = reanalyse.::(Some(e), Some(e))
+                    case _ =>)
 
     var up = new IncrementalUpdateDatastructures
 

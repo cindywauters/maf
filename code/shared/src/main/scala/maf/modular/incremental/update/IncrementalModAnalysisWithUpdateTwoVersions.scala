@@ -117,5 +117,5 @@ trait IncrementalModAnalysisWithUpdateTwoVersions[Expr <: Expression](val second
                 addToWorkList(initialComponent)
        // println(workList)
         val beforeUpdateAnalysis = System.nanoTime
-       // analyzeWithTimeout(timeout)
+        analyzeWithTimeout(timeout)
         timeIncrementalReanalysis = System.nanoTime - beforeUpdateAnalysis
